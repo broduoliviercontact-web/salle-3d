@@ -48,6 +48,7 @@
   <div id="sel">—</div>
   <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (E)</button></div>
   <div class="row"><button id="parent">Parent ↑</button><button id="dup">Dupliquer</button><button id="del">Suppr.</button></div>
+  <div class="row"><button id="hide">Masquer (H)</button><button id="showAll">Tout réafficher</button></div>
   <div class="row"><label class="cb"><input type="checkbox" id="snap" checked> Magnétisme 0,5 m / 15°</label></div>
 
   <h2>Vue</h2>
@@ -65,7 +66,7 @@
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
-<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · G/B : monter/descendre · Maj : rapide · T/E : déplacer/tourner · C : centrer · Suppr · Échap</div>
+<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · G/B : monter/descendre · Maj : rapide · T/E : déplacer/tourner · H : masquer · C : centrer · Suppr · Échap</div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -303,6 +304,9 @@ renderer.domElement.addEventListener('pointerup', e => {
   select(o);
 });
 $('parent').onclick = () => { if (selected && selected.parent && selected.parent !== venue && selected.parent !== props) select(selected.parent); };
+// masquer un élément de maquette gênant (gardé dans les setups via la liste des objets masqués)
+$('hide').onclick = () => { if (!selected) return; const o = selected; select(null); o.visible = false; refreshModels(); };
+$('showAll').onclick = () => { venue.traverse(o => o.visible = true); document.querySelectorAll('[data-env]').forEach(b => b.classList.add('on')); refreshModels(); };
 $('del').onclick = () => { if (!selected) return; const o = selected; select(null); o.removeFromParent(); };
 $('dup').onclick = () => {
   if (!selected) return;
@@ -315,6 +319,7 @@ addEventListener('keydown', e => {
   if (e.key === 't') setMode('translate'); if (e.key === 'e') setMode('rotate');
   if (e.key === 'Delete' || e.key === 'Backspace') $('del').click();
   if (e.key === 'Escape') select(null);
+  if (e.key === 'h') $('hide').click();
   if (e.key === 'c' && selected) frame(selected);
 });
 

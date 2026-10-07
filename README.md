@@ -20,6 +20,7 @@ Puis ouvrir http://localhost:8766. Il n'y a ni installation ni build : tout tien
 | Se déplacer | ZQSD, WASD ou flèches · G/B : monter/descendre · Maj : rapide |
 | Déplacer / tourner la sélection | T / E (magnétisme 0,5 m / 15°) |
 | Centrer sur la sélection | C |
+| Masquer la sélection | H (bouton « Tout réafficher » pour annuler) |
 
 **Vue** : les boutons *Murs ext.*, *Toit* et *Panneaux acoustiques* masquent l'enveloppe. La **Coupe** tranche la maquette en longueur, en largeur ou en hauteur. Chaque niveau peut être masqué dans la liste des maquettes.
 

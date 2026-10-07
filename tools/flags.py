@@ -28,5 +28,6 @@ for cw, ch in parts.items():
         for g in ch + [cw]: flags.setdefault(g, "mur")
 # e) à la main : grand voile béton derrière le pignon ouest (gêne la vue, classé intérieur)
 flags["3F3O_FeV16qgEBjHM$JAGE"] = "mur"
+flags["3tOeM$_5rBi8krVINyaNLn"] = "mur"  # « Volume 5 », fond de la salle ouest derrière le parquet de scène
 json.dump(flags, open(FLAGS, "w"), indent=0)
 print(len(flags), "éléments d'enveloppe")
