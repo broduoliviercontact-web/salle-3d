@@ -10,6 +10,8 @@
   body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.4 system-ui,sans-serif; overflow:hidden; }
   #ui { position:fixed; top:0; left:0; bottom:0; width:260px; background:var(--panel); border-right:1px solid var(--line); padding:12px; overflow-y:auto; z-index:2; }
   h1 { font-size:15px; margin:0 0 10px; }
+  summary { cursor:pointer; color:var(--mute); }
+  summary h2 { display:inline; }
   h2 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); margin:16px 0 6px; }
   button, input, select { font:inherit; color:var(--fg); background:#2a2f39; border:1px solid var(--line); border-radius:5px; padding:5px 8px; }
   button { cursor:pointer; } button:hover { border-color:var(--acc); }
@@ -30,9 +32,11 @@
 <div id="ui">
   <h1>Salle 3D — configs de scène</h1>
 
-  <h2>Maquettes (.glb)</h2>
+  <details>
+  <summary><h2>Maquettes et calques</h2></summary>
   <div class="row"><input type="file" id="file" accept=".glb,.gltf" multiple class="grow"></div>
   <ul id="models"></ul>
+  </details>
 
   <h2>Ajouter</h2>
   <div class="row">L <input type="number" id="w" value="12" step="0.5"> P <input type="number" id="d" value="8" step="0.5"> H <input type="number" id="h" value="1" step="0.1"></div>
