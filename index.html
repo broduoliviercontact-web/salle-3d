@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Salle 3D</title>
+<style>
+  :root { --bg:#16181d; --panel:#1f232b; --line:#333a46; --fg:#e6e8ec; --mute:#9aa3b2; --acc:#f0a53a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.4 system-ui,sans-serif; overflow:hidden; }
+  #ui { position:fixed; top:0; left:0; bottom:0; width:260px; background:var(--panel); border-right:1px solid var(--line); padding:12px; overflow-y:auto; z-index:2; }
+  h1 { font-size:15px; margin:0 0 10px; }
+  h2 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); margin:16px 0 6px; }
+  button, input, select { font:inherit; color:var(--fg); background:#2a2f39; border:1px solid var(--line); border-radius:5px; padding:5px 8px; }
+  button { cursor:pointer; } button:hover { border-color:var(--acc); }
+  button.on { background:var(--acc); color:#111; border-color:var(--acc); }
+  .row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; align-items:center; }
+  .row input[type=number] { width:58px; }
+  .grow { flex:1; }
+  label.cb { display:flex; gap:6px; align-items:center; }
+  #sel { color:var(--acc); min-height:1.4em; }
+  #hint { position:fixed; right:12px; bottom:10px; color:var(--mute); font-size:12px; text-align:right; pointer-events:none; }
+  #drop { position:fixed; inset:0; background:rgba(240,165,58,.15); border:3px dashed var(--acc); display:none; place-items:center; font-size:20px; z-index:5; }
+  ul { list-style:none; padding:0; margin:0; }
+  li { display:flex; gap:6px; align-items:center; margin-bottom:4px; }
+  li span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1>Salle 3D — configs de scène</h1>
+
+  <h2>Maquettes (.glb)</h2>
+  <div class="row"><input type="file" id="file" accept=".glb,.gltf" multiple class="grow"></div>
+  <ul id="models"></ul>
+
+  <h2>Ajouter</h2>
+  <div class="row">L <input type="number" id="w" value="12" step="0.5"> P <input type="number" id="d" value="8" step="0.5"> H <input type="number" id="h" value="1" step="0.1"></div>
+  <div class="row"><button data-add="scene">Scène</button><button data-add="prat">Praticable 2×1</button><button data-add="regie">Régie</button></div>
+  <div class="row"><button data-add="enceinte">Enceinte</button><button data-add="ecran">Écran</button><button data-add="perso">Personne</button></div>
+  <div class="row"><button data-add="vch30">VCH30 ×1</button><button data-add="vch30x2">VCH30 ×2</button><button data-add="vtl218">Sub VTL218</button></div>
+
+  <h2>Sélection</h2>
+  <div id="sel">—</div>
+  <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (E)</button></div>
+  <div class="row"><button id="parent">Parent ↑</button><button id="dup">Dupliquer</button><button id="del">Suppr.</button></div>
+  <div class="row"><label class="cb"><input type="checkbox" id="snap" checked> Magnétisme 0,5 m / 15°</label></div>
+
+  <h2>Vue</h2>
+  <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button></div>
+  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button></div>
+
+  <h2>Coupe</h2>
+  <div class="row"><select id="cutAxis"><option value="">Aucune</option><option value="x">Longueur</option><option value="z">Largeur</option><option value="y">Hauteur (toit)</option></select>
+    <label class="cb"><input type="checkbox" id="cutFlip"> Inverser</label></div>
+  <div class="row"><input type="range" id="cut" class="grow" step="0.25" disabled></div>
+
+  <h2>Setups de salle</h2>
+  <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: frontale 800)"><button id="save">Sauver</button></div>
+  <ul id="cfgs"></ul>
+  <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
+</div>
+<div id="drop">Dépose un fichier .glb</div>
+<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · G/B : monter/descendre · Maj : rapide · T/E : déplacer/tourner · C : centrer · Suppr · Échap</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const $ = id => document.getElementById(id);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x16181d);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
+camera.position.set(25, 18, 30);
+const orbit = new OrbitControls(camera, renderer.domElement);
+orbit.enableDamping = true;
+orbit.zoomToCursor = true; orbit.minDistance = 0.5;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(20, 40, 15); scene.add(sun);
+scene.add(new THREE.GridHelper(100, 100, 0x555c6a, 0x2c313b));
+
+// --- maquettes ---
+const venue = new THREE.Group(); venue.name = 'venue'; scene.add(venue);
+const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/'));
+
+function addModel(name, gltf) {
+  const root = gltf.scene; root.name = name; venue.add(root);
+  refreshModels(); frame(root);
+}
+function loadURL(url, name, then) { loader.load(url + '?t=' + Date.now(), g => { addModel(name, g); then?.(); }, undefined, () => {}); }
+// Bar central, extrudé depuis les contours du DXF (comptoirs 1,10 m, arrière-bars 0,90 m) ; sélectionnable et déplaçable d'un bloc
+function loadBar(url) {
+  fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(pieces => {
+    if (!pieces) return;
+    const all = pieces.flatMap(p => p.pts), c = all.reduce((a, [x, y]) => [a[0] + x / all.length, a[1] + y / all.length], [0, 0]);
+    const bar = new THREE.Group(); bar.name = 'Bar central (DXF)'; bar.userData.sel = 1;
+    for (const p of pieces) {
+      const shape = new THREE.Shape(p.pts.map(([x, y]) => new THREE.Vector2(x - c[0], y - c[1])));
+      const geo = new THREE.ExtrudeGeometry(shape, { depth:p.h, bevelEnabled:false }).rotateX(-Math.PI / 2);
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:p.color })); m.name = p.name; bar.add(m);
+    }
+    bar.position.set(c[0], 0, -c[1]); bar.position.y = floorAt(bar.position);
+    venue.add(bar); refreshModels();
+  });
+}
+// Plan DXF « hall avec scène », déjà recalé sur l'IFC (segments x1,y1,x2,y2 en m) : bâti en rouge, scénographie en jaune
+function loadPlan(url) {
+  fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(data => {
+    if (!data) return;
+    const plan = new THREE.Group(); plan.name = 'Plan hall avec scène (DXF)'; plan.position.y = 0.05;
+    for (const [key, color, name] of [['bati', 0xff3355, 'Bâti (rouge)'], ['scene', 0xffd23f, 'Scénographie (jaune)'], ['equip', 0x3fd2ff, 'Bar, équipements, mobilier (bleu)']]) {
+      if (!data[key]) continue;
+      const seg = data[key], pos = new Float32Array(seg.length / 2 * 3);
+      for (let i = 0, j = 0; i < seg.length; i += 2, j += 3) { pos[j] = seg[i]; pos[j + 2] = -seg[i + 1]; }
+      const geo = new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const l = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color, depthTest:false })); l.renderOrder = 1; l.name = name; plan.add(l); // toujours visible par-dessus la 3D
+    }
+    venue.add(plan); refreshModels();
+  });
+}
+function loadFiles(files) {
+  for (const f of files) f.arrayBuffer().then(buf => loader.parse(buf, '', g => addModel(f.name, g), e => alert('Erreur : ' + e.message)));
+}
+function refreshModels() {
+  $('models').innerHTML = '';
+  venue.children.forEach(m => {
+    const li = document.createElement('li');
+    li.innerHTML = `<input type="checkbox" ${m.visible ? 'checked' : ''}><span title="${m.name}">${m.name}</span><button>✕</button>`;
+    li.children[0].onchange = e => { m.visible = e.target.checked; };
+    li.children[2].onclick = () => { if (selected && isIn(selected, m)) select(null); venue.remove(m); refreshModels(); };
+    $('models').appendChild(li);
+    if (m.children.length > 1 && m.children.length < 40) m.children.forEach(n => {
+      const sub = document.createElement('li'); sub.style.paddingLeft = '18px';
+      sub.innerHTML = `<input type="checkbox" ${n.visible ? 'checked' : ''}><span></span>`;
+      sub.children[1].textContent = n.name.replace(/_/g, ' ');
+      sub.children[0].onchange = e => { n.visible = e.target.checked; };
+      $('models').appendChild(sub);
+    });
+  });
+}
+function isIn(o, root) { for (; o; o = o.parent) if (o === root) return true; return false; }
+function frame(obj) {
+  const b = new THREE.Box3().setFromObject(obj); if (b.isEmpty()) return;
+  const c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3()).length();
+  orbit.target.copy(c); camera.position.copy(c).add(new THREE.Vector3(0.6, 0.45, 0.7).multiplyScalar(s));
+  camera.far = s * 10; camera.updateProjectionMatrix();
+}
+
+// Salle de démo tant qu'aucune maquette n'est chargée (salle.glb est chargé automatiquement s'il existe à côté)
+function demoHall() {
+  const g = new THREE.Group(); g.name = 'Salle de démo';
+  const mat = new THREE.MeshStandardMaterial({ color:0x8a8f99, side:THREE.BackSide, transparent:true, opacity:0.35 });
+  const box = new THREE.Mesh(new THREE.BoxGeometry(40, 12, 25), mat); box.position.y = 6; g.add(box);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 25), new THREE.MeshStandardMaterial({ color:0x3b3f47 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = 0.01; g.add(floor);
+  venue.add(g); refreshModels();
+}
+const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => { loadPlan('plan_scene.json'); loadBar('bar.json'); }) : demoHall()).catch(demoHall);
+$('file').onchange = e => loadFiles(e.target.files);
+addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
+addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });
+addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'none'; loadFiles(e.dataTransfer.files); });
+
+// --- éléments de scène ---
+const ray = new THREE.Raycaster();
+const props = new THREE.Group(); props.name = 'props'; scene.add(props);
+const COLORS = { scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+
+// Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
+const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
+VCH.alpha = Math.atan((VCH.hf - VCH.hb) / 2 / VCH.d); // demi-angle du coin ≈ 14,7°
+function vch30() {
+  const { w, d, hf, hb } = VCH, u = new THREE.Group();
+  // caisson : profil latéral (z avant, y haut) extrudé sur la largeur
+  const prof = new THREE.Shape([[-d / 2, -hb / 2], [d / 2, -hf / 2], [d / 2, hf / 2], [-d / 2, hb / 2]].map(([z, y]) => new THREE.Vector2(z, y)));
+  const body = new THREE.Mesh(new THREE.ExtrudeGeometry(prof, { depth:w, bevelEnabled:false }).rotateY(-Math.PI / 2).translate(w / 2, 0, 0),
+    new THREE.MeshStandardMaterial({ color:0x2b2d31 }));
+  body.add(new THREE.LineSegments(new THREE.EdgesGeometry(body.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
+  // face avant : bouche du pavillon (noire) + arêtes du pavillon vers la gorge
+  const mw = w - 0.06, mh = hf - 0.05, tw = 0.07, th = 0.05, z = d / 2 + 0.002;
+  const mouth = new THREE.Mesh(new THREE.PlaneGeometry(mw, mh), new THREE.MeshStandardMaterial({ color:0x0b0b0c }));
+  mouth.position.z = z;
+  const c = (x, y) => [x, y, z + 0.001], pts = [];
+  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) pts.push(...c(sx * mw / 2, sy * mh / 2), ...c(sx * tw / 2, sy * th / 2));
+  const r = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]];
+  for (let i = 0; i < 4; i++) pts.push(...c(r[i][0] * tw / 2, r[i][1] * th / 2), ...c(r[i + 1][0] * tw / 2, r[i + 1][1] * th / 2));
+  const horn = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)), new THREE.LineBasicMaterial({ color:0x8a8f99 }));
+  u.add(body, mouth, horn);
+  return u;
+}
+// une enceinte, à plat (90° horizontal × 30° vertical, comme sur la fiche)
+function buildVch30() { const u = vch30(); u.position.y = VCH.hf / 2; return [u]; }
+// deux enceintes côte à côte, tournées de 90° (pavillons verticaux) et ouvertes en éventail de 2×30° = 60°, plaque d'accroche dessus
+function buildVch30x2() {
+  const { w, d, hf, alpha } = VCH, out = [];
+  const shift = (hf / 2) * Math.cos(alpha) - (d / 2) * Math.sin(alpha); // face intérieure ramenée sur le plan x = 0
+  for (const s of [-1, 1]) {
+    const u = vch30(); u.rotation.order = 'YXZ'; u.rotation.set(0, s * alpha, Math.PI / 2);
+    u.position.set(s * shift, w / 2, 0); out.push(u);
+  }
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(2 * hf, 0.012, d * 0.8), new THREE.MeshStandardMaterial({ color:0x9aa0a8, metalness:0.6 }));
+  plate.position.y = w + 0.006; out.push(plate);
+  return out;
+}
+// Subwoofer PIKIP VTL218 (fiche technique) : 1300 l × 775 p × 570 h ; façade = joue 246 / grille 250 / évent 312 / grille 250 / joue 246 mm
+function buildVtl218() {
+  const W = 1.3, D = 0.775, H = 0.57, F = 0.012, g = new THREE.Group(), y0 = F + H / 2, zf = D / 2 + 0.002;
+  const box = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), new THREE.MeshStandardMaterial({ color:0x2b2d31 }));
+  box.position.y = y0; box.add(new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
+  g.add(box);
+  const plane = (w, h, x, color) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ color })); m.position.set(x, y0, zf); g.add(m); };
+  plane(0.25, H - 0.03, -0.281, 0x3c3f45); plane(0.25, H - 0.03, 0.281, 0x3c3f45); // grilles acier
+  plane(0.312, H - 0.03, 0, 0x08080a); // évent central
+  for (const dy of [-H / 6, H / 6]) { // 2 étagères de l'évent
+    const sh = new THREE.Mesh(new THREE.BoxGeometry(0.312, 0.015, 0.05), new THREE.MeshStandardMaterial({ color:0x2b2d31 })); sh.position.set(0, y0 + dy, zf - 0.02); g.add(sh);
+  }
+  for (const x of [-0.56, 0.56]) for (const z of [-0.3, 0.3]) { // pieds
+    const f = new THREE.Mesh(new THREE.BoxGeometry(0.12, F, 0.06), new THREE.MeshStandardMaterial({ color:0x111111 })); f.position.set(x, F / 2, z); g.add(f);
+  }
+  for (const x of [-0.2618, 0.2618]) { // embases de mât sur le dessus (entraxe 523,6 mm)
+    const e = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.004, 24), new THREE.MeshStandardMaterial({ color:0x9aa0a8, metalness:0.6 })); e.position.set(x, F + H + 0.002, 0); g.add(e);
+  }
+  return [g];
+}
+const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218 };
+function makeProp(kind, dims) {
+  if (BUILD[kind]) {
+    const g = new THREE.Group(); BUILD[kind]().forEach(o => g.add(o));
+    g.userData = { kind, dims }; g.name = LABELS[kind];
+    props.add(g); return g;
+  }
+  const [w, d, h] = dims;
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color:COLORS[kind] }));
+  mesh.position.y = h / 2;
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
+  const g = new THREE.Group(); g.add(mesh);
+  if (kind === 'ecran') mesh.position.y += 1.5; // bas d'écran à 1,5 m
+  g.userData = { kind, dims:[w, d, h] }; g.name = `${LABELS[kind]} ${w}×${d}×${h} m`;
+  props.add(g); return g;
+}
+document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
+  const k = b.dataset.add;
+  const dims = k === 'scene' ? [+$('w').value, +$('d').value, +$('h').value] : DEFAULT[k];
+  const g = makeProp(k, dims); g.position.copy(orbit.target); g.position.y = floorAt(g.position); select(g);
+});
+// hauteur du sol de la maquette sous un point (le sol n'est pas forcément à 0)
+function floorAt(p) {
+  // ponytail: on part de 3 m (niveau RDC) vers le bas : 1ʳᵉ surface horizontale = sol ; pour un étage, déplacer l'élément à la main
+  ray.set(new THREE.Vector3(p.x, 3, p.z), new THREE.Vector3(0, -1, 0));
+  const hit = ray.intersectObject(venue, true).find(h => h.object.visible && h.face && Math.abs(h.face.normal.y) > 0.9);
+  return hit ? hit.point.y : 0;
+}
+
+// --- sélection / transformation ---
+const tc = new TransformControls(camera, renderer.domElement);
+scene.add(tc.getHelper());
+tc.addEventListener('dragging-changed', e => orbit.enabled = !e.value);
+let selected = null;
+function select(o) {
+  selected = o; o ? tc.attach(o) : tc.detach();
+  $('sel').textContent = o ? (o.name || o.type) : '—';
+}
+function setMode(m) { tc.setMode(m); $('mTrans').classList.toggle('on', m === 'translate'); $('mRot').classList.toggle('on', m === 'rotate'); tc.showX = tc.showZ = m === 'translate'; tc.showY = true; }
+function applySnap() { const on = $('snap').checked; tc.setTranslationSnap(on ? 0.5 : null); tc.setRotationSnap(on ? THREE.MathUtils.degToRad(15) : null); }
+$('snap').onchange = applySnap; applySnap();
+$('mTrans').onclick = () => setMode('translate'); $('mRot').onclick = () => setMode('rotate'); setMode('translate');
+// ponytail: en mode rotation seul l'axe vertical est affiché (les éléments restent à plat)
+
+// Clic sur maquette : sélectionne le groupe SketchUp le plus proche ; « Parent ↑ » remonte la hiérarchie
+const ptr = new THREE.Vector2(); let down;
+renderer.domElement.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4 || tc.dragging || e.button) return;
+  ptr.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects([props, venue], true).find(h => h.object.visible && (h.object.isMesh || h.object.isLineSegments) && visibleHit(h));
+  if (!hit) return select(null);
+  let o = hit.object;
+  const p = props.children.find(c => isIn(o, c));
+  if (p) return select(p);
+  if (o.isLineSegments) o = o.parent; // plan DWG entier
+  let s = o; while (s && !s.userData.sel && s !== venue) s = s.parent;
+  if (s && s !== venue) o = s; // élément IFC (siège, mobilier, scène, murs d'un niveau…)
+  else while (o.parent && o.parent !== venue && o.isMesh) o = o.parent; // mesh → son groupe
+  select(o);
+});
+$('parent').onclick = () => { if (selected && selected.parent && selected.parent !== venue && selected.parent !== props) select(selected.parent); };
+$('del').onclick = () => { if (!selected) return; const o = selected; select(null); o.removeFromParent(); };
+$('dup').onclick = () => {
+  if (!selected) return;
+  const c = props.children.includes(selected) ? makeProp(selected.userData.kind, selected.userData.dims) : selected.clone();
+  if (!c.parent) selected.parent.add(c);
+  c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
+};
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 't') setMode('translate'); if (e.key === 'e') setMode('rotate');
+  if (e.key === 'Delete' || e.key === 'Backspace') $('del').click();
+  if (e.key === 'Escape') select(null);
+  if (e.key === 'c' && selected) frame(selected);
+});
+
+// --- vues ---
+function view(dir) { const b = new THREE.Box3().setFromObject(venue), s = Math.max(20, b.getSize(new THREE.Vector3()).length()), c = b.isEmpty() ? new THREE.Vector3() : b.getCenter(new THREE.Vector3());
+  orbit.target.copy(c); camera.position.copy(c).add(dir.clone().multiplyScalar(s)); }
+$('vTop').onclick = () => view(new THREE.Vector3(0, 1, 0.001));
+$('vPersp').onclick = () => view(new THREE.Vector3(0.6, 0.45, 0.7));
+$('vFront').onclick = () => view(new THREE.Vector3(0, 0.15, 1));
+
+// --- enveloppe : murs extérieurs (IsExternal Revit) et toit, marqués « env » dans l'IFC converti ---
+document.querySelectorAll('[data-env]').forEach(b => b.onclick = () => {
+  const show = b.classList.toggle('on');
+  venue.traverse(o => { if (o.userData.env === b.dataset.env) o.visible = show; });
+});
+
+// --- coupe : un plan qui tranche la maquette (pas les éléments ajoutés) ---
+const cutPlane = new THREE.Plane();
+renderer.localClippingEnabled = true;
+function applyCut() {
+  const ax = $('cutAxis').value, on = !!ax;
+  $('cut').disabled = !on;
+  if (on) {
+    const n = new THREE.Vector3(); n[ax] = $('cutFlip').checked ? 1 : -1;
+    cutPlane.normal.copy(n); cutPlane.constant = -n[ax] * +$('cut').value; // garde le côté n·p ≥ -constant
+  }
+  venue.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.clippingPlanes = on ? [cutPlane] : null); });
+}
+$('cutAxis').onchange = () => {
+  const ax = $('cutAxis').value;
+  if (ax) { const b = new THREE.Box3().setFromObject(venue); Object.assign($('cut'), { min:b.min[ax], max:b.max[ax], value:b.max[ax] }); }
+  applyCut();
+};
+$('cut').oninput = $('cutFlip').onchange = applyCut;
+const visibleHit = h => !$('cutAxis').value || cutPlane.distanceToPoint(h.point) >= 0; // on ne clique pas sur la partie coupée
+
+// --- configurations ---
+// Sauve les éléments ajoutés + les objets de maquette déplacés (repérés par leur chemin d'index)
+function pathOf(o) { const p = []; for (; o.parent !== venue; o = o.parent) p.unshift(o.parent.children.indexOf(o)); return [o.name, ...p]; }
+function byPath([name, ...p]) { let o = venue.children.find(m => m.name === name); for (const i of p) o = o?.children[i]; return o; }
+const T = o => ({ p:o.position.toArray(), r:o.rotation.toArray().slice(0, 3) });
+function snapshot() {
+  const moved = [];
+  venue.traverse(o => { if (o.userData.orig && JSON.stringify(T(o)) !== o.userData.orig) moved.push({ path:pathOf(o), ...T(o) }); });
+  const hidden = []; venue.traverse(o => { if (o !== venue && !o.visible) hidden.push(pathOf(o)); });
+  const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
+    env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
+    cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
+  return { props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g) })), moved, view };
+}
+function restore(cfg) {
+  select(null); props.clear();
+  venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); });
+  cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
+  const v = cfg.view; if (!v) return; // anciens setups : pas de vue enregistrée
+  camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
+  venue.traverse(o => o.visible = true);
+  v.hidden.forEach(p => { const o = byPath(p); if (o) o.visible = false; });
+  document.querySelectorAll('[data-env]').forEach(b => b.classList.toggle('on', !v.env.includes(b.dataset.env)));
+  $('cutAxis').value = v.cut.axis; $('cutFlip').checked = v.cut.flip; $('cutAxis').onchange(); $('cut').value = v.cut.value; applyCut();
+  refreshModels();
+}
+// mémorise la position d'origine des objets de maquette pour détecter les déplacements
+tc.addEventListener('mouseDown', () => { if (selected && isIn(selected, venue) && !selected.userData.orig) selected.userData.orig = JSON.stringify(T(selected)); });
+
+const store = { get() { try { return JSON.parse(localStorage.getItem('cfgs') || '{}'); } catch { return {}; } },
+                set(v) { try { localStorage.setItem('cfgs', JSON.stringify(v)); } catch {} } };
+let cfgs = store.get();
+function refreshCfgs() {
+  $('cfgs').innerHTML = '';
+  Object.keys(cfgs).forEach(n => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span></span><button>Charger</button><button>✕</button>`;
+    li.children[0].textContent = n;
+    li.children[1].onclick = () => restore(cfgs[n]);
+    li.children[2].onclick = () => { if (confirm(`Supprimer « ${n} » ?`)) { delete cfgs[n]; store.set(cfgs); refreshCfgs(); } };
+    $('cfgs').appendChild(li);
+  });
+}
+$('save').onclick = () => { const n = $('cfgName').value.trim() || new Date().toLocaleString('fr'); cfgs[n] = snapshot(); store.set(cfgs); refreshCfgs(); $('cfgName').value = ''; };
+$('exp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(cfgs, null, 1)], { type:'application/json' })); a.download = 'setups-salle.json'; a.click(); };
+$('imp').onchange = e => e.target.files[0]?.text().then(t => { Object.assign(cfgs, JSON.parse(t)); store.set(cfgs); refreshCfgs(); });
+refreshCfgs();
+
+// --- rendu ---
+function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+// --- navigation : double-clic pour centrer, clavier pour se déplacer ---
+let goal = null; // point vers lequel on glisse la cible d'orbite
+renderer.domElement.addEventListener('dblclick', e => {
+  ptr.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1); ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects([props, venue], true).find(h => h.object.visible && h.object.isMesh && visibleHit(h));
+  if (hit) goal = hit.point.clone();
+});
+const keys = new Set(), clock = new THREE.Clock();
+addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') keys.add(e.code); });
+addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], ArrowUp:[0, 1], KeyS:[0, -1], ArrowDown:[0, -1], KeyA:[-1, 0], KeyQ:[-1, 0], ArrowLeft:[-1, 0], KeyD:[1, 0], ArrowRight:[1, 0] };
+function navigate(dt) {
+  const v = new THREE.Vector3();
+  if (goal) { v.subVectors(goal, orbit.target).multiplyScalar(Math.min(1, dt * 8)); if (v.length() < 0.01) goal = null; }
+  const fwd = new THREE.Vector3().subVectors(orbit.target, camera.position).setY(0).normalize(), right = new THREE.Vector3().crossVectors(fwd, camera.up);
+  let mx = 0, mz = 0, my = 0;
+  for (const k of keys) { if (MOVE[k]) { mx += MOVE[k][0]; mz += MOVE[k][1]; } if (k === 'KeyG' || k === 'PageUp') my++; if (k === 'KeyB' || k === 'PageDown') my--; }
+  if (mx || mz || my) {
+    // vitesse selon la distance de vue, bornée 2–15 m/s, ×3 avec Maj
+    const sp = THREE.MathUtils.clamp(camera.position.distanceTo(orbit.target) * 0.25, 2, 15) * (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 3 : 1) * dt;
+    v.addScaledVector(fwd, mz * sp).addScaledVector(right, mx * sp).y += my * sp;
+  }
+  orbit.target.add(v); camera.position.add(v);
+}
+renderer.setAnimationLoop(() => { navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>

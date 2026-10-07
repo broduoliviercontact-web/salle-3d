@@ -1,0 +1,7 @@
+.DS_Store
+.claude/
+tools/work/
+# anciennes sources (maquette SketchUp convertie en OBJ), remplacées par l'IFC
+*.obj
+*.mtl
+salle.glb

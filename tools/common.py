@@ -1,0 +1,10 @@
+# Chemins partagés par les scripts de conversion (sources modifiables par variables d'environnement)
+import os
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)                       # dossier du site (index.html, *.glb, *.json)
+WORK = os.path.join(HERE, "work"); os.makedirs(WORK, exist_ok=True)  # fichiers intermédiaires (non versionnés)
+DL = os.path.expanduser("~/Downloads")
+IFC = os.environ.get("SALLE_IFC", os.path.join(DL, "LGS2_AMR_PCM_MNP_GH_TN_carlosVFQES.ifc"))
+DXF = os.environ.get("SALLE_DXF", os.path.join(DL, "hall avec scene.dxf"))
+ALIGN = os.path.join(HERE, "align.json")   # calage DXF -> IFC (rotation 2x2 + translation)
+FLAGS = os.path.join(HERE, "flags.json")   # GlobalId -> "mur" | "toit" (éléments d'enveloppe)
