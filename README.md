@@ -22,6 +22,8 @@ Puis ouvrir http://localhost:8766. Il n'y a ni installation ni build : tout tien
 | Centrer sur la sélection | C |
 | Masquer la sélection | H (bouton « Tout réafficher » pour annuler) |
 
+**Plan 2D** : *Exporter le plan 2D (SVG)* produit une vue de dessus du setup (plan du bâtiment, éléments ajoutés avec nom et dimensions, ▲ = face avant des enceintes, échelle). Le plan est à l’échelle 1:100 quand on l’imprime à 100 %.
+
 **Vue** : les boutons *Murs ext.*, *Toit* et *Panneaux acoustiques* masquent l'enveloppe. La **Coupe** tranche la maquette en longueur, en largeur ou en hauteur. Chaque niveau peut être masqué dans la liste des maquettes.
 
 **Setups de salle** : un setup enregistre les éléments ajoutés, les objets déplacés, la caméra, les calques visibles et la coupe. Les setups sont stockés dans le navigateur. *Exporter / Importer JSON* sert à les partager.

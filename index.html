@@ -63,6 +63,7 @@
   <h2>Setups de salle</h2>
   <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: frontale 800)"><button id="save">Sauver</button></div>
   <ul id="cfgs"></ul>
+  <div class="row"><button id="plan2d" class="grow">Exporter le plan 2D (SVG)</button></div>
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
@@ -109,7 +110,7 @@ function loadBar(url) {
   fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(pieces => {
     if (!pieces) return;
     const all = pieces.flatMap(p => p.pts), c = all.reduce((a, [x, y]) => [a[0] + x / all.length, a[1] + y / all.length], [0, 0]);
-    const bar = new THREE.Group(); bar.name = 'Bar central (DXF)'; bar.userData.sel = 1;
+    const bar = new THREE.Group(); bar.name = 'Bar central (DXF)'; bar.userData.sel = 1; bar.userData.src = { pieces, c };
     for (const p of pieces) {
       const shape = new THREE.Shape(p.pts.map(([x, y]) => new THREE.Vector2(x - c[0], y - c[1])));
       const geo = new THREE.ExtrudeGeometry(shape, { depth:p.h, bevelEnabled:false }).rotateX(-Math.PI / 2);
@@ -123,13 +124,13 @@ function loadBar(url) {
 function loadPlan(url) {
   fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(data => {
     if (!data) return;
-    const plan = new THREE.Group(); plan.name = 'Plan hall avec scène (DXF)'; plan.position.y = 0.05;
+    const plan = new THREE.Group(); plan.name = 'Plan hall avec scène (DXF)'; plan.position.y = 0.05; plan.userData.src = data;
     for (const [key, color, name] of [['bati', 0xff3355, 'Bâti (rouge)'], ['scene', 0xffd23f, 'Scénographie (jaune)'], ['equip', 0x3fd2ff, 'Bar, équipements, mobilier (bleu)']]) {
       if (!data[key]) continue;
       const seg = data[key], pos = new Float32Array(seg.length / 2 * 3);
       for (let i = 0, j = 0; i < seg.length; i += 2, j += 3) { pos[j] = seg[i]; pos[j + 2] = -seg[i + 1]; }
       const geo = new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      const l = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color, depthTest:false })); l.renderOrder = 1; l.name = name; plan.add(l); // toujours visible par-dessus la 3D
+      const l = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color, depthTest:false })); l.renderOrder = 1; l.name = name; l.userData.key = key; plan.add(l); // toujours visible par-dessus la 3D
     }
     venue.add(plan); refreshModels();
   });
@@ -181,7 +182,7 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const COLORS = { vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
 const LABELS = { vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
 const DEFAULT = { vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
@@ -395,15 +396,76 @@ function refreshCfgs() {
     const li = document.createElement('li');
     li.innerHTML = `<span></span><button>Charger</button><button>✕</button>`;
     li.children[0].textContent = n;
-    li.children[1].onclick = () => restore(cfgs[n]);
+    li.children[1].onclick = () => { restore(cfgs[n]); setupName = n; };
     li.children[2].onclick = () => { if (confirm(`Supprimer « ${n} » ?`)) { delete cfgs[n]; store.set(cfgs); refreshCfgs(); } };
     $('cfgs').appendChild(li);
   });
 }
-$('save').onclick = () => { const n = $('cfgName').value.trim() || new Date().toLocaleString('fr'); cfgs[n] = snapshot(); store.set(cfgs); refreshCfgs(); $('cfgName').value = ''; };
+let setupName = '';
+$('save').onclick = () => { const n = $('cfgName').value.trim() || new Date().toLocaleString('fr'); setupName = n; cfgs[n] = snapshot(); store.set(cfgs); refreshCfgs(); $('cfgName').value = ''; };
 $('exp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(cfgs, null, 1)], { type:'application/json' })); a.download = 'setups-salle.json'; a.click(); };
 $('imp').onchange = e => e.target.files[0]?.text().then(t => { Object.assign(cfgs, JSON.parse(t)); store.set(cfgs); refreshCfgs(); });
 refreshCfgs();
+
+// --- export plan 2D (SVG, vue de dessus) : plan du bâtiment + éléments ajoutés ---
+// 1 unité SVG = 1 m ; largeur en mm = 10 × mètres -> échelle 1:100 si imprimé à 100 %
+const SPEAKERS = new Set(['enceinte', 'vch30', 'vch30x2', 'vtl218']);
+const hex = c => '#' + c.toString(16).padStart(6, '0');
+const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+const shown = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+// coin local (x, z) d'un objet -> plan (x, z) monde, rotation autour de la verticale seulement
+const toPlan = (o, x, z) => { const c = Math.cos(o.rotation.y), s = Math.sin(o.rotation.y); return [o.position.x + x * c + z * s, o.position.z - x * s + z * c]; };
+function exportPlan2D() {
+  const items = props.children.filter(shown).map(g => {
+    const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
+    return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
+  });
+  const plan = venue.children.find(o => o.userData.src && !Array.isArray(o.userData.src) && o.userData.src.bati);
+  const bar = venue.children.find(o => o.userData.src?.pieces);
+  // emprise : éléments ajoutés + 8 m, sinon tout le plan
+  let pts = items.flatMap(i => i.poly), M = 8;
+  if (!pts.length && plan) { const b = plan.userData.src.bati; for (let i = 0; i < b.length; i += 2) pts.push([b[i], -b[i + 1]]); M = 3; }
+  if (!pts.length) return alert('Rien à exporter : ajoute des éléments ou affiche le plan.');
+  const x0 = Math.min(...pts.map(p => p[0])) - M, y0 = Math.min(...pts.map(p => p[1])) - M - 3; // 3 m pour le cartouche
+  const W = Math.max(...pts.map(p => p[0])) + M - x0, H = Math.max(...pts.map(p => p[1])) + M - y0;
+  const inside = (x, y) => x >= x0 && x <= x0 + W && y >= y0 && y <= y0 + H;
+  const f = v => +v.toFixed(2), out = [];
+  out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${f(W * 10)}mm" height="${f(H * 10)}mm" viewBox="${f(x0)} ${f(y0)} ${f(W)} ${f(H)}" font-family="Helvetica, Arial, sans-serif">`);
+  out.push(`<rect x="${f(x0)}" y="${f(y0)}" width="${f(W)}" height="${f(H)}" fill="#fff"/>`);
+  // fond : calques du plan DXF affichés à l'écran
+  if (plan && shown(plan)) for (const l of plan.children) {
+    if (!l.visible) continue;
+    const seg = plan.userData.src[l.userData.key], col = { bati:'#c8102e', scene:'#d99a00', equip:'#1e88e5' }[l.userData.key];
+    let dpath = '';
+    for (let i = 0; i < seg.length; i += 4) {
+      const ax = seg[i], ay = -seg[i + 1], bx = seg[i + 2], by = -seg[i + 3];
+      if (inside(ax, ay) || inside(bx, by)) dpath += `M${f(ax)} ${f(ay)}L${f(bx)} ${f(by)}`;
+    }
+    if (dpath) out.push(`<path d="${dpath}" stroke="${col}" stroke-width="0.03" fill="none"/>`);
+  }
+  // bar, à sa position actuelle (il peut avoir été déplacé)
+  if (bar && shown(bar)) for (const p of bar.userData.src.pieces) {
+    const poly = p.pts.map(([x, y]) => toPlan(bar, x - bar.userData.src.c[0], -(y - bar.userData.src.c[1])));
+    out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${hex(p.color)}" fill-opacity="0.35" stroke="#333" stroke-width="0.02"/>`);
+  }
+  // éléments ajoutés : emprise au sol, sens des enceintes, nom et dimensions
+  for (const { g, w, d, poly, front } of items) {
+    out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${hex(COLORS[g.userData.kind] ?? 0x888888)}" fill-opacity="0.45" stroke="#000" stroke-width="0.04"/>`);
+    if (front) out.push(`<polygon points="${front.map(q => q.map(f).join(',')).join(' ')}" fill="#000"/>`);
+    const [cx, cy] = toPlan(g, 0, 0), fs = Math.min(0.35, Math.max(0.15, Math.min(w, d) / 3));
+    out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${f(fs)}" text-anchor="middle" fill="#000"><tspan x="${f(cx)}" dy="0">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w}×${d} m</tspan></text>`);
+  }
+  // cartouche + échelle
+  const sb = W > 40 ? 10 : 5, tx = x0 + 1, ty = y0 + 1.2;
+  out.push(`<text x="${f(tx)}" y="${f(ty)}" font-size="0.8" font-weight="bold">${esc(setupName || 'Plan de scène')}</text>`);
+  out.push(`<text x="${f(tx)}" y="${f(ty + 0.8)}" font-size="0.4">Salle 3D · ${new Date().toLocaleDateString('fr')} · échelle 1:100 si imprimé à 100 % · ▲ = face avant des enceintes</text>`);
+  out.push(`<g transform="translate(${f(tx)} ${f(ty + 1.4)})"><rect width="${sb}" height="0.15" fill="#000"/><rect width="${sb / 2}" height="0.15" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="${sb + 0.3}" y="0.18" font-size="0.4">${sb} m</text></g>`);
+  out.push('</svg>');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([out.join('\n')], { type:'image/svg+xml' }));
+  a.download = `plan-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}.svg`; a.click();
+}
+$('plan2d').onclick = exportPlan2D;
 
 // --- rendu ---
 function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
