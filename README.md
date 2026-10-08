@@ -21,6 +21,7 @@ Puis ouvrir http://localhost:8766. Il n'y a ni installation ni build : tout tien
 | Déplacer / tourner la sélection | T / E (magnétisme 0,5 m / 15°) |
 | Centrer sur la sélection | C |
 | Masquer la sélection | H (bouton « Tout réafficher » pour annuler) |
+| Annuler / rétablir | ⌘Z / ⌘⇧Z (Ctrl+Z / Ctrl+Y sur PC) |
 
 **Export AutoCAD (DXF)** : les éléments ajoutés (emprises, flèche ▲ pour la face avant des enceintes, nom et dimensions) sont écrits dans un DXF R12, **dans le repère du DWG d'origine**, sur les calques `SETUP_SCENE`, `SETUP_SON`, `SETUP_REGIE`, `SETUP_VIDEO`, `SETUP_DIVERS` et `SETUP_TEXTE`. Pour l'utiliser dans AutoCAD : ouvrir le DXF, tout copier (`COPYCLIP`), ouvrir le plan DWG puis `PASTEORIG` (coller aux coordonnées d'origine).
 

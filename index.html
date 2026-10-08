@@ -49,6 +49,7 @@
   <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (E)</button></div>
   <div class="row"><button id="parent">Parent ↑</button><button id="dup">Dupliquer</button><button id="del">Suppr.</button></div>
   <div class="row"><button id="hide">Masquer (H)</button><button id="showAll">Tout réafficher</button></div>
+  <div class="row"><button id="undo">↶ Annuler (⌘Z)</button><button id="redo">↷ Rétablir</button></div>
   <div class="row"><label class="cb"><input type="checkbox" id="snap" checked> Magnétisme 0,5 m / 15°</label></div>
 
   <h2>Vue</h2>
@@ -259,7 +260,7 @@ function makeProp(kind, dims) {
   props.add(g); return g;
 }
 document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
-  const k = b.dataset.add;
+  pushUndo(); const k = b.dataset.add;
   const dims = k === 'scene' ? [+$('w').value, +$('d').value, +$('h').value] : DEFAULT[k];
   const g = makeProp(k, dims); g.position.copy(orbit.target); g.position.y = floorAt(g.position); select(g);
 });
@@ -306,10 +307,11 @@ renderer.domElement.addEventListener('pointerup', e => {
 });
 $('parent').onclick = () => { if (selected && selected.parent && selected.parent !== venue && selected.parent !== props) select(selected.parent); };
 // masquer un élément de maquette gênant (gardé dans les setups via la liste des objets masqués)
-$('hide').onclick = () => { if (!selected) return; const o = selected; select(null); o.visible = false; refreshModels(); };
-$('showAll').onclick = () => { venue.traverse(o => o.visible = true); document.querySelectorAll('[data-env]').forEach(b => b.classList.add('on')); refreshModels(); };
-$('del').onclick = () => { if (!selected) return; const o = selected; select(null); o.removeFromParent(); };
-$('dup').onclick = () => {
+$('hide').onclick = () => { if (!selected) return; pushUndo(); const o = selected; select(null); o.visible = false; refreshModels(); };
+$('showAll').onclick = () => { pushUndo(); venue.traverse(o => o.visible = true); document.querySelectorAll('[data-env]').forEach(b => b.classList.add('on')); refreshModels(); };
+// un élément de la maquette est masqué plutôt que supprimé, pour pouvoir l'annuler
+$('del').onclick = () => { if (!selected) return; pushUndo(); const o = selected; select(null); if (isIn(o, venue)) { o.visible = false; refreshModels(); } else o.removeFromParent(); };
+$('dup').onclick = () => { if (selected) pushUndo();
   if (!selected) return;
   const c = props.children.includes(selected) ? makeProp(selected.userData.kind, selected.userData.dims) : selected.clone();
   if (!c.parent) selected.parent.add(c);
@@ -317,6 +319,12 @@ $('dup').onclick = () => {
 };
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
+  if (e.metaKey || e.ctrlKey) { // ⌘Z / Ctrl+Z : annuler ; ⌘⇧Z / Ctrl+Y : rétablir ; les autres raccourcis ⌘ restent au navigateur
+    const k = e.key.toLowerCase();
+    if (k === 'z') { e.preventDefault(); $(e.shiftKey ? 'redo' : 'undo').click(); }
+    if (k === 'y') { e.preventDefault(); $('redo').click(); }
+    return;
+  }
   if (e.key === 't') setMode('translate'); if (e.key === 'e') setMode('rotate');
   if (e.key === 'Delete' || e.key === 'Backspace') $('del').click();
   if (e.key === 'Escape') select(null);
@@ -384,8 +392,19 @@ function restore(cfg) {
   $('cutAxis').value = v.cut.axis; $('cutFlip').checked = v.cut.flip; $('cutAxis').onchange(); $('cut').value = v.cut.value; applyCut();
   refreshModels();
 }
+// --- annuler / rétablir : pile d'instantanés de la salle ; la caméra reste où elle est ---
+const undoStack = [], redoStack = [];
+function pushUndo() { undoStack.push(JSON.stringify(snapshot())); if (undoStack.length > 50) undoStack.shift(); redoStack.length = 0; }
+function stepHistory(from, to) {
+  if (!from.length) return;
+  to.push(JSON.stringify(snapshot()));
+  const s = JSON.parse(from.pop()); s.view.cam = camera.position.toArray(); s.view.target = orbit.target.toArray();
+  restore(s);
+}
+$('undo').onclick = () => stepHistory(undoStack, redoStack);
+$('redo').onclick = () => stepHistory(redoStack, undoStack);
 // mémorise la position d'origine des objets de maquette pour détecter les déplacements
-tc.addEventListener('mouseDown', () => { if (selected && isIn(selected, venue) && !selected.userData.orig) selected.userData.orig = JSON.stringify(T(selected)); });
+tc.addEventListener('mouseDown', () => { if (selected && isIn(selected, venue) && !selected.userData.orig) selected.userData.orig = JSON.stringify(T(selected)); pushUndo(); });
 
 const store = { get() { try { return JSON.parse(localStorage.getItem('cfgs') || '{}'); } catch { return {}; } },
                 set(v) { try { localStorage.setItem('cfgs', JSON.stringify(v)); } catch {} } };
@@ -396,7 +415,7 @@ function refreshCfgs() {
     const li = document.createElement('li');
     li.innerHTML = `<span></span><button>Charger</button><button>✕</button>`;
     li.children[0].textContent = n;
-    li.children[1].onclick = () => { restore(cfgs[n]); setupName = n; };
+    li.children[1].onclick = () => { pushUndo(); restore(cfgs[n]); setupName = n; };
     li.children[2].onclick = () => { if (confirm(`Supprimer « ${n} » ?`)) { delete cfgs[n]; store.set(cfgs); refreshCfgs(); } };
     $('cfgs').appendChild(li);
   });
@@ -527,8 +546,8 @@ renderer.domElement.addEventListener('dblclick', e => {
   if (hit) goal = hit.point.clone();
 });
 const keys = new Set(), clock = new THREE.Clock();
-addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') keys.add(e.code); });
-addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) keys.add(e.code); });
+addEventListener('keyup', e => { keys.delete(e.code); if (e.key === 'Meta' || e.key === 'Control') keys.clear(); });
 addEventListener('blur', () => keys.clear());
 const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], ArrowUp:[0, 1], KeyS:[0, -1], ArrowDown:[0, -1], KeyA:[-1, 0], KeyQ:[-1, 0], ArrowLeft:[-1, 0], KeyD:[1, 0], ArrowRight:[1, 0] };
 function navigate(dt) {
