@@ -23,6 +23,8 @@ Scène (dimensions libres), praticable 2 × 1, régie, enceinte, écran, silhoue
 - **VCH30 ×2** : deux unités en éventail à 60°, avec plaque d'accroche.
 - **Sub VTL218** : 1300 × 775 × 570 mm.
 
+Le bouton **Setup du machiniste (DWG)** place la **scène 11 × 9 m** (en lames de 1 m) et le **grill de poutres S500 triangulaires** issus du DWG « scène et grill » d'un machiniste, à leur position d'origine. Le grill compte 4 poutres de 11,6 m et 2 de 10,3 m ; sa hauteur d'accroche se règle à côté du bouton (7 m par défaut). Les deux éléments se déplacent et s'exportent comme les autres : dans le DXF, le grill est sur le calque `SETUP_GRILL`, en axes de poutres.
+
 ### Vue
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
@@ -45,7 +47,7 @@ On clique sur **Sauver** puis sur **Charger**. Les setups sont stockés **dans l
   - les trappes, une légende, des règles graduées et une grille de 1 m / 5 m.
 
   Le plan est à l'échelle **1:100** si on l'imprime à 100 %.
-- **Export AutoCAD (DXF)** : les éléments du setup et les trappes, en DXF R12, **dans le repère du DWG d'origine**. Les calques sont `SETUP_SCENE`, `SETUP_SON`, `SETUP_REGIE`, `SETUP_VIDEO`, `SETUP_DIVERS`, `SETUP_TEXTE` et `TRAPPES_SOL`. Dans AutoCAD :
+- **Export AutoCAD (DXF)** : les éléments du setup et les trappes, en DXF R12, **dans le repère du DWG d'origine**. Les calques sont `SETUP_SCENE`, `SETUP_SON`, `SETUP_REGIE`, `SETUP_VIDEO`, `SETUP_DIVERS`, `SETUP_TEXTE`, `SETUP_GRILL` et `TRAPPES_SOL`. Dans AutoCAD :
   1. ouvrir le DXF exporté et tout copier (`COPYCLIP`) ;
   2. ouvrir le plan DWG ;
   3. coller avec `PASTEORIG` (coller aux coordonnées d'origine).
@@ -110,6 +112,7 @@ Le site est déployé sur **Vercel** en site statique (`vercel.json` force le bu
 | `plan_scene.json` | le plan DXF calé sur la 3D (bâti, scénographie, équipements) |
 | `plan_fond.svg` | le fond de plan complet de l'aperçu 2D, chargé seulement à l'export |
 | `bar.json` | les contours du bar central |
+| `machiniste.json` | la scène et le grill relevés dans le DWG du machiniste (coordonnées du site) |
 | `trappes.json` | les 14 trappes de sol (positions dans le site et dans le DWG) |
 | `tools/` | les scripts de conversion (voir ci-dessous) |
 

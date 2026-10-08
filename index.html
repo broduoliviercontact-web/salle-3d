@@ -43,6 +43,7 @@
   <div class="row"><button data-add="scene">Scène</button><button data-add="prat">Praticable 2×1</button><button data-add="regie">Régie</button></div>
   <div class="row"><button data-add="enceinte">Enceinte</button><button data-add="ecran">Écran</button><button data-add="perso">Personne</button></div>
   <div class="row"><button data-add="vch30">VCH30 ×1</button><button data-add="vch30x2">VCH30 ×2</button><button data-add="vtl218">Sub VTL218</button></div>
+  <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
 
   <h2>Sélection</h2>
   <div id="sel">—</div>
@@ -204,9 +205,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { scene_m:[11, 9, 1], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -264,7 +265,45 @@ function buildVtl218() {
   }
   return [g];
 }
-const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218 };
+// Setup du machiniste (DWG « scène et grill ») : scène 11 × 9 m en lames de 1 m et grill de poutres S500 triangulaires
+let MACH = null; const machReady = fetch('machiniste.json', { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(j => MACH = j).catch(() => null);
+function buildSceneM() {
+  if (!MACH) return [];
+  const { w, d, lines } = MACH.scene, h = 1.0, g = new THREE.Group();
+  const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color:COLORS.scene_m }));
+  box.position.y = h / 2; box.add(new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
+  const pos = lines.flatMap(([x1, z1, x2, z2]) => [x1, h + 0.003, z1, x2, h + 0.003, z2]);
+  g.add(box, new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)), new THREE.LineBasicMaterial({ color:0x222222 })));
+  return [g];
+}
+// poutre triangulaire S500 (côté 0,5 m) entre deux points du plan local, membrures + diagonales
+function truss(a, b) {
+  const g = new THREE.Group(), L = Math.hypot(b[0] - a[0], b[1] - a[1]), S = 0.5, H = S * Math.sqrt(3) / 2;
+  const mat = new THREE.MeshStandardMaterial({ color:0xc9ced6, metalness:0.7, roughness:0.35 });
+  for (const [ox, oy] of [[-S / 2, 0], [S / 2, 0], [0, H]]) {
+    const c = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, L, 8), mat); c.rotation.z = Math.PI / 2; c.position.set(0, oy, ox); g.add(c);
+  }
+  const p = [], n = Math.max(1, Math.round(L / 0.5)), corners = [[-S / 2, 0], [S / 2, 0], [0, H]];
+  for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) {
+    const [z1, y1] = corners[k], [z2, y2] = corners[(k + 1) % 3], x1 = -L / 2 + i * L / n, x2 = x1 + L / n;
+    p.push(x1, y1, z1, x2, y2, z2);
+  }
+  g.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(p, 3)), new THREE.LineBasicMaterial({ color:0x9aa0a8 })));
+  g.position.set((a[0] + b[0]) / 2, 0, (a[1] + b[1]) / 2); g.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]);
+  return g;
+}
+const grillLines = () => { const { xs, zs } = MACH.grill, X0 = xs[0], X1 = xs[xs.length - 1], Z0 = zs[0], Z1 = zs[zs.length - 1];
+  return [...zs.map(z => [[X0, z], [X1, z]]), [[X0, Z0], [X0, Z1]], [[X1, Z0], [X1, Z1]]]; };
+function buildGrill() { if (!MACH) return []; const g = new THREE.Group(); for (const [a, b] of grillLines()) g.add(truss(a, b)); return [g]; }
+const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill };
+$('machBtn').onclick = async () => {
+  await machReady; if (!MACH) return alert('machiniste.json introuvable');
+  pushUndo();
+  const s = makeProp('scene_m', [MACH.scene.w, MACH.scene.d, 1.0]); s.position.set(MACH.scene.c[0], 0, MACH.scene.c[1]); s.position.y = floorAt(s.position);
+  const { xs, zs } = MACH.grill, g = makeProp('grill', [+(xs[xs.length - 1] - xs[0] + 0.5).toFixed(2), +(Math.abs(zs[zs.length - 1] - zs[0]) + 0.5).toFixed(2), 0.43]);
+  g.position.set(MACH.grill.c[0], s.position.y + (+$('grillH').value || 7), MACH.grill.c[1]);
+  select(g); frame(g);
+};
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind]().forEach(o => g.add(o));
@@ -524,7 +563,10 @@ async function exportPlan2D() {
   for (const { g, w, d, poly, front } of items) {
     const col = hex(COLORS[g.userData.kind] ?? 0x888888), kind = LABELS[g.userData.kind] || g.userData.kind;
     legend.set(kind, { col, n:(legend.get(kind)?.n || 0) + 1 });
-    out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.04"/>`);
+    if (g.userData.kind === 'grill' && MACH) { // grill : axes des poutres + emprise en pointillés, sans remplissage (la scène reste visible dessous)
+      out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="none" stroke="#555" stroke-width="0.03" stroke-dasharray="0.3 0.2"/>`);
+      for (const [a, b] of grillLines()) { const [p, q] = [a, b].map(([x, z]) => toPlan(g, x, z)); out.push(`<line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" stroke="#2c3e50" stroke-width="0.12" stroke-opacity="0.8"/>`); }
+    } else out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.04"/>`);
     if (front) out.push(`<polygon points="${front.map(q => q.map(f).join(',')).join(' ')}" fill="#d0021b"/>`);
     if (!SPEAKERS.has(g.userData.kind) && Math.max(w, d) >= 1) { // cotes : largeur devant, profondeur à droite
       cote(out, g, [-w / 2, d / 2], [w / 2, d / 2], [0, 1], w);
@@ -563,8 +605,8 @@ $('plan2d').onclick = exportPlan2D;
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ecran:'SETUP_VIDEO' };
-const DXF_COLOR = { TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7 };
+const DXF_LAYER = { grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
 function exportDxf() {
@@ -581,7 +623,9 @@ function exportDxf() {
   const text = (layer, [x, y], h, t) => put(0, 'TEXT', 8, layer, 10, n(x), 20, n(y), 40, n(h), 1, dxfText(t), 72, 1, 73, 2, 11, n(x), 21, n(y));
   for (const g of items) {
     const [w, d] = g.userData.dims, layer = DXF_LAYER[g.userData.kind] || 'SETUP_DIVERS';
-    poly(layer, [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toDwg(toPlan(g, x, z))));
+    if (g.userData.kind === 'grill' && MACH) { // axes des poutres plutôt que l'emprise
+      for (const [a, b] of grillLines()) { const [p, q] = [a, b].map(([x, z]) => toDwg(toPlan(g, x, z))); put(0, 'LINE', 8, layer, 10, n(p[0]), 20, n(p[1]), 11, n(q[0]), 21, n(q[1])); }
+    } else poly(layer, [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toDwg(toPlan(g, x, z))));
     if (SPEAKERS.has(g.userData.kind)) { // flèche pleine = face avant
       const [a, b, c] = [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)].map(toDwg);
       put(0, 'SOLID', 8, layer, 10, n(a[0]), 20, n(a[1]), 11, n(b[0]), 21, n(b[1]), 12, n(c[0]), 22, n(c[1]), 13, n(c[0]), 23, n(c[1]));
