@@ -54,7 +54,7 @@
 
   <h2>Vue</h2>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button></div>
-  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button></div>
+  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn">Trappes de sol</button></div>
 
   <h2>Coupe</h2>
   <div class="row"><select id="cutAxis"><option value="">Aucune</option><option value="x">Longueur</option><option value="z">Largeur</option><option value="y">Hauteur (toit)</option></select>
@@ -165,7 +165,7 @@ function refreshModels() {
   venue.children.forEach(m => {
     const li = document.createElement('li');
     li.innerHTML = `<input type="checkbox" ${m.visible ? 'checked' : ''}><span title="${m.name}">${m.name}</span><button>✕</button>`;
-    li.children[0].onchange = e => { m.visible = e.target.checked; };
+    li.children[0].onchange = e => { m.visible = e.target.checked; syncTrapBtn(); };
     li.children[2].onclick = () => { if (selected && isIn(selected, m)) select(null); venue.remove(m); refreshModels(); };
     $('models').appendChild(li);
     if (m.children.length > 1 && m.children.length < 40) m.children.forEach(n => {
@@ -329,7 +329,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 $('parent').onclick = () => { if (selected && selected.parent && selected.parent !== venue && selected.parent !== props) select(selected.parent); };
 // masquer un élément de maquette gênant (gardé dans les setups via la liste des objets masqués)
 $('hide').onclick = () => { if (!selected) return; pushUndo(); const o = selected; select(null); o.visible = false; refreshModels(); };
-$('showAll').onclick = () => { pushUndo(); venue.traverse(o => o.visible = true); document.querySelectorAll('[data-env]').forEach(b => b.classList.add('on')); refreshModels(); };
+$('showAll').onclick = () => { pushUndo(); venue.traverse(o => o.visible = true); document.querySelectorAll('[data-env]').forEach(b => b.classList.add('on')); syncTrapBtn(); refreshModels(); };
 // un élément de la maquette est masqué plutôt que supprimé, pour pouvoir l'annuler
 $('del').onclick = () => { if (!selected) return; pushUndo(); const o = selected; select(null); if (isIn(o, venue)) { o.visible = false; refreshModels(); } else o.removeFromParent(); };
 $('dup').onclick = () => { if (selected) pushUndo();
@@ -365,6 +365,11 @@ document.querySelectorAll('[data-env]').forEach(b => b.onclick = () => {
   const show = b.classList.toggle('on');
   venue.traverse(o => { if (o.userData.env === b.dataset.env) o.visible = show; });
 });
+
+// trappes de sol : afficher / cacher tout le groupe (l'état est gardé dans les setups via la liste des objets masqués)
+const trapGroup = () => venue.children.find(o => o.name === 'Trappes de sol (PDF)');
+const syncTrapBtn = () => $('trapBtn').classList.toggle('on', !!trapGroup()?.visible);
+$('trapBtn').onclick = () => { const g = trapGroup(); if (!g) return; g.visible = !g.visible; syncTrapBtn(); refreshModels(); };
 
 // --- coupe : un plan qui tranche la maquette (pas les éléments ajoutés) ---
 const cutPlane = new THREE.Plane();
@@ -411,7 +416,7 @@ function restore(cfg) {
   v.hidden.forEach(p => { const o = byPath(p); if (o) o.visible = false; });
   document.querySelectorAll('[data-env]').forEach(b => b.classList.toggle('on', !v.env.includes(b.dataset.env)));
   $('cutAxis').value = v.cut.axis; $('cutFlip').checked = v.cut.flip; $('cutAxis').onchange(); $('cut').value = v.cut.value; applyCut();
-  refreshModels();
+  refreshModels(); syncTrapBtn();
 }
 // --- annuler / rétablir : pile d'instantanés de la salle ; la caméra reste où elle est ---
 const undoStack = [], redoStack = [];

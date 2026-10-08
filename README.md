@@ -27,7 +27,7 @@ Puis ouvrir http://localhost:8766. Il n'y a ni installation ni build : tout tien
 
 **Aperçu 2D (SVG)** : vue de dessus du setup sur le plan DXF complet (en gris : murs, cloisons, portes, axes, noms de locaux), avec les éléments en couleur, une légende, une échelle, des règles graduées, une grille 1 m / 5 m et des cotes sur les scènes, praticables, régie et écran. Le plan est à l'échelle 1:100 si on l'imprime à 100 %.
 
-**Vue** : les boutons *Murs ext.*, *Toit* et *Panneaux acoustiques* masquent l'enveloppe. La **Coupe** tranche la maquette en longueur, en largeur ou en hauteur. Chaque niveau peut être masqué dans la liste des maquettes.
+**Vue** : les boutons *Murs ext.*, *Toit*, *Panneaux acoustiques* et *Trappes de sol* affichent ou masquent ces éléments. La **Coupe** tranche la maquette en longueur, en largeur ou en hauteur. Chaque niveau peut être masqué dans la liste des maquettes.
 
 **Setups de salle** : un setup enregistre les éléments ajoutés, les objets déplacés, la caméra, les calques visibles et la coupe. Les setups sont stockés dans le navigateur. *Exporter / Importer JSON* sert à les partager.
 
