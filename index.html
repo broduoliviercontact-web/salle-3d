@@ -63,7 +63,7 @@
   <h2>Setups de salle</h2>
   <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: frontale 800)"><button id="save">Sauver</button></div>
   <ul id="cfgs"></ul>
-  <div class="row"><button id="plan2d" class="grow">Exporter le plan 2D (SVG)</button></div>
+  <div class="row"><button id="dxf" class="grow">Export AutoCAD (DXF)</button><button id="plan2d">Aperçu 2D (SVG)</button></div>
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
@@ -466,6 +466,44 @@ function exportPlan2D() {
   a.download = `plan-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}.svg`; a.click();
 }
 $('plan2d').onclick = exportPlan2D;
+
+// --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
+// repère du site (x, -z) = repère DWG + DWG_SHIFT (calage par les poteaux, cf. tools/align.json : SHIFT = T·R)
+const DWG_SHIFT = [-17.3389, 107.607];
+const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
+const DXF_LAYER = { scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_COLOR = { SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7 };
+// texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
+const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
+function exportDxf() {
+  const items = props.children.filter(shown);
+  if (!items.length) return alert('Ajoute d\'abord des éléments (scène, enceintes, régie…).');
+  const L = [], put = (...kv) => L.push(...kv.map(String));
+  const n = v => v.toFixed(4);
+  put(0, 'SECTION', 2, 'HEADER', 9, '$ACADVER', 1, 'AC1009', 0, 'ENDSEC'); // DXF R12 (lisible partout), coordonnées en mètres comme le DWG
+  put(0, 'SECTION', 2, 'TABLES', 0, 'TABLE', 2, 'LTYPE', 70, 1, 0, 'LTYPE', 2, 'CONTINUOUS', 70, 0, 3, 'Solid line', 72, 65, 73, 0, 40, 0, 0, 'ENDTAB');
+  put(0, 'TABLE', 2, 'LAYER', 70, Object.keys(DXF_COLOR).length);
+  for (const [name, col] of Object.entries(DXF_COLOR)) put(0, 'LAYER', 2, name, 70, 0, 62, col, 6, 'CONTINUOUS');
+  put(0, 'ENDTAB', 0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
+  const poly = (layer, pts) => { put(0, 'POLYLINE', 8, layer, 66, 1, 70, 1); for (const [x, y] of pts) put(0, 'VERTEX', 8, layer, 10, n(x), 20, n(y)); put(0, 'SEQEND', 8, layer); };
+  const text = (layer, [x, y], h, t) => put(0, 'TEXT', 8, layer, 10, n(x), 20, n(y), 40, n(h), 1, dxfText(t), 72, 1, 73, 2, 11, n(x), 21, n(y));
+  for (const g of items) {
+    const [w, d] = g.userData.dims, layer = DXF_LAYER[g.userData.kind] || 'SETUP_DIVERS';
+    poly(layer, [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toDwg(toPlan(g, x, z))));
+    if (SPEAKERS.has(g.userData.kind)) { // flèche pleine = face avant
+      const [a, b, c] = [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)].map(toDwg);
+      put(0, 'SOLID', 8, layer, 10, n(a[0]), 20, n(a[1]), 11, n(b[0]), 21, n(b[1]), 12, n(c[0]), 22, n(c[1]), 13, n(c[0]), 23, n(c[1]));
+    }
+    const h = Math.min(0.3, Math.max(0.1, Math.min(w, d) / 4)), c = toDwg(toPlan(g, 0, 0));
+    text('SETUP_TEXTE', [c[0], c[1] + h * 0.7], h, g.name);
+    text('SETUP_TEXTE', [c[0], c[1] - h * 0.7], h * 0.8, `${w} x ${d} m`);
+  }
+  put(0, 'ENDSEC', 0, 'EOF');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([L.join('\r\n') + '\r\n'], { type:'application/dxf' }));
+  a.download = `setup-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}.dxf`; a.click();
+}
+$('dxf').onclick = exportDxf;
 
 // --- rendu ---
 function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
