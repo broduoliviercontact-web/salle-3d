@@ -24,7 +24,7 @@ Puis ouvrir http://localhost:8766. Il n'y a ni installation ni build : tout tien
 
 **Export AutoCAD (DXF)** : les éléments ajoutés (emprises, flèche ▲ pour la face avant des enceintes, nom et dimensions) sont écrits dans un DXF R12, **dans le repère du DWG d'origine**, sur les calques `SETUP_SCENE`, `SETUP_SON`, `SETUP_REGIE`, `SETUP_VIDEO`, `SETUP_DIVERS` et `SETUP_TEXTE`. Pour l'utiliser dans AutoCAD : ouvrir le DXF, tout copier (`COPYCLIP`), ouvrir le plan DWG puis `PASTEORIG` (coller aux coordonnées d'origine).
 
-**Aperçu 2D (SVG)** : vue de dessus rapide sur le plan simplifié, à l'échelle 1:100 si on l'imprime à 100 %.
+**Aperçu 2D (SVG)** : vue de dessus du setup sur le plan DXF complet (en gris : murs, cloisons, portes, axes, noms de locaux), avec les éléments en couleur, une légende et une échelle. Le plan est à l'échelle 1:100 si on l'imprime à 100 %.
 
 **Vue** : les boutons *Murs ext.*, *Toit* et *Panneaux acoustiques* masquent l'enveloppe. La **Coupe** tranche la maquette en longueur, en largeur ou en hauteur. Chaque niveau peut être masqué dans la liste des maquettes.
 
@@ -38,6 +38,7 @@ Puis ouvrir http://localhost:8766. Il n'y a ni installation ni build : tout tien
 | `halle_ifc.glb` | la maquette 3D, convertie depuis l'IFC Revit (redressée, en mètres, origine au centre) |
 | `plan_scene.json` | le plan DXF « hall avec scène » calé sur la 3D (bâti, scénographie, équipements) |
 | `bar.json` | les contours du bar central, extrudés en 3D dans le visualiseur |
+| `plan_fond.svg` | le fond de plan complet de l'aperçu 2D, chargé seulement à l'export |
 
 ## Régénérer depuis les sources (IFC + DXF)
 
@@ -53,6 +54,7 @@ python prep.py      # filtre, redresse, regroupe -> work/prep.pkl
 /Applications/Blender.app/Contents/MacOS/Blender -b --python build.py   # -> ../halle_ifc.glb
 python plan.py      # -> ../plan_scene.json
 python bar.py       # -> ../bar.json
+python fond.py      # -> ../plan_fond.svg (fond de l'aperçu 2D)
 ```
 
 `flags.json` et `align.json` sont versionnés : on peut sauter `flags.py` et `align.py` si les sources n'ont pas changé.

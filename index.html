@@ -415,51 +415,63 @@ const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', 
 const shown = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
 // coin local (x, z) d'un objet -> plan (x, z) monde, rotation autour de la verticale seulement
 const toPlan = (o, x, z) => { const c = Math.cos(o.rotation.y), s = Math.sin(o.rotation.y); return [o.position.x + x * c + z * s, o.position.z - x * s + z * c]; };
-function exportPlan2D() {
+// repère du site (x, -z) = repère DWG + DWG_SHIFT (calage par les poteaux, cf. tools/align.json : SHIFT = T·R)
+const DWG_SHIFT = [-17.3389, 107.607];
+let fondSrc = null; // fond de plan complet (plan_fond.svg), chargé au premier export seulement
+async function exportPlan2D() {
   const items = props.children.filter(shown).map(g => {
     const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
     return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
   });
-  const plan = venue.children.find(o => o.userData.src && !Array.isArray(o.userData.src) && o.userData.src.bati);
   const bar = venue.children.find(o => o.userData.src?.pieces);
-  // emprise : éléments ajoutés + 8 m, sinon tout le plan
+  if (fondSrc === null) fondSrc = await fetch('plan_fond.svg').then(r => r.ok ? r.text() : '').catch(() => '');
+  // cadrage : éléments ajoutés + 8 m ; sinon tout le bâtiment
   let pts = items.flatMap(i => i.poly), M = 8;
-  if (!pts.length && plan) { const b = plan.userData.src.bati; for (let i = 0; i < b.length; i += 2) pts.push([b[i], -b[i + 1]]); M = 3; }
-  if (!pts.length) return alert('Rien à exporter : ajoute des éléments ou affiche le plan.');
-  const x0 = Math.min(...pts.map(p => p[0])) - M, y0 = Math.min(...pts.map(p => p[1])) - M - 3; // 3 m pour le cartouche
+  if (!pts.length) { pts = [[-95, -45], [95, 45]]; M = 0; }
+  const H0 = 4.5; // bandeau titre / légende en haut
+  const x0 = Math.min(...pts.map(p => p[0])) - M, y0 = Math.min(...pts.map(p => p[1])) - M - H0;
   const W = Math.max(...pts.map(p => p[0])) + M - x0, H = Math.max(...pts.map(p => p[1])) + M - y0;
-  const inside = (x, y) => x >= x0 && x <= x0 + W && y >= y0 && y <= y0 + H;
   const f = v => +v.toFixed(2), out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${f(W * 10)}mm" height="${f(H * 10)}mm" viewBox="${f(x0)} ${f(y0)} ${f(W)} ${f(H)}" font-family="Helvetica, Arial, sans-serif">`);
+  out.push(`<defs><clipPath id="cadre"><rect x="${f(x0)}" y="${f(y0 + H0)}" width="${f(W)}" height="${f(H - H0)}"/></clipPath></defs>`);
   out.push(`<rect x="${f(x0)}" y="${f(y0)}" width="${f(W)}" height="${f(H)}" fill="#fff"/>`);
-  // fond : calques du plan DXF affichés à l'écran
-  if (plan && shown(plan)) for (const l of plan.children) {
-    if (!l.visible) continue;
-    const seg = plan.userData.src[l.userData.key], col = { bati:'#c8102e', scene:'#d99a00', equip:'#1e88e5' }[l.userData.key];
-    let dpath = '';
-    for (let i = 0; i < seg.length; i += 4) {
-      const ax = seg[i], ay = -seg[i + 1], bx = seg[i + 2], by = -seg[i + 3];
-      if (inside(ax, ay) || inside(bx, by)) dpath += `M${f(ax)} ${f(ay)}L${f(bx)} ${f(by)}`;
-    }
-    if (dpath) out.push(`<path d="${dpath}" stroke="${col}" stroke-width="0.03" fill="none"/>`);
+  // fond : plan DXF complet en gris, seulement les dalles de 10 m visibles (repère DXF = site − DWG_SHIFT)
+  if (fondSrc) {
+    const T = 10, FX0 = -80, FY0 = -130, dx0 = x0 - DWG_SHIFT[0], dx1 = x0 + W - DWG_SHIFT[0], dy0 = -(y0 + H) - DWG_SHIFT[1], dy1 = -y0 - DWG_SHIFT[1];
+    const keep = t => { const [i, j] = t.split(',').map(Number); return FX0 + (i + 1) * T >= dx0 && FX0 + i * T <= dx1 && FY0 + (j + 1) * T >= dy0 && FY0 + j * T <= dy1; };
+    const g0 = fondSrc.indexOf('<g id="fond"'), g1 = fondSrc.lastIndexOf('</svg>');
+    const lines = fondSrc.slice(g0, g1).split('\n').filter(l => { const m = l.match(/data-t="([^"]+)"/); return !m || keep(m[1]); });
+    out.push(`<g clip-path="url(#cadre)"><g transform="translate(${DWG_SHIFT[0]} ${-DWG_SHIFT[1]})">${lines.join('\n')}</g></g>`);
   }
-  // bar, à sa position actuelle (il peut avoir été déplacé)
+  // bar, à sa position actuelle
   if (bar && shown(bar)) for (const p of bar.userData.src.pieces) {
     const poly = p.pts.map(([x, y]) => toPlan(bar, x - bar.userData.src.c[0], -(y - bar.userData.src.c[1])));
-    out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${hex(p.color)}" fill-opacity="0.35" stroke="#333" stroke-width="0.02"/>`);
+    out.push(`<polygon clip-path="url(#cadre)" points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${hex(p.color)}" fill-opacity="0.5" stroke="#333" stroke-width="0.02"/>`);
   }
-  // éléments ajoutés : emprise au sol, sens des enceintes, nom et dimensions
+  // éléments ajoutés : emprise colorée, ▲ face avant, nom + dimensions (halo blanc pour la lisibilité)
+  const legend = new Map();
   for (const { g, w, d, poly, front } of items) {
-    out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${hex(COLORS[g.userData.kind] ?? 0x888888)}" fill-opacity="0.45" stroke="#000" stroke-width="0.04"/>`);
-    if (front) out.push(`<polygon points="${front.map(q => q.map(f).join(',')).join(' ')}" fill="#000"/>`);
-    const [cx, cy] = toPlan(g, 0, 0), fs = Math.min(0.35, Math.max(0.15, Math.min(w, d) / 3));
-    out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${f(fs)}" text-anchor="middle" fill="#000"><tspan x="${f(cx)}" dy="0">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w}×${d} m</tspan></text>`);
+    const col = hex(COLORS[g.userData.kind] ?? 0x888888), kind = LABELS[g.userData.kind] || g.userData.kind;
+    legend.set(kind, { col, n:(legend.get(kind)?.n || 0) + 1 });
+    out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.04"/>`);
+    if (front) out.push(`<polygon points="${front.map(q => q.map(f).join(',')).join(' ')}" fill="#d0021b"/>`);
+    const [cx, cy] = toPlan(g, 0, 0), fs = f(Math.min(0.4, Math.max(0.18, Math.min(w, d) / 3)));
+    out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${fs}" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="${f(fs / 5)}" paint-order="stroke"><tspan x="${f(cx)}" dy="0" font-weight="bold">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w} × ${d} m</tspan></text>`);
   }
-  // cartouche + échelle
-  const sb = W > 40 ? 10 : 5, tx = x0 + 1, ty = y0 + 1.2;
-  out.push(`<text x="${f(tx)}" y="${f(ty)}" font-size="0.8" font-weight="bold">${esc(setupName || 'Plan de scène')}</text>`);
-  out.push(`<text x="${f(tx)}" y="${f(ty + 0.8)}" font-size="0.4">Salle 3D · ${new Date().toLocaleDateString('fr')} · échelle 1:100 si imprimé à 100 % · ▲ = face avant des enceintes</text>`);
-  out.push(`<g transform="translate(${f(tx)} ${f(ty + 1.4)})"><rect width="${sb}" height="0.15" fill="#000"/><rect width="${sb / 2}" height="0.15" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="${sb + 0.3}" y="0.18" font-size="0.4">${sb} m</text></g>`);
+  // bandeau : titre, infos, échelle, légende
+  const tx = x0 + 1, ty = y0 + 1.3, sb = W > 40 ? 10 : 5;
+  out.push(`<line x1="${f(x0)}" y1="${f(y0 + H0)}" x2="${f(x0 + W)}" y2="${f(y0 + H0)}" stroke="#000" stroke-width="0.04"/>`);
+  out.push(`<text x="${f(tx)}" y="${f(ty)}" font-size="0.9" font-weight="bold">${esc(setupName || 'Plan de scène')}</text>`);
+  out.push(`<text x="${f(tx)}" y="${f(ty + 0.9)}" font-size="0.4" fill="#444">Salle 3D · ${new Date().toLocaleDateString('fr')} · échelle 1:100 si imprimé à 100 % · ▲ rouge = face avant des enceintes</text>`);
+  out.push(`<g transform="translate(${f(tx)} ${f(ty + 1.7)})"><rect width="${sb}" height="0.18" fill="#000"/><rect width="${sb / 2}" height="0.18" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="0" y="0.75" font-size="0.35">0</text><text x="${sb / 2}" y="0.75" font-size="0.35" text-anchor="middle">${sb / 2}</text><text x="${sb}" y="0.75" font-size="0.35" text-anchor="middle">${sb} m</text></g>`);
+  // légende sur plusieurs lignes à droite du titre
+  const lx0 = tx + Math.max(sb + 3, 20); let lx = lx0, ly = ty - 0.5;
+  for (const [kind, { col, n }] of legend) {
+    const wItem = 1.4 + (kind.length + 3) * 0.22;
+    if (lx + wItem > x0 + W - 0.5 && lx > lx0) { lx = lx0; ly += 0.8; }
+    out.push(`<rect x="${f(lx)}" y="${f(ly)}" width="0.6" height="0.6" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.03"/><text x="${f(lx + 0.8)}" y="${f(ly + 0.5)}" font-size="0.4">${esc(kind)} ×${n}</text>`);
+    lx += wItem;
+  }
   out.push('</svg>');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([out.join('\n')], { type:'image/svg+xml' }));
@@ -468,8 +480,7 @@ function exportPlan2D() {
 $('plan2d').onclick = exportPlan2D;
 
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
-// repère du site (x, -z) = repère DWG + DWG_SHIFT (calage par les poteaux, cf. tools/align.json : SHIFT = T·R)
-const DWG_SHIFT = [-17.3389, 107.607];
+
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
 const DXF_LAYER = { scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ecran:'SETUP_VIDEO' };
 const DXF_COLOR = { SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7 };
