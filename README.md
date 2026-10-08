@@ -39,6 +39,7 @@ Puis ouvrir http://localhost:8766. Il n'y a ni installation ni build : tout tien
 | `halle_ifc.glb` | la maquette 3D, convertie depuis l'IFC Revit (redressée, en mètres, origine au centre) |
 | `plan_scene.json` | le plan DXF « hall avec scène » calé sur la 3D (bâti, scénographie, équipements) |
 | `bar.json` | les contours du bar central, extrudés en 3D dans le visualiseur |
+| `trappes.json` | les 14 trappes de sol événementielles (63 A + RJ45 / 32 A), relevées sur le PDF de repérage |
 | `plan_fond.svg` | le fond de plan complet de l'aperçu 2D, chargé seulement à l'export |
 
 ## Régénérer depuis les sources (IFC + DXF)
@@ -56,6 +57,7 @@ python prep.py      # filtre, redresse, regroupe -> work/prep.pkl
 python plan.py      # -> ../plan_scene.json
 python bar.py       # -> ../bar.json
 python fond.py      # -> ../plan_fond.svg (fond de l'aperçu 2D)
+python trappes.py   # -> ../trappes.json (depuis le PDF de repérage rendu en PNG, cf. en-tête du script)
 ```
 
 `flags.json` et `align.json` sont versionnés : on peut sauter `flags.py` et `align.py` si les sources n'ont pas changé.

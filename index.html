@@ -121,6 +121,27 @@ function loadBar(url) {
     venue.add(bar); refreshModels();
   });
 }
+// Trappes de sol événementielles (boîtiers « forains » relevés sur le PDF de repérage, cf. tools/trappes.py)
+const TRAP = { '63A':{ color:0xe8432e, css:'#e8432e' }, '32A':{ color:0x2f9be0, css:'#2f9be0' } };
+function label3d(text, css) { // étiquette toujours face caméra
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
+  x.fillStyle = css; x.fillRect(0, 0, 256, 64); x.fillStyle = '#fff'; x.font = 'bold 30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 33);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), depthTest:false })); sp.scale.set(1.6, 0.4, 1); sp.renderOrder = 2; return sp;
+}
+function loadTrappes(url) {
+  fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(list => {
+    if (!list) return;
+    const grp = new THREE.Group(); grp.name = 'Trappes de sol (PDF)';
+    for (const t of list) {
+      const st = TRAP[t.kind], g = new THREE.Group(); g.name = `Trappe T${t.n} · ${t.label}`; g.userData.sel = 1; g.userData.trap = t;
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.5), new THREE.MeshStandardMaterial({ color:st.color })); box.position.y = 0.02;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.5), new THREE.MeshStandardMaterial({ color:st.color })); pole.position.y = 0.75;
+      const lab = label3d(`T${t.n} · ${t.label}`, st.css); lab.position.y = 1.75;
+      g.add(box, pole, lab); g.position.set(t.x, 0, t.z); g.position.y = floorAt(g.position); grp.add(g);
+    }
+    venue.add(grp); refreshModels();
+  });
+}
 // Plan DXF « hall avec scène », déjà recalé sur l'IFC (segments x1,y1,x2,y2 en m) : bâti en rouge, scénographie en jaune
 function loadPlan(url) {
   fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(data => {
@@ -174,7 +195,7 @@ function demoHall() {
   venue.add(g); refreshModels();
 }
 const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
-fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => { loadPlan('plan_scene.json'); loadBar('bar.json'); }) : demoHall()).catch(demoHall);
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => { loadPlan('plan_scene.json'); loadBar('bar.json'); loadTrappes('trappes.json'); }) : demoHall()).catch(demoHall);
 $('file').onchange = e => loadFiles(e.target.files);
 addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
 addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });
@@ -267,7 +288,7 @@ document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
 // hauteur du sol de la maquette sous un point (le sol n'est pas forcément à 0)
 function floorAt(p) {
   // ponytail: on part de 3 m (niveau RDC) vers le bas : 1ʳᵉ surface horizontale = sol ; pour un étage, déplacer l'élément à la main
-  ray.set(new THREE.Vector3(p.x, 3, p.z), new THREE.Vector3(0, -1, 0));
+  ray.set(new THREE.Vector3(p.x, 3, p.z), new THREE.Vector3(0, -1, 0)); ray.camera = camera; // requis pour les étiquettes (sprites)
   const hit = ray.intersectObject(venue, true).find(h => h.object.visible && h.face && Math.abs(h.face.normal.y) > 0.9);
   return hit ? hit.point.y : 0;
 }
@@ -484,8 +505,17 @@ async function exportPlan2D() {
     const poly = p.pts.map(([x, y]) => toPlan(bar, x - bar.userData.src.c[0], -(y - bar.userData.src.c[1])));
     out.push(`<polygon clip-path="url(#cadre)" points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${hex(p.color)}" fill-opacity="0.5" stroke="#333" stroke-width="0.02"/>`);
   }
-  // éléments ajoutés : emprise colorée, ▲ face avant, nom + dimensions (halo blanc pour la lisibilité)
   const legend = new Map();
+  // trappes de sol
+  const traps = venue.children.find(o => o.name === 'Trappes de sol (PDF)');
+  if (traps && shown(traps)) for (const g of traps.children) {
+    if (!g.visible) continue;
+    const t = g.userData.trap, [cx, cy] = toPlan(g, 0, 0), col = TRAP[t.kind].css, key = `Trappe de sol ${t.label}`;
+    legend.set(key, { col, n:(legend.get(key)?.n || 0) + 1 });
+    out.push(`<rect x="${f(cx - 0.25)}" y="${f(cy - 0.25)}" width="0.5" height="0.5" fill="${col}" stroke="#000" stroke-width="0.03"/><circle cx="${f(cx)}" cy="${f(cy)}" r="0.6" fill="none" stroke="${col}" stroke-width="0.05"/>`);
+    out.push(`<text x="${f(cx + 0.75)}" y="${f(cy + 0.12)}" font-size="0.35" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.07" paint-order="stroke">T${t.n}</text>`);
+  }
+  // éléments ajoutés : emprise colorée, ▲ face avant, nom + dimensions (halo blanc pour la lisibilité)
   for (const { g, w, d, poly, front } of items) {
     const col = hex(COLORS[g.userData.kind] ?? 0x888888), kind = LABELS[g.userData.kind] || g.userData.kind;
     legend.set(kind, { col, n:(legend.get(kind)?.n || 0) + 1 });
@@ -529,12 +559,12 @@ $('plan2d').onclick = exportPlan2D;
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
 const DXF_LAYER = { scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ecran:'SETUP_VIDEO' };
-const DXF_COLOR = { SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7 };
+const DXF_COLOR = { TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
 function exportDxf() {
   const items = props.children.filter(shown);
-  if (!items.length) return alert('Ajoute d\'abord des éléments (scène, enceintes, régie…).');
+
   const L = [], put = (...kv) => L.push(...kv.map(String));
   const n = v => v.toFixed(4);
   put(0, 'SECTION', 2, 'HEADER', 9, '$ACADVER', 1, 'AC1009', 0, 'ENDSEC'); // DXF R12 (lisible partout), coordonnées en mètres comme le DWG
@@ -554,6 +584,14 @@ function exportDxf() {
     const h = Math.min(0.3, Math.max(0.1, Math.min(w, d) / 4)), c = toDwg(toPlan(g, 0, 0));
     text('SETUP_TEXTE', [c[0], c[1] + h * 0.7], h, g.name);
     text('SETUP_TEXTE', [c[0], c[1] - h * 0.7], h * 0.8, `${w} x ${d} m`);
+  }
+  // trappes de sol relevées sur le PDF (absentes du DWG) : cercle + carré 50 cm + repère
+  const traps = venue.children.find(o => o.name === 'Trappes de sol (PDF)');
+  if (traps) for (const g of traps.children) {
+    const t = g.userData.trap, [cx, cy] = toDwg(toPlan(g, 0, 0));
+    poly('TRAPPES_SOL', [[-0.25, -0.25], [0.25, -0.25], [0.25, 0.25], [-0.25, 0.25]].map(([a, b]) => [cx + a, cy + b]));
+    put(0, 'CIRCLE', 8, 'TRAPPES_SOL', 10, n(cx), 20, n(cy), 40, n(0.6));
+    text('TRAPPES_SOL', [cx + 1.6, cy], 0.3, `T${t.n} ${t.label}`);
   }
   put(0, 'ENDSEC', 0, 'EOF');
   const a = document.createElement('a');
