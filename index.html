@@ -92,7 +92,7 @@
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
-<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · A/E : tourner la vue · G/B : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · V : vue public · C : centrer · Suppr · Échap</div>
+<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / ↑↓ : avancer · A/E : tourner la vue · G/B ou → ← : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · V : vue public · C : centrer · Suppr · Échap</div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -1077,13 +1077,13 @@ const TURN = { a:'TurnLeft', e:'TurnRight' };
 addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) keys.add(TURN[e.key.toLowerCase()] || e.code); });
 addEventListener('keyup', e => { keys.delete(e.code); keys.delete(TURN[e.key.toLowerCase()]); if (e.key === 'Meta' || e.key === 'Control') keys.clear(); });
 addEventListener('blur', () => keys.clear());
-const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], ArrowUp:[0, 1], KeyS:[0, -1], ArrowDown:[0, -1], KeyA:[-1, 0], ArrowLeft:[-1, 0], KeyD:[1, 0], ArrowRight:[1, 0] };
+const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], ArrowUp:[0, 1], KeyS:[0, -1], ArrowDown:[0, -1], KeyA:[-1, 0], KeyD:[1, 0] }; // flèches gauche / droite : descendre / monter (cf. navigate)
 function navigate(dt) {
   const v = new THREE.Vector3();
   if (goal) { v.subVectors(goal, orbit.target).multiplyScalar(Math.min(1, dt * 8)); if (v.length() < 0.01) goal = null; }
   const fwd = new THREE.Vector3().subVectors(orbit.target, camera.position).setY(0).normalize(), right = new THREE.Vector3().crossVectors(fwd, camera.up);
   let mx = 0, mz = 0, my = 0;
-  for (const k of keys) { if (MOVE[k]) { mx += MOVE[k][0]; mz += MOVE[k][1]; } if (k === 'KeyG' || k === 'PageUp') my++; if (k === 'KeyB' || k === 'PageDown') my--; }
+  for (const k of keys) { if (MOVE[k]) { mx += MOVE[k][0]; mz += MOVE[k][1]; } if (k === 'KeyG' || k === 'PageUp' || k === 'ArrowRight') my++; if (k === 'KeyB' || k === 'PageDown' || k === 'ArrowLeft') my--; }
   if (mx || mz || my) {
     // vitesse selon la distance de vue, bornée 2–15 m/s, ×3 avec Maj
     const sp = THREE.MathUtils.clamp(camera.position.distanceTo(orbit.target) * 0.25, 2, 15) * (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 3 : 1) * dt;
