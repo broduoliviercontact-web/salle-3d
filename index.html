@@ -59,7 +59,7 @@
   <h2>Sélection</h2>
   <div id="sel">—</div>
   <div class="row" id="linkRow" hidden>Trappe <select id="trapSel"></select><input type="number" id="powerW" step="100" min="0" style="width:72px" title="Puissance électrique de l'élément"> W</div>
-  <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (E)</button></div>
+  <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (R)</button></div>
   <div class="row"><button id="parent">Parent ↑</button><button id="dup">Dupliquer</button><button id="del">Suppr.</button></div>
   <div class="row"><button id="hide">Masquer (H)</button><button id="showAll">Tout réafficher</button></div>
   <div class="row"><button id="undo">↶ Annuler (⌘Z)</button><button id="redo">↷ Rétablir</button></div>
@@ -92,7 +92,7 @@
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
-<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · G/B : monter/descendre · Maj : rapide · T/E : déplacer/tourner · H : masquer · M : mesurer · V : vue public · C : centrer · Suppr · Échap</div>
+<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · A/E : tourner la vue · G/B : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · V : vue public · C : centrer · Suppr · Échap</div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -697,7 +697,7 @@ addEventListener('keydown', e => {
     if (k === 'y') { e.preventDefault(); $('redo').click(); }
     return;
   }
-  if (e.key === 't') setMode('translate'); if (e.key === 'e') setMode('rotate');
+  if (e.key === 't') setMode('translate'); if (e.key === 'r') setMode('rotate');
   if (e.key === 'Delete' || e.key === 'Backspace') $('del').click();
   if (e.key === 'Escape') { select(null); setMeasure(false); }
   if (e.key === 'm') setMeasure(!measuring);
@@ -1068,10 +1068,12 @@ renderer.domElement.addEventListener('pointerup', e => {
   else lastTap = { t:e.timeStamp, x:e.clientX, y:e.clientY };
 });
 const keys = new Set(), clock = new THREE.Clock();
-addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) keys.add(e.code); });
-addEventListener('keyup', e => { keys.delete(e.code); if (e.key === 'Meta' || e.key === 'Control') keys.clear(); });
+// A / E (lettres, quel que soit le clavier) : tourner la vue à gauche / à droite ; les autres touches de déplacement suivent leur position physique
+const TURN = { a:'TurnLeft', e:'TurnRight' };
+addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) keys.add(TURN[e.key.toLowerCase()] || e.code); });
+addEventListener('keyup', e => { keys.delete(e.code); keys.delete(TURN[e.key.toLowerCase()]); if (e.key === 'Meta' || e.key === 'Control') keys.clear(); });
 addEventListener('blur', () => keys.clear());
-const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], ArrowUp:[0, 1], KeyS:[0, -1], ArrowDown:[0, -1], KeyA:[-1, 0], KeyQ:[-1, 0], ArrowLeft:[-1, 0], KeyD:[1, 0], ArrowRight:[1, 0] };
+const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], ArrowUp:[0, 1], KeyS:[0, -1], ArrowDown:[0, -1], KeyA:[-1, 0], ArrowLeft:[-1, 0], KeyD:[1, 0], ArrowRight:[1, 0] };
 function navigate(dt) {
   const v = new THREE.Vector3();
   if (goal) { v.subVectors(goal, orbit.target).multiplyScalar(Math.min(1, dt * 8)); if (v.length() < 0.01) goal = null; }
@@ -1084,6 +1086,11 @@ function navigate(dt) {
     v.addScaledVector(fwd, mz * sp).addScaledVector(right, mx * sp).y += my * sp;
   }
   orbit.target.add(v); camera.position.add(v);
+  const turn = (keys.has('TurnLeft') ? 1 : 0) - (keys.has('TurnRight') ? 1 : 0);
+  if (turn) { // pivote le regard autour de la caméra (60°/s, ×2 avec Maj)
+    const a = turn * THREE.MathUtils.degToRad(60) * (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2 : 1) * dt;
+    orbit.target.sub(camera.position).applyAxisAngle(camera.up, a).add(camera.position); goal = null;
+  }
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); // hors connexion après une 1ʳᵉ visite
 renderer.setAnimationLoop(t => { updateDelays(t); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
