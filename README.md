@@ -47,6 +47,8 @@ Quand on déplace ou tourne une scène, elle **emporte son matériel** : tout é
 - Liste **Maquettes et calques** (repliée par défaut) : chaque niveau et chaque calque se masque.
 - **Masquer (H)** : cacher n'importe quel élément gênant. **Tout réafficher** l'annule.
 - Vues **Dessus**, **Perspective** et **Face**.
+- **Mesurer (M)** : deux clics donnent la distance totale, horizontale (↔) et verticale (↕). *Effacer mesures* les retire.
+- **Axe & piliers** : l'axe de l'Agora (rose, pointillé) et les piliers du RDC relevés dans l'IFC, M1–M10 côté mezzanine (z = −15,90) et V1–V6 côté verrière (z = +15,53). Chaque pilier affiche sa **distance et son délai (ms)** par rapport à la L2D la plus proche (ou au nez de scène), pour une enceinte posée à la hauteur choisie (4 m par défaut), avec un son à 343 m/s sans marge Haas. Une enceinte sélectionnée affiche aussi son délai. L'axe et les piliers sortent dans l'aperçu 2D et dans le DXF (calque `AGORA_AXE`).
 
 ### Setups de salle
 Un setup enregistre :
@@ -55,7 +57,7 @@ Un setup enregistre :
 - la caméra ;
 - les calques visibles et la coupe.
 
-On clique sur **Sauver** puis sur **Charger**. Les setups sont stockés **dans le navigateur** : utilise **Exporter JSON** / **Importer** pour les sauvegarder ou les partager. **⌘Z / ⌘⇧Z** annule ou rétablit chaque modification.
+On clique sur **Sauver** puis sur **Charger**. **Lien** copie une adresse qui ouvre le setup courant sur n'importe quel ordinateur (le setup est compressé dans l'adresse, environ 700 caractères, sans serveur). C'est une copie : les modifications de l'autre personne ne reviennent pas, il faut qu'elle renvoie un lien. Les setups sont stockés **dans le navigateur** : utilise **Exporter JSON** / **Importer** pour les sauvegarder ou les partager. **⌘Z / ⌘⇧Z** annule ou rétablit chaque modification.
 
 ### Exports
 - **Aperçu 2D (SVG)** : vue de dessus du setup sur le plan DXF complet en gris (murs, portes, axes, noms des locaux). Il contient :
@@ -63,7 +65,7 @@ On clique sur **Sauver** puis sur **Charger**. Les setups sont stockés **dans l
   - les trappes, une légende, des règles graduées et une grille de 1 m / 5 m.
 
   Le plan est à l'échelle **1:100** si on l'imprime à 100 %.
-- **Export AutoCAD (DXF)** : les éléments du setup et les trappes, en DXF R12, **dans le repère du DWG d'origine**. Les calques sont `SETUP_SCENE`, `SETUP_SON`, `SETUP_REGIE`, `SETUP_VIDEO`, `SETUP_DIVERS`, `SETUP_TEXTE`, `SETUP_GRILL` et `TRAPPES_SOL`. Dans AutoCAD :
+- **Export AutoCAD (DXF)** : les éléments du setup et les trappes, en DXF R12, **dans le repère du DWG d'origine**. Les calques sont `SETUP_SCENE`, `SETUP_SON`, `SETUP_REGIE`, `SETUP_VIDEO`, `SETUP_DIVERS`, `SETUP_TEXTE`, `SETUP_GRILL`, `AGORA_AXE` et `TRAPPES_SOL`. Dans AutoCAD :
   1. ouvrir le DXF exporté et tout copier (`COPYCLIP`) ;
   2. ouvrir le plan DWG ;
   3. coller avec `PASTEORIG` (coller aux coordonnées d'origine).
@@ -160,6 +162,5 @@ Les fichiers `flags.json`, `align.json`, `pdf2dxf.json` et `pdf2dxf_est.json` so
 ---
 
 ## Limites connues
-- Les setups restent dans le navigateur de chacun. Il n'y a pas encore de partage en ligne entre les membres de l'équipe.
+- Pas d'édition à plusieurs en temps réel : on partage des setups par lien (copie).
 - Certains éléments de façade mal renseignés dans Revit ont été rattachés à la main au bouton *Murs ext.* (voir `tools/flags.py`).
-- Pas d'outil de mesure entre deux points dans la 3D (les cotes sont dans l'aperçu 2D).

@@ -60,7 +60,9 @@
 
   <h2>Vue</h2>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button></div>
-  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn">Trappes de sol</button></div>
+  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn">Trappes de sol</button><button class="on" id="agoraBtn">Axe &amp; piliers</button></div>
+  <div class="row">Enceintes piliers à <input type="number" id="delayH" value="4" step="0.5" style="width:52px"> m <span style="opacity:.7">(délai / L2D)</span></div>
+  <div class="row"><button id="measure">Mesurer (M)</button><button id="clearMeasure">Effacer mesures</button></div>
 
   <h2>Coupe</h2>
   <div class="row"><select id="cutAxis"><option value="">Aucune</option><option value="x">Longueur</option><option value="z">Largeur</option><option value="y">Hauteur (toit)</option></select>
@@ -68,13 +70,13 @@
   <div class="row"><input type="range" id="cut" class="grow" step="0.25" disabled></div>
 
   <h2>Setups de salle</h2>
-  <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: frontale 800)"><button id="save">Sauver</button></div>
+  <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: frontale 800)"><button id="save">Sauver</button><button id="share" title="Copie un lien qui ouvre ce setup sur n'importe quel ordinateur">Lien</button></div>
   <ul id="cfgs"></ul>
   <div class="row"><button id="dxf" class="grow">Export AutoCAD (DXF)</button><button id="plan2d">Aperçu 2D (SVG)</button></div>
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
-<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · G/B : monter/descendre · Maj : rapide · T/E : déplacer/tourner · H : masquer · C : centrer · Suppr · Échap</div>
+<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · G/B : monter/descendre · Maj : rapide · T/E : déplacer/tourner · H : masquer · M : mesurer · C : centrer · Suppr · Échap</div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -111,10 +113,10 @@ function addModel(name, gltf) {
   const root = gltf.scene; root.name = name; venue.add(root);
   refreshModels(); frame(root);
 }
-function loadURL(url, name, then) { loader.load(url + '?t=' + Date.now(), g => { addModel(name, g); then?.(); }, undefined, () => {}); }
+function loadURL(url, name, then) { loader.load(url, g => { addModel(name, g); then?.(); }, undefined, () => {}); }
 // Bar central, extrudé depuis les contours du DXF (comptoirs 1,10 m, arrière-bars 0,90 m) ; sélectionnable et déplaçable d'un bloc
 function loadBar(url) {
-  fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(pieces => {
+  return fetch(url).then(r => r.ok ? r.json() : null).then(pieces => {
     if (!pieces) return;
     const all = pieces.flatMap(p => p.pts), c = all.reduce((a, [x, y]) => [a[0] + x / all.length, a[1] + y / all.length], [0, 0]);
     const bar = new THREE.Group(); bar.name = 'Bar central (DXF)'; bar.userData.sel = 1; bar.userData.src = { pieces, c };
@@ -129,13 +131,13 @@ function loadBar(url) {
 }
 // Trappes de sol événementielles (boîtiers « forains » relevés sur le PDF de repérage, cf. tools/trappes.py)
 const TRAP = { '63A':{ color:0xe8432e, css:'#e8432e' }, '32A':{ color:0x2f9be0, css:'#2f9be0' } };
-function label3d(text, css) { // étiquette toujours face caméra
-  const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
-  x.fillStyle = css; x.fillRect(0, 0, 256, 64); x.fillStyle = '#fff'; x.font = 'bold 30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 33);
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), depthTest:false })); sp.scale.set(1.6, 0.4, 1); sp.renderOrder = 2; return sp;
+function label3d(text, css, w = 256) { // étiquette toujours face caméra
+  const c = document.createElement('canvas'); c.width = w; c.height = 64; const x = c.getContext('2d');
+  x.fillStyle = css; x.fillRect(0, 0, w, 64); x.fillStyle = '#fff'; x.font = 'bold 30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, w / 2, 33);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), depthTest:false })); sp.scale.set(1.6 * w / 256, 0.4, 1); sp.renderOrder = 2; return sp;
 }
 function loadTrappes(url) {
-  fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(list => {
+  return fetch(url).then(r => r.ok ? r.json() : null).then(list => {
     if (!list) return;
     const grp = new THREE.Group(); grp.name = 'Trappes de sol (PDF)';
     for (const t of list) {
@@ -150,7 +152,7 @@ function loadTrappes(url) {
 }
 // Plan DXF « hall avec scène », déjà recalé sur l'IFC (segments x1,y1,x2,y2 en m) : bâti en rouge, scénographie en jaune
 function loadPlan(url) {
-  fetch(url, { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(data => {
+  return fetch(url).then(r => r.ok ? r.json() : null).then(data => {
     if (!data) return;
     const plan = new THREE.Group(); plan.name = 'Plan hall avec scène (DXF)'; plan.position.y = 0.05; plan.userData.src = data;
     for (const [key, color, name] of [['bati', 0xff3355, 'Bâti (rouge)'], ['scene', 0xffd23f, 'Scénographie (jaune)'], ['equip', 0x3fd2ff, 'Bar, équipements, mobilier (bleu)']]) {
@@ -201,7 +203,7 @@ function demoHall() {
   venue.add(g); refreshModels();
 }
 const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
-fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => { loadPlan('plan_scene.json'); loadBar('bar.json'); loadTrappes('trappes.json'); }) : demoHall()).catch(demoHall);
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json')]).then(() => { buildAgora(); openShared(); })) : demoHall()).catch(demoHall);
 $('file').onchange = e => loadFiles(e.target.files);
 addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
 addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });
@@ -271,7 +273,7 @@ function buildVtl218() {
   return [g];
 }
 // Setup du machiniste (DWG « scène et grill ») : scène 11 × 9 m en lames de 1 m et grill de poutres S500 triangulaires
-let MACH = null; const machReady = fetch('machiniste.json', { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(j => MACH = j).catch(() => null);
+let MACH = null; const machReady = fetch('machiniste.json').then(r => r.ok ? r.json() : null).then(j => MACH = j).catch(() => null);
 function buildSceneM(dims) {
   if (!MACH) return [];
   const { w, d, lines } = MACH.scene, h = dims?.[2] ?? 1.2, g = new THREE.Group();
@@ -372,6 +374,67 @@ $('concertBtn').onclick = async () => {
   for (const z of [-3.5, 3.5]) put('x15p', front - 2, top, z, (-90 - Math.sign(z) * 30) * deg);
   select(null); frame(s); $('charges').textContent = charges() + ` · bas des L2D à ${(hy - 1.55).toFixed(2)} m du sol`;
 };
+// --- axe et piliers de l'Agora (piliers du RDC relevés dans l'IFC) : repères des enceintes de délai ---
+const PILIERS = [
+  ...[32.73, 38.43, 44.13, 49.83, 55.53, 58.66, 63.93, 69.08, 72.93, 76.78].map((x, i) => ({ n:`M${i + 1}`, x, z:-15.90 })), // côté mezzanine
+  ...[28.64, 38.69, 48.70, 58.68, 68.69, 78.70].map((x, i) => ({ n:`V${i + 1}`, x, z:15.53 })),                       // côté verrière (lamellé-collé)
+];
+const SON = 343, AXE_X = [26, 88]; // vitesse du son (m/s, 20 °C) ; étendue de l'axe tracé
+const agora = new THREE.Group(); agora.name = 'Axe et piliers Agora'; scene.add(agora);
+function buildAgora() {
+  const y = floorAt(new THREE.Vector3(50, 0, AXE_AGORA)) + 0.06;
+  const axe = new THREE.Line(new THREE.BufferGeometry().setFromPoints(AXE_X.map(x => new THREE.Vector3(x, y, AXE_AGORA))), new THREE.LineDashedMaterial({ color:0xff00aa, dashSize:1, gapSize:0.5, depthTest:false }));
+  axe.computeLineDistances(); axe.renderOrder = 2; agora.add(axe);
+  for (const p of PILIERS) {
+    const g = new THREE.Group(); g.position.set(p.x, floorAt(new THREE.Vector3(p.x, 0, p.z + Math.sign(AXE_AGORA - p.z))), p.z); g.userData.pilier = p; // sol lu à 1 m du pilier (pas sur son dessus)
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), new THREE.MeshBasicMaterial({ color:0xff00aa }))); agora.add(g);
+  }
+}
+$('agoraBtn').onclick = () => { agora.visible = !agora.visible; $('agoraBtn').classList.toggle('on', agora.visible); };
+// source principale la plus proche d'un point : centre des L2D visibles, sinon nez de scène à 1,5 m au-dessus du plateau
+function mainSource(q) {
+  let best = null;
+  for (const o of props.children) if (o.visible && o.userData.kind === 'l2d') { const c = o.localToWorld(new THREE.Vector3(0, 0.63, 0)); if (!best || c.distanceTo(q) < best.distanceTo(q)) best = c; }
+  const s = props.children.filter(o => o.visible && /^scene/.test(o.userData.kind)).pop();
+  return best || (s && s.localToWorld(new THREE.Vector3(s.userData.dims[0] / 2, s.userData.dims[2] + 1.5, 0)));
+}
+const fr = (v, n = 1) => v.toFixed(n).replace('.', ',');
+// délai = distance à la source principale / vitesse du son (sans marge Haas : à ajouter au réglage)
+// ponytail: recalcul toutes les 0,5 s, étiquette regénérée seulement si son texte change
+let lastDelay = 0;
+function updateDelays(t) {
+  if (t - lastDelay < 500) return; lastDelay = t;
+  if (agora.visible) for (const g of agora.children) {
+    const p = g.userData.pilier; if (!p) continue;
+    const H = +$('delayH').value || 4, q = new THREE.Vector3(p.x, g.position.y + H, p.z), src = mainSource(q), d = src && src.distanceTo(q);
+    g.children[0].position.y = H;
+    const txt = src ? `${p.n} · ${fr(d)} m · ${fr(d / SON * 1000)} ms` : p.n;
+    if (g.userData.txt === txt) continue;
+    if (g.userData.lab) { g.userData.lab.material.map.dispose(); g.userData.lab.material.dispose(); g.remove(g.userData.lab); }
+    const lab = label3d(txt, '#b0007a', 384); lab.position.y = H + 0.5; g.add(lab); g.userData.lab = lab; g.userData.txt = txt;
+  }
+  // enceinte sélectionnée (hors L2D) : son délai par rapport à la diffusion principale
+  if (selected && SPEAKERS.has(selected.userData.kind) && selected.userData.kind !== 'l2d') {
+    const q = selected.localToWorld(new THREE.Vector3(0, (selected.userData.dims[2] || 0) / 2, 0)), src = mainSource(q);
+    $('sel').textContent = selected.name + (src ? ` · ${fr(src.distanceTo(q))} m de la diffusion principale · délai ${fr(src.distanceTo(q) / SON * 1000)} ms` : '');
+  }
+}
+// --- mesure : 2 clics -> distance totale, horizontale (↔) et verticale (↕) ---
+const measures = new THREE.Group(); scene.add(measures);
+let measuring = false, mPts = [];
+function setMeasure(on) { measuring = on; mPts = []; $('measure').classList.toggle('on', on); renderer.domElement.style.cursor = on ? 'crosshair' : ''; }
+$('measure').onclick = () => setMeasure(!measuring);
+$('clearMeasure').onclick = () => { measures.clear(); setMeasure(false); };
+function measureAt(hit) {
+  if (!hit) return;
+  const p = hit.point.clone(), dot = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 6), new THREE.MeshBasicMaterial({ color:0xffd23f, depthTest:false }));
+  dot.position.copy(p); dot.renderOrder = 3; measures.add(dot); mPts.push(p);
+  if (mPts.length < 2) return;
+  const [a, b] = mPts; mPts = [];
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color:0xffd23f, depthTest:false })); line.renderOrder = 3;
+  const lab = label3d(`${fr(a.distanceTo(b), 2)} m   ↔ ${fr(Math.hypot(b.x - a.x, b.z - a.z), 2)}   ↕ ${fr(Math.abs(b.y - a.y), 2)}`, '#8a6d00', 512);
+  lab.position.copy(a).lerp(b, 0.5); lab.position.y += 0.4; measures.add(line, lab);
+}
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
@@ -423,6 +486,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   ptr.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
   ray.setFromCamera(ptr, camera);
   const hit = ray.intersectObjects([props, venue], true).find(h => h.object.visible && (h.object.isMesh || h.object.isLineSegments) && visibleHit(h));
+  if (measuring) return measureAt(hit);
   if (!hit) return select(null);
   let o = hit.object;
   const p = props.children.find(c => isIn(o, c));
@@ -455,7 +519,8 @@ addEventListener('keydown', e => {
   }
   if (e.key === 't') setMode('translate'); if (e.key === 'e') setMode('rotate');
   if (e.key === 'Delete' || e.key === 'Backspace') $('del').click();
-  if (e.key === 'Escape') select(null);
+  if (e.key === 'Escape') { select(null); setMeasure(false); }
+  if (e.key === 'm') setMeasure(!measuring);
   if (e.key === 'h') $('hide').click();
   if (e.key === 'c' && selected) frame(selected);
 });
@@ -573,6 +638,24 @@ $('save').onclick = () => { const n = $('cfgName').value.trim() || new Date().to
 $('exp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(cfgs, null, 1)], { type:'application/json' })); a.download = 'setups-salle.json'; a.click(); };
 $('imp').onchange = e => e.target.files[0]?.text().then(t => { Object.assign(cfgs, JSON.parse(t)); store.set(cfgs); refreshCfgs(); });
 refreshCfgs();
+// --- lien de partage : setup compressé dans l'adresse (#s=…), sans serveur ; c'est une copie, pas une édition à plusieurs ---
+const b64u = { enc:u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+               dec:s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)) };
+const pipe = async (data, stream) => new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());
+$('share').onclick = async () => {
+  const name = $('cfgName').value.trim() || setupName || 'Setup partagé';
+  const url = `${location.origin}${location.pathname}#s=${b64u.enc(await pipe(JSON.stringify({ name, cfg:snapshot() }), new CompressionStream('deflate-raw')))}`;
+  try { await navigator.clipboard.writeText(url); $('share').textContent = 'Copié ✓'; setTimeout(() => $('share').textContent = 'Lien', 2000); }
+  catch { prompt('Lien de partage du setup :', url); }
+};
+async function openShared() {
+  const m = location.hash.match(/^#s=([\w-]+)$/); if (!m) return;
+  try {
+    const { name, cfg } = JSON.parse(new TextDecoder().decode(await pipe(b64u.dec(m[1]), new DecompressionStream('deflate-raw'))));
+    if (!Array.isArray(cfg?.props) || !Array.isArray(cfg.moved)) throw new Error('format');
+    restore(cfg); setupName = String(name || '').slice(0, 80); $('cfgName').value = setupName; // « Sauver » pour le garder dans ce navigateur
+  } catch { alert('Ce lien de setup est illisible ou incomplet.'); }
+}
 
 // --- export plan 2D (SVG, vue de dessus) : plan du bâtiment + éléments ajoutés ---
 // 1 unité SVG = 1 m ; largeur en mm = 10 × mètres -> échelle 1:100 si imprimé à 100 %
@@ -642,6 +725,13 @@ async function exportPlan2D() {
     out.push(`<rect x="${f(cx - 0.25)}" y="${f(cy - 0.25)}" width="0.5" height="0.5" fill="${col}" stroke="#000" stroke-width="0.03"/><circle cx="${f(cx)}" cy="${f(cy)}" r="0.6" fill="none" stroke="${col}" stroke-width="0.05"/>`);
     out.push(`<text x="${f(cx + 0.75)}" y="${f(cy + 0.12)}" font-size="0.35" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.07" paint-order="stroke">T${t.n}</text>`);
   }
+  // axe de l'Agora et piliers (délai)
+  if (agora.visible && agora.children.length) {
+    out.push(`<line x1="${AXE_X[0]}" y1="${f(AXE_AGORA)}" x2="${AXE_X[1]}" y2="${f(AXE_AGORA)}" stroke="#d6008f" stroke-width="0.05" stroke-dasharray="1 0.5" clip-path="url(#cadre)"/>`);
+    legend.set("Axe de l'Agora / piliers (délai)", { col:'#d6008f', n:1 });
+    for (const g of agora.children) { const p = g.userData.pilier; if (!p) continue;
+      out.push(`<g clip-path="url(#cadre)"><circle cx="${p.x}" cy="${p.z}" r="0.3" fill="#d6008f"/><text x="${p.x}" y="${f(p.z + (p.z < AXE_AGORA ? 0.9 : -0.6))}" font-size="0.35" text-anchor="middle" fill="#d6008f" stroke="#fff" stroke-width="0.07" paint-order="stroke">${esc(g.userData.txt || p.n)}</text></g>`); }
+  }
   // éléments ajoutés : emprise colorée, ▲ face avant, nom + dimensions (halo blanc pour la lisibilité)
   for (const { g, w, d, poly, front } of items) {
     const col = hex(COLORS[g.userData.kind] ?? 0x888888), kind = LABELS[g.userData.kind] || g.userData.kind;
@@ -689,7 +779,7 @@ $('plan2d').onclick = exportPlan2D;
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
 const DXF_LAYER = { grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
-const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7 };
+const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
 function exportDxf() {
@@ -718,6 +808,11 @@ function exportDxf() {
     text('SETUP_TEXTE', [c[0], c[1] - h * 0.7], h * 0.8, `${w} x ${d} m`);
   }
   if (charges() && items.length) { const c = toDwg(toPlan(items[0], 0, 0)); text('SETUP_TEXTE', [c[0], c[1] + 2], 0.3, charges()); }
+  if (agora.visible && agora.children.length) { // axe de l'Agora + piliers avec leur délai
+    const [p, q] = AXE_X.map(x => toDwg([x, AXE_AGORA])); put(0, 'LINE', 8, 'AGORA_AXE', 10, n(p[0]), 20, n(p[1]), 11, n(q[0]), 21, n(q[1]));
+    for (const g of agora.children) { const pl = g.userData.pilier; if (!pl) continue; const c = toDwg([pl.x, pl.z]);
+      put(0, 'CIRCLE', 8, 'AGORA_AXE', 10, n(c[0]), 20, n(c[1]), 40, n(0.3)); text('AGORA_AXE', [c[0], c[1] + (pl.z < AXE_AGORA ? -0.8 : 0.8)], 0.3, g.userData.txt || pl.n); }
+  }
   // trappes de sol relevées sur le PDF (absentes du DWG) : cercle + carré 50 cm + repère
   const traps = venue.children.find(o => o.name === 'Trappes de sol (PDF)');
   if (traps) for (const g of traps.children) {
@@ -761,7 +856,7 @@ function navigate(dt) {
   }
   orbit.target.add(v); camera.position.add(v);
 }
-renderer.setAnimationLoop(() => { navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
+renderer.setAnimationLoop(t => { updateDelays(t); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
 </script>
 </body>
 </html>
