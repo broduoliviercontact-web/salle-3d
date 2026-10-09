@@ -859,7 +859,9 @@ function cote(out, g, a, b, dir, len) {
     + `<text transform="translate(${f(mx)} ${f(my)}) rotate(${f(ang)})" y="-0.08" font-size="0.25" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="0.05" paint-order="stroke">${len.toFixed(2)} m</text>`);
 }
 let fondSrc = null; // fond de plan complet (plan_fond.svg), chargé au premier export seulement
-async function planSvg() {
+// whole = true : cadre sur toute l'Agora (fiche setup) ; sinon sur les éléments ajoutés + 8 m
+const AGORA_BOX = [[-12, -36], [92, 17]]; // emprise de l'Agora (x, z), de la cloison CTA à la façade est
+async function planSvg(whole = false) {
   const items = props.children.filter(shown).map(g => {
     const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
     return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
@@ -867,12 +869,13 @@ async function planSvg() {
   const bar = venue.children.find(o => o.userData.src?.pieces);
   if (fondSrc === null) fondSrc = await fetch('plan_fond.svg').then(r => r.ok ? r.text() : '').catch(() => '');
   // cadrage : éléments ajoutés + 8 m ; sinon tout le bâtiment
-  let pts = items.flatMap(i => i.poly), M = 8;
+  let pts = [...items.flatMap(i => i.poly), ...(whole ? AGORA_BOX : [])], M = whole ? 2 : 8;
   if (!pts.length) { pts = [[-95, -45], [95, 45]]; M = 0; }
-  const H0 = 4.5; // bandeau titre / légende en haut
   // cadre calé sur le mètre : règles et grille tombent juste
-  const x0 = Math.floor(Math.min(...pts.map(p => p[0])) - M), y0 = Math.floor(Math.min(...pts.map(p => p[1])) - M) - H0;
-  const W = Math.ceil(Math.max(...pts.map(p => p[0])) + M - x0), H = Math.ceil(Math.max(...pts.map(p => p[1])) + M - y0 - H0) + H0;
+  const x0 = Math.floor(Math.min(...pts.map(p => p[0])) - M), W = Math.ceil(Math.max(...pts.map(p => p[0])) + M - x0);
+  // bandeau titre / légende en haut, agrandi d'un facteur k sur un grand cadre pour rester lisible une fois réduit sur la page
+  const k = Math.max(1, W / 60), HU = 6, H0 = HU * k;
+  const y0 = Math.floor(Math.min(...pts.map(p => p[1])) - M) - H0, H = Math.ceil(Math.max(...pts.map(p => p[1])) + M - y0 - H0) + H0;
   const f = v => +v.toFixed(2), out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${f(W * 10)}mm" height="${f(H * 10)}mm" viewBox="${f(x0)} ${f(y0)} ${f(W)} ${f(H)}" font-family="Helvetica, Arial, sans-serif">`);
   out.push(`<defs><clipPath id="cadre"><rect x="${f(x0)}" y="${f(y0 + H0)}" width="${f(W)}" height="${f(H - H0)}"/></clipPath></defs>`);
@@ -903,8 +906,8 @@ async function planSvg() {
     if (!g.visible) continue;
     const t = g.userData.trap, [cx, cy] = toPlan(g, 0, 0), col = TRAP[t.kind].css, key = `Trappe de sol ${t.label}`;
     legend.set(key, { col, n:(legend.get(key)?.n || 0) + 1 });
-    out.push(`<rect x="${f(cx - 0.25)}" y="${f(cy - 0.25)}" width="0.5" height="0.5" fill="${col}" stroke="#000" stroke-width="0.03"/><circle cx="${f(cx)}" cy="${f(cy)}" r="0.6" fill="none" stroke="${col}" stroke-width="0.05"/>`);
-    out.push(`<text x="${f(cx + 0.75)}" y="${f(cy + 0.12)}" font-size="0.35" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.07" paint-order="stroke">T${t.n}</text>`);
+    out.push(`<g clip-path="url(#cadre)"><rect x="${f(cx - 0.25)}" y="${f(cy - 0.25)}" width="0.5" height="0.5" fill="${col}" stroke="#000" stroke-width="0.03"/><circle cx="${f(cx)}" cy="${f(cy)}" r="0.6" fill="none" stroke="${col}" stroke-width="0.05"/>`);
+    out.push(`<text x="${f(cx + 0.75)}" y="${f(cy + 0.12)}" font-size="0.35" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.07" paint-order="stroke">T${t.n}</text></g>`);
   }
   // axe de l'Agora et piliers (délai)
   if (agora.visible && agora.children.length) {
@@ -942,21 +945,22 @@ async function planSvg() {
   for (let i = 0; i <= W; i++) { const L = i % 5 ? 0.15 : 0.35; tk += `M${f(x0 + i)} ${f(py0)}v${L}`; if (!(i % 5) && i) lb += `<text x="${f(x0 + i)}" y="${f(py0 + 0.55)}" font-size="0.22" text-anchor="middle">${i} m</text>`; }
   for (let i = 0; i <= H - H0; i++) { const L = i % 5 ? 0.15 : 0.35; tk += `M${f(x0)} ${f(py0 + i)}h${L}`; if (!(i % 5) && i) lb += `<text transform="translate(${f(x0 + 0.5)} ${f(py0 + i)}) rotate(-90)" font-size="0.22" text-anchor="middle">${i} m</text>`; }
   out.push(`<path d="${tk}" stroke="#000" stroke-width="0.02"/>${lb}`);
-  // bandeau : titre, infos, échelle, légende
-  const tx = x0 + 1, ty = y0 + 1.3, sb = W > 40 ? 10 : 5;
-  out.push(`<line x1="${f(x0)}" y1="${f(y0 + H0)}" x2="${f(x0 + W)}" y2="${f(y0 + H0)}" stroke="#000" stroke-width="0.04"/>`);
+  // bandeau : titre, infos, échelle, légende (en unités de bandeau, mises à l'échelle k)
+  out.push(`<line x1="${f(x0)}" y1="${f(y0 + H0)}" x2="${f(x0 + W)}" y2="${f(y0 + H0)}" stroke="#000" stroke-width="${f(0.04 * k)}"/><g transform="translate(${f(x0)} ${f(y0)}) scale(${f(k)})">`);
+  const tx = 1, ty = 1.3, sb = W > 40 ? 10 : 5, WU = W / k; // échelle graphique : longueur réelle sb m -> sb / k unités de bandeau
   out.push(`<text x="${f(tx)}" y="${f(ty)}" font-size="0.9" font-weight="bold">${esc(setupName || 'Plan de scène')}</text>`);
-  out.push(`<text x="${f(tx)}" y="${f(ty + 0.9)}" font-size="0.4" fill="#444">Salle 3D · ${new Date().toLocaleDateString('fr')} · échelle 1:100 si imprimé à 100 % · ▲ rouge = face avant des enceintes${charges() ? ' · ' + charges() : ''}</text>`);
-  out.push(`<g transform="translate(${f(tx)} ${f(ty + 1.7)})"><rect width="${sb}" height="0.18" fill="#000"/><rect width="${sb / 2}" height="0.18" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="0" y="0.75" font-size="0.35">0</text><text x="${sb / 2}" y="0.75" font-size="0.35" text-anchor="middle">${sb / 2}</text><text x="${sb}" y="0.75" font-size="0.35" text-anchor="middle">${sb} m</text></g>`);
+  out.push(`<text x="${f(tx)}" y="${f(ty + 0.9)}" font-size="0.4" fill="#444">Salle 3D · ${new Date().toLocaleDateString('fr')} · 1:100 imprimé à 100 % · ▲ rouge = face avant</text>`);
+  if (charges()) out.push(`<text x="${f(tx)}" y="${f(ty + 1.5)}" font-size="0.4" fill="#444">${charges()}</text>`);
+  out.push(`<g transform="translate(${f(tx)} ${f(ty + 2.3)})"><rect width="${f(sb / k)}" height="0.18" fill="#000"/><rect width="${f(sb / 2 / k)}" height="0.18" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="0" y="0.75" font-size="0.35">0</text><text x="${f(sb / 2 / k)}" y="0.75" font-size="0.35" text-anchor="middle">${sb / 2}</text><text x="${f(sb / k)}" y="0.75" font-size="0.35" text-anchor="middle">${sb} m</text></g>`);
   // légende sur plusieurs lignes à droite du titre
-  const lx0 = tx + Math.max(sb + 3, 20); let lx = lx0, ly = ty - 0.5;
+  const lx0 = tx + Math.max(sb / k + 3, 20); let lx = lx0, ly = ty - 0.5;
   for (const [kind, { col, n }] of legend) {
     const wItem = 1.4 + (kind.length + 3) * 0.22;
-    if (lx + wItem > x0 + W - 0.5 && lx > lx0) { lx = lx0; ly += 0.8; }
+    if (lx + wItem > WU - 0.5 && lx > lx0) { lx = lx0; ly += 0.8; }
     out.push(`<rect x="${f(lx)}" y="${f(ly)}" width="0.6" height="0.6" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.03"/><text x="${f(lx + 0.8)}" y="${f(ly + 0.5)}" font-size="0.4">${esc(kind)} ×${n}</text>`);
     lx += wItem;
   }
-  out.push('</svg>');
+  out.push('</g></svg>');
   return out.join('\n');
 }
 async function exportPlan2D() {
@@ -969,17 +973,17 @@ $('plan2d').onclick = exportPlan2D;
 $('fiche').onclick = async () => {
   const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour générer la fiche.'); // ouverte avant l'attente (anti pop-up)
   w.document.write('<p style="font:14px sans-serif">Préparation de la fiche…</p>');
-  const svg = await planSvg(), r = rigging(), j = jauge(), c = cabling(), title = setupName || 'Setup de salle';
+  const svg = await planSvg(true), r = rigging(), j = jauge(), c = cabling(), title = setupName || 'Setup de salle';
   const mat = new Map();
   for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
   const td = v => `<td>${v}</td>`, num = v => `<td class="n">${v}</td>`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
     @page { size:A4 landscape; margin:10mm } body { font:11px/1.35 Helvetica, Arial, sans-serif; color:#111; margin:0 }
     h1 { font-size:18px; margin:0 0 2px } h2 { font-size:13px; margin:14px 0 4px; border-bottom:1px solid #999 } .sub { color:#555; margin-bottom:6px }
-    .plan svg { width:100%; height:auto; max-height:178mm } .plan { page-break-after:always }
+    .plan svg { display:block; width:100%; height:186mm } .plan { page-break-after:always } /* plan entier sur la page 1 (A4 paysage, marges 10 mm) */
     table { border-collapse:collapse; width:100%; margin-bottom:6px } th, td { border:1px solid #bbb; padding:2px 5px; text-align:left } th { background:#eee } td.n { text-align:right }
     .warn { color:#c00; font-weight:bold } .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px }</style></head><body>
-    <div class="plan"><h1>${esc(title)}</h1><div class="sub">Grandes Serres de Pantin · ${new Date().toLocaleDateString('fr')} · plan à l'échelle 1:100 sur le fichier SVG</div>${svg.replace(/^<svg [^>]*?width="[^"]+" height="[^"]+"/, m => m.replace(/ width="[^"]+" height="[^"]+"/, ''))}</div>
+    <div class="plan">${svg.replace(/^<svg [^>]*?width="[^"]+" height="[^"]+"/, m => m.replace(/ width="[^"]+" height="[^"]+"/, ''))}</div>
     <h1>${esc(title)} — dossier technique</h1>
     <div class="cols"><div>
     <h2>Matériel</h2><table><tr><th>Désignation</th><th>Qté</th><th>Poids unit.</th><th>Poids total</th><th>Puissance</th></tr>

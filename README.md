@@ -58,7 +58,7 @@ Le panneau **Dossier technique** se met à jour en direct :
 - **Rigging** : 12 palans sur le grill (4 rangées × extrémités + milieu). La charge de chaque point compte le palan, le poids propre des poutres (réparti par demi-travée) et les L2D, répartis entre les 2 palans voisins sur la poutre la plus proche. Les étiquettes `P1…P12` en 3D et dans l'aperçu 2D passent au rouge au-delà de la limite choisie. Les réglages sont modifiables : poutre 10 kg/m, palan 50 kg, limite 500 kg/point par défaut.
 - **Jauge** : surface publique de l'Agora (3 184,9 m², calcul DACAM) moins les scènes, praticables et régies posés dans l'Agora, divisée par le ratio (3 m²/pers. par défaut). Alerte au-delà du plafond DACAM RDC (2 164 pers.).
 - **Câblage** : un élément sélectionné peut être relié à une trappe (ou à « la plus proche »), avec sa puissance en W (valeurs par défaut pour régie, écran, enceintes actives). Le câble est tracé en L au sol (3D et 2D). Pour chaque trappe, le site affiche la puissance totale face à sa capacité (63 A ≈ 43,6 kW, 32 A ≈ 22,2 kW en triphasé 400 V) et la longueur de câble estimée (trajet en L + hauteur + 2 m), arrondie au touret supérieur.
-- **Fiche setup (PDF)** : ouvre une page imprimable avec le plan, le matériel (quantités, poids, puissance), les charges, la jauge, le rigging par point et les trappes et câbles. On l'enregistre en PDF depuis l'impression du navigateur.
+- **Fiche setup (PDF)** : ouvre une page imprimable avec le plan de toute l'Agora sur la page 1 (A4 paysage), le matériel (quantités, poids, puissance), les charges, la jauge, le rigging par point et les trappes et câbles. On l'enregistre en PDF depuis l'impression du navigateur.
 
 ### Setups de salle
 Un setup enregistre :
