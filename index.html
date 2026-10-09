@@ -336,10 +336,13 @@ function charges() {
 }
 const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
+// axe de l'Agora : à mi-distance des 2 rangées de piliers (IFC : piliers côté mezzanine z = −15,90, poteaux lamellé-collé de la verrière z = +15,53)
+const AXE_AGORA = (-15.90 + 15.53) / 2;
 function placeMach() {
-  const s = makeProp('scene_m', [MACH.scene.w, MACH.scene.d, 1.2]); s.position.set(MACH.scene.c[0], 0, MACH.scene.c[1]); s.position.y = floorAt(s.position);
+  const dz = AXE_AGORA - MACH.scene.c[1]; // scène recentrée entre les piliers ; le grill suit avec le même décalage
+  const s = makeProp('scene_m', [MACH.scene.w, MACH.scene.d, 1.2]); s.position.set(MACH.scene.c[0], 0, MACH.scene.c[1] + dz); s.position.y = floorAt(s.position);
   const { xs, zs } = MACH.grill, g = makeProp('grill', [+(xs[xs.length - 1] - xs[0] + 0.5).toFixed(2), +(Math.abs(zs[zs.length - 1] - zs[0]) + 0.5).toFixed(2), 0.43]);
-  g.position.set(MACH.grill.c[0], s.position.y + (+$('grillH').value || 7), MACH.grill.c[1]);
+  g.position.set(MACH.grill.c[0], s.position.y + (+$('grillH').value || 7), MACH.grill.c[1] + dz);
   select(g); frame(g); return [s, g];
 }
 // Système du concert 05/12, placé dans le repère de la scène du machiniste : x local = vers le public (+x), z local = « X » de la fiche

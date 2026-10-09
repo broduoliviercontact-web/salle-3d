@@ -23,7 +23,7 @@ Scène (dimensions libres), praticable 2 × 1, régie, enceinte, écran, silhoue
 - **VCH30 ×2** : deux unités en éventail à 60°, avec plaque d'accroche.
 - **Sub VTL218** : 1300 × 775 × 570 mm.
 
-Le bouton **Setup du machiniste (DWG)** place la **scène 11 × 9 m** (en lames de 1 m) et le **grill de poutres S500 triangulaires** issus du DWG « scène et grill » d'un machiniste, à leur position d'origine. Le grill compte 4 poutres de 11,6 m et 2 de 10,3 m ; sa hauteur d'accroche se règle à côté du bouton (7 m par défaut). La scène fait 1,20 m de haut. Les deux éléments se déplacent et s'exportent comme les autres : dans le DXF, le grill est sur le calque `SETUP_GRILL`, en axes de poutres.
+Le bouton **Setup du machiniste (DWG)** place la **scène 11 × 9 m** (en lames de 1 m) et le **grill de poutres S500 triangulaires** issus du DWG « scène et grill » d'un machiniste. La scène est **recentrée sur l'axe de l'Agora**, à mi-distance des piliers côté mezzanine et des poteaux de la verrière (z = −0,19 m), pour la cohérence avec les enceintes sur piliers ; le grill garde sa position relative à la scène. Le grill compte 4 poutres de 11,6 m et 2 de 10,3 m ; sa hauteur d'accroche se règle à côté du bouton (7 m par défaut). La scène fait 1,20 m de haut. Les deux éléments se déplacent et s'exportent comme les autres : dans le DXF, le grill est sur le calque `SETUP_GRILL`, en axes de poutres.
 
 Les modèles **L-Acoustics** (volumes simplifiés d'après les dimensions et poids fournis) :
 - **KS28** seul ou en pile de 2, posés à plat : 1340 × 700 × 550 mm, 79 kg.
