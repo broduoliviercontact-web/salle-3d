@@ -23,7 +23,21 @@ Scène (dimensions libres), praticable 2 × 1, régie, enceinte, écran, silhoue
 - **VCH30 ×2** : deux unités en éventail à 60°, avec plaque d'accroche.
 - **Sub VTL218** : 1300 × 775 × 570 mm.
 
-Le bouton **Setup du machiniste (DWG)** place la **scène 11 × 9 m** (en lames de 1 m) et le **grill de poutres S500 triangulaires** issus du DWG « scène et grill » d'un machiniste, à leur position d'origine. Le grill compte 4 poutres de 11,6 m et 2 de 10,3 m ; sa hauteur d'accroche se règle à côté du bouton (7 m par défaut). Les deux éléments se déplacent et s'exportent comme les autres : dans le DXF, le grill est sur le calque `SETUP_GRILL`, en axes de poutres.
+Le bouton **Setup du machiniste (DWG)** place la **scène 11 × 9 m** (en lames de 1 m) et le **grill de poutres S500 triangulaires** issus du DWG « scène et grill » d'un machiniste, à leur position d'origine. Le grill compte 4 poutres de 11,6 m et 2 de 10,3 m ; sa hauteur d'accroche se règle à côté du bouton (7 m par défaut). La scène fait 1,20 m de haut. Les deux éléments se déplacent et s'exportent comme les autres : dans le DXF, le grill est sur le calque `SETUP_GRILL`, en axes de poutres.
+
+Les modèles **L-Acoustics** (volumes simplifiés d'après les dimensions et poids fournis) :
+- **KS28** seul ou en pile de 2, posés à plat : 1340 × 700 × 550 mm, 79 kg.
+- **L2D accroché** avec L2 BUMP, L2 BAR et Clamp 1000 : 850 × 559 × 1252 mm, 205 kg au total.
+- **Kara II** : 733 × 482 × 252 mm, 26 kg.
+- **X15 HiQ** au sol (en retour) ou sur pied : 21 kg.
+
+Le bouton **Système concert 05/12** pose tout le système sur la scène du machiniste (et la crée si besoin). Les positions sont prises par rapport au centre du nez de scène (X = 0), le public étant côté bar :
+- 5 piles de 2 KS28 au sol devant la scène ;
+- 2 L2D à X = ±4 m, sous la poutre avant du grill ;
+- 3 Kara II au nez de scène, celles des côtés ouvertes de 30° ;
+- 1 retour X15 au sol et 2 sur pied.
+
+Le panneau, l'aperçu 2D et le DXF affichent le **bilan des charges** (accroché / posé).
 
 ### Vue
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.

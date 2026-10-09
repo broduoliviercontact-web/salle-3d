@@ -44,6 +44,10 @@
   <div class="row"><button data-add="enceinte">Enceinte</button><button data-add="ecran">Écran</button><button data-add="perso">Personne</button></div>
   <div class="row"><button data-add="vch30">VCH30 ×1</button><button data-add="vch30x2">VCH30 ×2</button><button data-add="vtl218">Sub VTL218</button></div>
   <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
+  <div class="row"><button data-add="ks28">KS28</button><button data-add="ks28x2">KS28 ×2</button><button data-add="l2d">L2D accroché</button></div>
+  <div class="row"><button data-add="kara2">Kara II</button><button data-add="x15">X15 sol</button><button data-add="x15p">X15 sur pied</button></div>
+  <div class="row"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
+  <div id="charges" style="font-size:11px;opacity:.8"></div>
 
   <h2>Sélection</h2>
   <div id="sel">—</div>
@@ -183,7 +187,7 @@ function frame(obj) {
   const b = new THREE.Box3().setFromObject(obj); if (b.isEmpty()) return;
   const c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3()).length();
   orbit.target.copy(c); camera.position.copy(c).add(new THREE.Vector3(0.6, 0.45, 0.7).multiplyScalar(s));
-  camera.far = s * 10; camera.updateProjectionMatrix();
+  camera.far = Math.max(2000, s * 10); camera.updateProjectionMatrix();
 }
 
 // Salle de démo tant qu'aucune maquette n'est chargée (salle.glb est chargé automatiquement s'il existe à côté)
@@ -205,9 +209,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { scene_m:[11, 9, 1], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -267,9 +271,9 @@ function buildVtl218() {
 }
 // Setup du machiniste (DWG « scène et grill ») : scène 11 × 9 m en lames de 1 m et grill de poutres S500 triangulaires
 let MACH = null; const machReady = fetch('machiniste.json', { cache:'no-store' }).then(r => r.ok ? r.json() : null).then(j => MACH = j).catch(() => null);
-function buildSceneM() {
+function buildSceneM(dims) {
   if (!MACH) return [];
-  const { w, d, lines } = MACH.scene, h = 1.0, g = new THREE.Group();
+  const { w, d, lines } = MACH.scene, h = dims?.[2] ?? 1.2, g = new THREE.Group();
   const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color:COLORS.scene_m }));
   box.position.y = h / 2; box.add(new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
   const pos = lines.flatMap(([x1, z1, x2, z2]) => [x1, h + 0.003, z1, x2, h + 0.003, z2]);
@@ -295,18 +299,78 @@ function truss(a, b) {
 const grillLines = () => { const { xs, zs } = MACH.grill, X0 = xs[0], X1 = xs[xs.length - 1], Z0 = zs[0], Z1 = zs[zs.length - 1];
   return [...zs.map(z => [[X0, z], [X1, z]]), [[X0, Z0], [X0, Z1]], [[X1, Z0], [X1, Z1]]]; };
 function buildGrill() { if (!MACH) return []; const g = new THREE.Group(); for (const [a, b] of grillLines()) g.add(truss(a, b)); return [g]; }
-const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill };
-$('machBtn').onclick = async () => {
-  await machReady; if (!MACH) return alert('machiniste.json introuvable');
-  pushUndo();
-  const s = makeProp('scene_m', [MACH.scene.w, MACH.scene.d, 1.0]); s.position.set(MACH.scene.c[0], 0, MACH.scene.c[1]); s.position.y = floorAt(s.position);
+// --- L-Acoustics (concert 05/12) : caissons simplifiés, origine au sol, face avant = +z local ---
+function cab(W, H, D, y = 0) {
+  const g = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), new THREE.MeshStandardMaterial({ color:0x26282c }));
+  m.position.y = y + H / 2; m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
+  const grille = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.04, H - 0.04), new THREE.MeshStandardMaterial({ color:0x0b0b0c }));
+  grille.position.set(0, y + H / 2, D / 2 + 0.002); g.add(m, grille); return g;
+}
+const metal = (w, h, d, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color:0x9aa0a8, metalness:0.6 })); m.position.y = y + h / 2; return m; };
+// KS28 posé à plat : 1340 l × 550 h × 700 p
+const buildKs28 = () => [cab(1.34, 0.55, 0.7)];
+const buildKs28x2 = () => [cab(1.34, 0.55, 0.7), cab(1.34, 0.55, 0.7, 0.55)];
+// L2D 850 l × 1252 h × 559 p, au-dessus : L2 BUMP, L2 BAR, Clamp 1000 (volumes indicatifs) ; haut du clamp = point d'accroche (1,55 m)
+const buildL2d = () => [cab(0.85, 1.252, 0.559), metal(0.95, 0.06, 0.62, 1.252), metal(1.0, 0.06, 0.08, 1.37), metal(0.1, 0.12, 0.1, 1.43)];
+// Kara II posée : 733 l × 252 h × 482 p
+const buildKara2 = () => [cab(0.733, 0.252, 0.482)];
+// X15 HiQ en retour au sol : coin 580 l × 430 p × 375 h, face inclinée vers le haut
+function buildX15() {
+  const prof = new THREE.Shape([[-0.215, 0], [0.215, 0], [-0.05, 0.375], [-0.215, 0.375]].map(([z, y]) => new THREE.Vector2(z, y)));
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(prof, { depth:0.58, bevelEnabled:false }).rotateY(-Math.PI / 2).translate(0.29, 0, 0), new THREE.MeshStandardMaterial({ color:0x26282c }));
+  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color:0x000000 }))); return [m];
+}
+// X15 HiQ debout sur pied (haut à 1,88 m)
+function buildX15p() {
+  const mat = new THREE.MeshStandardMaterial({ color:0x111111 }), pole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.3, 8), mat); pole.position.y = 0.65;
+  const out = [pole, cab(0.43, 0.58, 0.375, 1.3)];
+  for (let i = 0; i < 3; i++) { const a = i * 2 * Math.PI / 3, leg = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.65, 6), mat);
+    leg.position.set(Math.sin(a) * 0.25, 0.22, Math.cos(a) * 0.25); leg.rotation.set(Math.cos(a) * 0.9, 0, -Math.sin(a) * 0.9); out.push(leg); }
+  return out;
+}
+const WEIGHT = { ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21 }, FLOWN = new Set(['l2d']);
+function charges() {
+  let up = 0, down = 0;
+  for (const g of props.children) if (g.visible && WEIGHT[g.userData.kind]) FLOWN.has(g.userData.kind) ? up += WEIGHT[g.userData.kind] : down += WEIGHT[g.userData.kind];
+  return up + down ? `Charges son : accroché ${up} kg · posé ${down} kg` : '';
+}
+const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+$('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
+function placeMach() {
+  const s = makeProp('scene_m', [MACH.scene.w, MACH.scene.d, 1.2]); s.position.set(MACH.scene.c[0], 0, MACH.scene.c[1]); s.position.y = floorAt(s.position);
   const { xs, zs } = MACH.grill, g = makeProp('grill', [+(xs[xs.length - 1] - xs[0] + 0.5).toFixed(2), +(Math.abs(zs[zs.length - 1] - zs[0]) + 0.5).toFixed(2), 0.43]);
   g.position.set(MACH.grill.c[0], s.position.y + (+$('grillH').value || 7), MACH.grill.c[1]);
-  select(g); frame(g);
+  select(g); frame(g); return [s, g];
+}
+// Système du concert 05/12, placé dans le repère de la scène du machiniste : x local = vers le public (+x), z local = « X » de la fiche
+$('concertBtn').onclick = async () => {
+  await machReady; if (!MACH) return alert('machiniste.json introuvable');
+  pushUndo();
+  const last = k => props.children.filter(c => c.userData.kind === k).pop();
+  let s = last('scene_m'), gr = last('grill');
+  if (!s) [s, gr] = placeMach();
+  s.updateMatrixWorld(); const front = s.userData.dims[0] / 2, top = s.userData.dims[2], deg = Math.PI / 180;
+  const put = (kind, x, y, z, rot) => { const o = makeProp(kind, DEFAULT[kind]); o.position.copy(s.localToWorld(new THREE.Vector3(x, y, z))); o.rotation.y = s.rotation.y + rot; return o; };
+  // 5 piles de 2 KS28 collées au sol devant la scène, la 3ᵉ centrée sur X = 0
+  for (let i = -2; i <= 2; i++) put('ks28x2', front + 0.4, 0, i * 1.34, 90 * deg);
+  // L2D à X = ±4 sous la poutre du grill côté public (sinon 6 m au-dessus du sol, 0,5 m devant la scène)
+  let hx = front + 0.5, hy = 6 + 1.55;
+  if (gr) {
+    gr.updateMatrixWorld(); const xs = MACH.grill.xs;
+    const loc = [xs[0], xs[xs.length - 1]].map(x => s.worldToLocal(gr.localToWorld(new THREE.Vector3(x, 0, 0))));
+    const p = loc.sort((a, b) => b.x - a.x)[0]; hx = p.x; hy = p.y;
+  }
+  for (const z of [-4, 4]) put('l2d', hx, hy - 1.55, z, 90 * deg);
+  // 3 Kara II au nez de scène : centre de face, côtés ouverts de 30° vers l'extérieur
+  for (const z of [-4, 0, 4]) put('kara2', front - 0.35, top, z, (90 - Math.sign(z) * 30) * deg);
+  // retours X15 : 1 au sol en avant-scène, 2 sur pied tournés vers le centre de la scène
+  put('x15', front - 1.2, top, 0, -90 * deg);
+  for (const z of [-3.5, 3.5]) put('x15p', front - 2, top, z, (-90 - Math.sign(z) * 30) * deg);
+  select(null); frame(s); $('charges').textContent = charges() + ` · bas des L2D à ${(hy - 1.55).toFixed(2)} m du sol`;
 };
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
-    const g = new THREE.Group(); BUILD[kind]().forEach(o => g.add(o));
+    const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
     g.userData = { kind, dims }; g.name = LABELS[kind];
     props.add(g); return g;
   }
@@ -493,7 +557,7 @@ refreshCfgs();
 
 // --- export plan 2D (SVG, vue de dessus) : plan du bâtiment + éléments ajoutés ---
 // 1 unité SVG = 1 m ; largeur en mm = 10 × mètres -> échelle 1:100 si imprimé à 100 %
-const SPEAKERS = new Set(['enceinte', 'vch30', 'vch30x2', 'vtl218']);
+const SPEAKERS = new Set(['enceinte', 'vch30', 'vch30x2', 'vtl218', 'ks28', 'ks28x2', 'l2d', 'kara2', 'x15', 'x15p']);
 const hex = c => '#' + c.toString(16).padStart(6, '0');
 const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
 const shown = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
@@ -585,7 +649,7 @@ async function exportPlan2D() {
   const tx = x0 + 1, ty = y0 + 1.3, sb = W > 40 ? 10 : 5;
   out.push(`<line x1="${f(x0)}" y1="${f(y0 + H0)}" x2="${f(x0 + W)}" y2="${f(y0 + H0)}" stroke="#000" stroke-width="0.04"/>`);
   out.push(`<text x="${f(tx)}" y="${f(ty)}" font-size="0.9" font-weight="bold">${esc(setupName || 'Plan de scène')}</text>`);
-  out.push(`<text x="${f(tx)}" y="${f(ty + 0.9)}" font-size="0.4" fill="#444">Salle 3D · ${new Date().toLocaleDateString('fr')} · échelle 1:100 si imprimé à 100 % · ▲ rouge = face avant des enceintes</text>`);
+  out.push(`<text x="${f(tx)}" y="${f(ty + 0.9)}" font-size="0.4" fill="#444">Salle 3D · ${new Date().toLocaleDateString('fr')} · échelle 1:100 si imprimé à 100 % · ▲ rouge = face avant des enceintes${charges() ? ' · ' + charges() : ''}</text>`);
   out.push(`<g transform="translate(${f(tx)} ${f(ty + 1.7)})"><rect width="${sb}" height="0.18" fill="#000"/><rect width="${sb / 2}" height="0.18" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="0" y="0.75" font-size="0.35">0</text><text x="${sb / 2}" y="0.75" font-size="0.35" text-anchor="middle">${sb / 2}</text><text x="${sb}" y="0.75" font-size="0.35" text-anchor="middle">${sb} m</text></g>`);
   // légende sur plusieurs lignes à droite du titre
   const lx0 = tx + Math.max(sb + 3, 20); let lx = lx0, ly = ty - 0.5;
@@ -605,7 +669,7 @@ $('plan2d').onclick = exportPlan2D;
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_LAYER = { grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
 const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
@@ -634,6 +698,7 @@ function exportDxf() {
     text('SETUP_TEXTE', [c[0], c[1] + h * 0.7], h, g.name);
     text('SETUP_TEXTE', [c[0], c[1] - h * 0.7], h * 0.8, `${w} x ${d} m`);
   }
+  if (charges() && items.length) { const c = toDwg(toPlan(items[0], 0, 0)); text('SETUP_TEXTE', [c[0], c[1] + 2], 0.3, charges()); }
   // trappes de sol relevées sur le PDF (absentes du DWG) : cercle + carré 50 cm + repère
   const traps = venue.children.find(o => o.name === 'Trappes de sol (PDF)');
   if (traps) for (const g of traps.children) {
