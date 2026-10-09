@@ -92,7 +92,7 @@
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
-<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / ↑↓ : avancer · A/E : tourner la vue · G/B ou → ← : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · V : vue public · C : centrer · Suppr · Échap</div>
+<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD : avancer · A/E : tourner la vue · ↑↓ : incliner · G/B ou → ← : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · V : vue public · C : centrer · Suppr · Échap</div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -1077,7 +1077,7 @@ const TURN = { a:'TurnLeft', e:'TurnRight' };
 addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) keys.add(TURN[e.key.toLowerCase()] || e.code); });
 addEventListener('keyup', e => { keys.delete(e.code); keys.delete(TURN[e.key.toLowerCase()]); if (e.key === 'Meta' || e.key === 'Control') keys.clear(); });
 addEventListener('blur', () => keys.clear());
-const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], ArrowUp:[0, 1], KeyS:[0, -1], ArrowDown:[0, -1], KeyA:[-1, 0], KeyD:[1, 0] }; // flèches gauche / droite : descendre / monter (cf. navigate)
+const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], KeyS:[0, -1], KeyA:[-1, 0], KeyD:[1, 0] }; // flèches : ← → descendre / monter, ↑ ↓ incliner le regard (cf. navigate)
 function navigate(dt) {
   const v = new THREE.Vector3();
   if (goal) { v.subVectors(goal, orbit.target).multiplyScalar(Math.min(1, dt * 8)); if (v.length() < 0.01) goal = null; }
@@ -1094,6 +1094,14 @@ function navigate(dt) {
   if (turn) { // pivote le regard autour de la caméra (60°/s, ×2 avec Maj)
     const a = turn * THREE.MathUtils.degToRad(60) * (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2 : 1) * dt;
     orbit.target.sub(camera.position).applyAxisAngle(camera.up, a).add(camera.position); goal = null;
+  }
+  const tilt = (keys.has('ArrowUp') ? 1 : 0) - (keys.has('ArrowDown') ? 1 : 0);
+  if (tilt) { // incline le regard (tilt) autour de la caméra, 45°/s, bloqué à ±85° pour ne pas basculer
+    const d = orbit.target.clone().sub(camera.position), pitch = Math.asin(THREE.MathUtils.clamp(d.y / d.length(), -1, 1));
+    const step = tilt * THREE.MathUtils.degToRad(45) * (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2 : 1) * dt;
+    const a = THREE.MathUtils.clamp(pitch + step, -THREE.MathUtils.degToRad(85), THREE.MathUtils.degToRad(85)) - pitch;
+    const right = new THREE.Vector3().crossVectors(d, camera.up).normalize();
+    orbit.target.copy(camera.position).add(d.applyAxisAngle(right, a)); goal = null;
   }
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); // hors connexion après une 1ʳᵉ visite

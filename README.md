@@ -93,8 +93,9 @@ On clique sur **Sauver** puis sur **Charger**. **Lien** copie une adresse qui ou
 | Sélectionner | clic |
 | Centrer la vue sur un point | double-clic |
 | Orbiter / panoramique / zoom | glisser / clic droit / molette (zoom vers le curseur) |
-| Se déplacer | ZQSD, WASD ou flèches ↑ ↓ |
+| Se déplacer | ZQSD ou WASD |
 | Tourner la vue à gauche / à droite | A / E |
+| Incliner le regard vers le haut / le bas | flèches ↑ / ↓ |
 | Monter / descendre | G / B, flèches → / ← (ou Page ↑ / ↓) |
 | Aller plus vite | Maj |
 | Déplacer / tourner la sélection | T / R (magnétisme 0,5 m / 15°) |
