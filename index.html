@@ -124,6 +124,13 @@ function addModel(name, gltf) {
   const root = gltf.scene; root.name = name; venue.add(root);
   refreshModels(); frame(root);
 }
+// Ponts roulants (passerelles dorées) : l'IFC les place n'importe où sur leurs rails ; on les recale sur leur marquage au sol du DXF (scénographie)
+// [centre x dans l'IFC, centre x du marquage] — le pont du côté mezzanine (x ≈ 21,6) est déjà sur son marquage
+const PONTS = [[38.715, 44.48], [63.715, 72.84]];
+function placePonts() {
+  const found = []; venue.traverse(o => { if (/pont.roulant/i.test(o.name) && !/pont.roulant/i.test(o.parent?.name || '')) found.push(o); });
+  for (const o of found) { const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()), m = PONTS.find(([x]) => Math.abs(c.x - x) < 1); if (m) o.position.x += m[1] - m[0]; }
+}
 function loadURL(url, name, then) { loader.load(url, g => { addModel(name, g); then?.(); }, undefined, () => {}); }
 // Bar central, extrudé depuis les contours du DXF (comptoirs 1,10 m, arrière-bars 0,90 m) ; sélectionnable et déplaçable d'un bloc
 function loadBar(url) {
@@ -214,7 +221,7 @@ function demoHall() {
   venue.add(g); refreshModels();
 }
 const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
-fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json')]).then(() => { buildAgora(); openShared(); })) : demoHall()).catch(demoHall);
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json')]).then(() => { buildAgora(); openShared(); }))) : demoHall()).catch(demoHall);
 $('file').onchange = e => loadFiles(e.target.files);
 addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
 addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });

@@ -15,6 +15,7 @@ Aucune installation : tout tient dans `index.html`, avec Three.js chargé depuis
 - **Plan DXF « hall avec scène »** posé au sol et calé sur la 3D. Le bâti est en rouge, la scénographie (trusses) en jaune, et le bar, les équipements et le mobilier en bleu.
 - **Bar central en 3D**, extrudé depuis les contours du DXF : comptoirs de 1,10 m, arrière-bars de 0,90 m.
 - **Trappes de sol événementielles** relevées sur le plan de repérage : T1–T11 en 63 A + RJ45 (rouge), T12–T14 en 32 A (bleu).
+- **Ponts roulants** (passerelles dorées) recalés au chargement sur leur marquage au sol du DXF : l'IFC les place à un endroit quelconque de leurs rails. Ils restent sélectionnables et déplaçables le long de la halle.
 - **Éléments mobiles de la maquette** sélectionnables et déplaçables : sièges de l'auditorium, mobilier, panneaux acoustiques, bar.
 
 ### Ajouter des éléments
