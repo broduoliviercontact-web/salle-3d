@@ -39,6 +39,8 @@ Le bouton **Système concert 05/12** pose tout le système sur la scène du mach
 
 Le panneau, l'aperçu 2D et le DXF affichent le **bilan des charges** (accroché / posé).
 
+Quand on déplace ou tourne une scène, elle **emporte son matériel** : tout élément dont le centre est sur la scène ou à moins de 1,5 m de son bord (subs, L2D, grill, retours…). Décocher *La scène emporte son matériel* pour la bouger seule.
+
 ### Vue
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.

@@ -56,6 +56,7 @@
   <div class="row"><button id="hide">Masquer (H)</button><button id="showAll">Tout réafficher</button></div>
   <div class="row"><button id="undo">↶ Annuler (⌘Z)</button><button id="redo">↷ Rétablir</button></div>
   <div class="row"><label class="cb"><input type="checkbox" id="snap" checked> Magnétisme 0,5 m / 15°</label></div>
+  <div class="row"><label class="cb"><input type="checkbox" id="carry" checked> La scène emporte son matériel</label></div>
 
   <h2>Vue</h2>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button></div>
@@ -537,6 +538,21 @@ $('undo').onclick = () => stepHistory(undoStack, redoStack);
 $('redo').onclick = () => stepHistory(redoStack, undoStack);
 // mémorise la position d'origine des objets de maquette pour détecter les déplacements
 tc.addEventListener('mouseDown', () => { if (selected && isIn(selected, venue) && !selected.userData.orig) selected.userData.orig = JSON.stringify(T(selected)); pushUndo(); });
+// une scène déplacée ou tournée emporte les éléments posés dessus ou autour (centre à ≤ 1,5 m du bord) : système son, grill, retours…
+// ponytail: groupe calculé à chaque prise en main, rien à sauvegarder ; un élément voisin à moins de 1,5 m suit aussi (décocher pour l'éviter)
+let carried = null;
+tc.addEventListener('mouseDown', () => {
+  const s = selected; carried = null;
+  if (!s || !/^scene/.test(s.userData.kind) || !$('carry').checked) return;
+  s.updateMatrix(); const inv = s.matrix.clone().invert(), [w, d] = s.userData.dims, m = 1.5;
+  carried = props.children.filter(o => o !== s && o.visible).filter(o => { const p = o.position.clone().applyMatrix4(inv); return Math.abs(p.x) <= w / 2 + m && Math.abs(p.z) <= d / 2 + m; })
+    .map(o => (o.updateMatrix(), { o, rel:inv.clone().multiply(o.matrix) }));
+});
+tc.addEventListener('objectChange', () => {
+  if (!carried) return; selected.updateMatrix();
+  for (const { o, rel } of carried) new THREE.Matrix4().multiplyMatrices(selected.matrix, rel).decompose(o.position, o.quaternion, o.scale);
+});
+tc.addEventListener('mouseUp', () => carried = null);
 
 const store = { get() { try { return JSON.parse(localStorage.getItem('cfgs') || '{}'); } catch { return {}; } },
                 set(v) { try { localStorage.setItem('cfgs', JSON.stringify(v)); } catch {} } };
