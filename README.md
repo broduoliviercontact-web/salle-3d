@@ -50,9 +50,16 @@ Quand on déplace ou tourne une scène, elle **emporte son matériel** : tout é
 - **Mesurer (M)** : deux clics donnent la distance totale, horizontale (↔) et verticale (↕). *Effacer mesures* les retire.
 - **Axe & piliers** : l'axe de l'Agora (rose, pointillé) et les piliers de la charpente métallique relevés dans l'IFC, M1–M6 côté mezzanine (sur le marquage jaune, z = −9,52) et V1–V6 côté verrière (z = +15,20), face à face tous les 10 m. Chaque pilier affiche sa **distance et son délai (ms)** par rapport à la L2D la plus proche (ou au nez de scène), pour une enceinte posée à la hauteur choisie (4 m par défaut), avec un son à 343 m/s sans marge Haas. Une enceinte sélectionnée affiche aussi son délai. L'axe et les piliers sortent dans l'aperçu 2D et dans le DXF (calque `AGORA_AXE`).
 
+### Dossier technique
+Le panneau **Dossier technique** se met à jour en direct :
+- **Rigging** : 12 palans sur le grill (4 rangées × extrémités + milieu). La charge de chaque point compte le palan, le poids propre des poutres (réparti par demi-travée) et les L2D, répartis entre les 2 palans voisins sur la poutre la plus proche. Les étiquettes `P1…P12` en 3D et dans l'aperçu 2D passent au rouge au-delà de la limite choisie. Les réglages sont modifiables : poutre 10 kg/m, palan 50 kg, limite 500 kg/point par défaut.
+- **Jauge** : surface publique de l'Agora (3 184,9 m², calcul DACAM) moins les scènes, praticables et régies posés dans l'Agora, divisée par le ratio (3 m²/pers. par défaut). Alerte au-delà du plafond DACAM RDC (2 164 pers.).
+- **Câblage** : un élément sélectionné peut être relié à une trappe (ou à « la plus proche »), avec sa puissance en W (valeurs par défaut pour régie, écran, enceintes actives). Le câble est tracé en L au sol (3D et 2D). Pour chaque trappe, le site affiche la puissance totale face à sa capacité (63 A ≈ 43,6 kW, 32 A ≈ 22,2 kW en triphasé 400 V) et la longueur de câble estimée (trajet en L + hauteur + 2 m), arrondie au touret supérieur.
+- **Fiche setup (PDF)** : ouvre une page imprimable avec le plan, le matériel (quantités, poids, puissance), les charges, la jauge, le rigging par point et les trappes et câbles. On l'enregistre en PDF depuis l'impression du navigateur.
+
 ### Setups de salle
 Un setup enregistre :
-- les éléments ajoutés et leur position ;
+- les éléments ajoutés et leur position (avec leur trappe et leur puissance) ;
 - les objets de la maquette déplacés ou masqués ;
 - la caméra ;
 - les calques visibles et la coupe.
@@ -103,6 +110,8 @@ On clique sur **Sauver** puis sur **Charger**. **Lien** copie une adresse qui ou
 **Hypothèses à confirmer**
 - La taille des trappes : 50 × 50 cm, non indiquée sur le plan.
 - Les hauteurs du bar.
+- Le plan d'accroche du grill (12 palans), le poids des poutres S500 (10 kg/m) et des palans (50 kg).
+- Les trappes en triphasé 400 V, et les puissances par défaut des équipements.
 - La tête d'accroche des VCH30, simplifiée en plaque.
 
 ---

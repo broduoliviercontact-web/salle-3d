@@ -16,11 +16,13 @@
   button, input, select { font:inherit; color:var(--fg); background:#2a2f39; border:1px solid var(--line); border-radius:5px; padding:5px 8px; }
   button { cursor:pointer; } button:hover { border-color:var(--acc); }
   button.on { background:var(--acc); color:#111; border-color:var(--acc); }
+  [hidden] { display:none !important; }
   .row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; align-items:center; }
   .row input[type=number] { width:58px; }
   .grow { flex:1; }
   label.cb { display:flex; gap:6px; align-items:center; }
   #sel { color:var(--acc); min-height:1.4em; }
+  .info { font-size:11px; color:var(--mute); margin-bottom:6px; } .info b { color:var(--fg); font-weight:600; } .warn { color:#ff6b5b; }
   #hint { position:fixed; right:12px; bottom:10px; color:var(--mute); font-size:12px; text-align:right; pointer-events:none; }
   #drop { position:fixed; inset:0; background:rgba(240,165,58,.15); border:3px dashed var(--acc); display:none; place-items:center; font-size:20px; z-index:5; }
   ul { list-style:none; padding:0; margin:0; }
@@ -51,6 +53,7 @@
 
   <h2>Sélection</h2>
   <div id="sel">—</div>
+  <div class="row" id="linkRow" hidden>Trappe <select id="trapSel"></select><input type="number" id="powerW" step="100" min="0" style="width:72px" title="Puissance électrique de l'élément"> W</div>
   <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (E)</button></div>
   <div class="row"><button id="parent">Parent ↑</button><button id="dup">Dupliquer</button><button id="del">Suppr.</button></div>
   <div class="row"><button id="hide">Masquer (H)</button><button id="showAll">Tout réafficher</button></div>
@@ -68,6 +71,14 @@
   <div class="row"><select id="cutAxis"><option value="">Aucune</option><option value="x">Longueur</option><option value="z">Largeur</option><option value="y">Hauteur (toit)</option></select>
     <label class="cb"><input type="checkbox" id="cutFlip"> Inverser</label></div>
   <div class="row"><input type="range" id="cut" class="grow" step="0.25" disabled></div>
+
+  <h2>Dossier technique</h2>
+  <div class="row">Poutre <input type="number" id="trussKg" value="10" step="1"> kg/m · palan <input type="number" id="hoistKg" value="50" step="5"> kg</div>
+  <div class="row">Limite / point <input type="number" id="pointMax" value="500" step="50"> kg · <input type="number" id="m2pp" value="3" step="0.5"> m²/pers.</div>
+  <div id="rigInfo" class="info"></div>
+  <div id="jaugeInfo" class="info"></div>
+  <div id="elecInfo" class="info"></div>
+  <div class="row"><button id="fiche" class="grow">Fiche setup (PDF)</button></div>
 
   <h2>Setups de salle</h2>
   <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: frontale 800)"><button id="save">Sauver</button><button id="share" title="Copie un lien qui ouvre ce setup sur n'importe quel ordinateur">Lien</button></div>
@@ -405,7 +416,7 @@ const fr = (v, n = 1) => v.toFixed(n).replace('.', ',');
 // ponytail: recalcul toutes les 0,5 s, étiquette regénérée seulement si son texte change
 let lastDelay = 0;
 function updateDelays(t) {
-  if (t - lastDelay < 500) return; lastDelay = t;
+  if (t - lastDelay < 500) return; lastDelay = t; updateDossier();
   if (agora.visible) for (const g of agora.children) {
     const p = g.userData.pilier; if (!p) continue;
     const H = +$('delayH').value || 4, q = g.position.clone().setY(g.position.y + H), src = mainSource(q), d = src && src.distanceTo(q);
@@ -436,6 +447,86 @@ function measureAt(hit) {
   const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color:0xffd23f, depthTest:false })); line.renderOrder = 3;
   const lab = label3d(`${fr(a.distanceTo(b), 2)} m   ↔ ${fr(Math.hypot(b.x - a.x, b.z - a.z), 2)}   ↕ ${fr(Math.abs(b.y - a.y), 2)}`, '#8a6d00', 512);
   lab.position.copy(a).lerp(b, 0.5); lab.position.y += 0.4; measures.add(line, lab);
+}
+// --- rigging : points d'accroche (palans) du grill et charge par point ---
+// ponytail: palans aux nœuds rangées × (2 extrémités + milieu) ; poids des poutres réparti par demi-travée (pas de calcul de poutre continue).
+// À remplacer par le plan d'accroche du machiniste s'il diffère.
+function rigging() {
+  const gr = props.children.filter(o => o.visible && o.userData.kind === 'grill').pop(); if (!gr || !MACH) return null;
+  const { xs, zs } = MACH.grill, kgm = +$('trussKg').value || 0, hoist = +$('hoistKg').value || 0, pts = [];
+  const at = (x, z) => { let p = pts.find(q => Math.abs(q.x - x) < 0.01 && Math.abs(q.z - z) < 0.01); if (!p) pts.push(p = { x, z, kg:hoist }); return p; };
+  const X = [xs[0], xs[xs.length >> 1], xs[xs.length - 1]];
+  const lines = [...zs.map(z => X.map(x => at(x, z))), ...[X[0], X[2]].map(x => zs.map(z => at(x, z)))]; // 4 rangées + 2 côtés
+  for (const L of lines) for (let i = 1; i < L.length; i++) { const w = Math.hypot(L[i].x - L[i - 1].x, L[i].z - L[i - 1].z) * kgm / 2; L[i].kg += w; L[i - 1].kg += w; }
+  // charges accrochées : sur la poutre la plus proche (≤ 1 m), réparties entre ses 2 palans voisins (bras de levier)
+  const off = []; gr.updateMatrixWorld();
+  for (const o of props.children) if (o.visible && FLOWN.has(o.userData.kind)) {
+    const p = gr.worldToLocal(o.getWorldPosition(new THREE.Vector3())); let best = null;
+    for (const L of lines) for (let i = 1; i < L.length; i++) {
+      const a = L[i - 1], b = L[i], dx = b.x - a.x, dz = b.z - a.z, t = THREE.MathUtils.clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz), 0, 1);
+      const d = Math.hypot(a.x + t * dx - p.x, a.z + t * dz - p.z); if (!best || d < best.d) best = { d, a, b, t };
+    }
+    if (best && best.d <= 1) { const w = WEIGHT[o.userData.kind]; best.a.kg += w * (1 - best.t); best.b.kg += w * best.t; } else off.push(o.name);
+  }
+  pts.forEach((p, i) => { p.n = i + 1; p.world = gr.localToWorld(new THREE.Vector3(p.x, 0, p.z)); });
+  return { pts, off, total:pts.reduce((s, p) => s + p.kg, 0), max:+$('pointMax').value || Infinity };
+}
+// --- jauge : surface publique de l'Agora (calcul DACAM) moins scènes, praticables et régies posés dans l'Agora ---
+const AGORA_PUBLIC = 3184.9, JAUGE_KINDS = new Set(['scene', 'scene_m', 'prat', 'regie']), DACAM_RDC = 2164;
+// ponytail: deux éléments superposés (praticable sur la scène) sont déduits deux fois
+function jauge() {
+  let occ = 0;
+  for (const o of props.children) if (o.visible && JAUGE_KINDS.has(o.userData.kind) && o.position.x > 5.95 + DWG_SHIFT[0]) occ += o.userData.dims[0] * o.userData.dims[1]; // Agora : à l'est de la cloison CTA (x DXF 5,95)
+  const r = +$('m2pp').value || 3, pub = AGORA_PUBLIC - occ;
+  return { occ, pub, r, n:Math.floor(pub / r) };
+}
+// --- câblage : élément relié à une trappe -> longueur de câble estimée et puissance par trappe ---
+const TRAP_KW = { '63A':63 * 400 * Math.sqrt(3) / 1000, '32A':32 * 400 * Math.sqrt(3) / 1000 }; // ponytail: triphasé 400 V supposé (≈ 43,6 / 22,2 kW)
+const POWER = { regie:3000, ecran:2500, enceinte:1000, vch30:1000, vch30x2:2000, vtl218:2000 }; // W par défaut, modifiable par élément
+const TOURETS = [5, 10, 15, 20, 25, 50];
+const trapList = () => venue.children.find(o => o.name === 'Trappes de sol (PDF)')?.children || [];
+const powerOf = o => o.userData.power ?? POWER[o.userData.kind] ?? 0;
+function cabling() {
+  const out = new Map();
+  for (const o of props.children) if (o.visible && o.userData.trap) {
+    const t = trapList().find(t => t.userData.trap.n === o.userData.trap); if (!t) continue;
+    const a = t.getWorldPosition(new THREE.Vector3()), b = o.getWorldPosition(new THREE.Vector3());
+    const len = Math.abs(a.x - b.x) + Math.abs(a.z - b.z) + Math.max(0, b.y - a.y) + 2; // trajet au sol en L + montée + 2 m de raccordement
+    if (!out.has(t)) out.set(t, { t, items:[], W:0 });
+    const e = out.get(t); e.items.push({ o, len, a, b, touret:TOURETS.find(L => L >= len) || Math.ceil(len / 10) * 10 }); e.W += powerOf(o);
+  }
+  return [...out.values()].sort((x, y) => x.t.userData.trap.n - y.t.userData.trap.n);
+}
+// rendu du dossier dans le panneau et en 3D (étiquettes de palans, câbles), appelé toutes les 0,5 s
+const rigLabels = new THREE.Group(), cables = new THREE.Group(); scene.add(rigLabels, cables);
+const kg = v => Math.round(v).toLocaleString('fr') + ' kg';
+function updateDossier() {
+  const r = rigging();
+  const want = r ? r.pts.map(p => ({ txt:`P${p.n} · ${kg(p.kg)}`, css:p.kg > r.max ? '#d0021b' : '#2c7a3f', pos:p.world.clone().add(new THREE.Vector3(0, 1.2, 0)) })) : [];
+  const key = want.map(w => w.txt + w.css).join('|'); // étiquettes regénérées seulement si un texte change
+  if (rigLabels.userData.key !== key) {
+    rigLabels.children.forEach(sp => { sp.material.map.dispose(); sp.material.dispose(); }); rigLabels.clear();
+    want.forEach(w => rigLabels.add(label3d(w.txt, w.css, 320))); rigLabels.userData.key = key;
+  }
+  want.forEach((w, i) => rigLabels.children[i].position.copy(w.pos));
+  if (r) {
+    const top = r.pts.reduce((a, b) => b.kg > a.kg ? b : a), over = r.pts.filter(p => p.kg > r.max);
+    $('rigInfo').innerHTML = `<b>Grill</b> : ${r.pts.length} palans · total ${kg(r.total)} · max P${top.n} ${kg(top.kg)}`
+      + (over.length ? `<br><span class="warn">⚠ au-delà de ${kg(r.max)} : ${over.map(p => 'P' + p.n).join(', ')}</span>` : '')
+      + (r.off.length ? `<br><span class="warn">⚠ hors grill (non compté) : ${r.off.map(esc).join(', ')}</span>` : '');
+  } else $('rigInfo').textContent = '';
+  const j = jauge();
+  $('jaugeInfo').innerHTML = `<b>Jauge Agora</b> : ${fr(AGORA_PUBLIC)} − ${fr(j.occ)} m² occupés = ${fr(j.pub)} m² → <b>${j.n.toLocaleString('fr')} pers.</b> (${fr(j.r)} m²/pers.)`
+    + (j.n > DACAM_RDC ? `<br><span class="warn">⚠ plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : '');
+  const c = cabling();
+  $('elecInfo').innerHTML = c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind], kw = e.W / 1000;
+    return `<b>T${t.n}</b> ${t.kind.replace('A', ' A')} : ${e.items.length} élt · <span class="${kw > cap ? 'warn' : ''}">${fr(kw)} / ${fr(cap)} kW</span> · câble max ${Math.ceil(Math.max(...e.items.map(i => i.len)))} m`; }).join('<br>');
+  // câbles en 3D : trajet en L au sol depuis la trappe
+  cables.children.forEach(l => l.geometry.dispose()); cables.clear();
+  for (const e of c) for (const { a, b } of e.items) {
+    const y = a.y + 0.03, pts = [new THREE.Vector3(a.x, y, a.z), new THREE.Vector3(b.x, y, a.z), new THREE.Vector3(b.x, y, b.z), new THREE.Vector3(b.x, Math.max(b.y, y), b.z)];
+    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:TRAP[e.t.userData.trap.kind].color, depthTest:false })); l.renderOrder = 2; cables.add(l);
+  }
 }
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
@@ -473,7 +564,18 @@ let selected = null;
 function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) : '—';
+  const isProp = !!o && props.children.includes(o); $('linkRow').hidden = !isProp; if (!isProp) return;
+  $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
+    + trapList().map(t => `<option value="${t.userData.trap.n}">T${t.userData.trap.n} · ${t.userData.trap.label}</option>`).join('');
+  $('trapSel').value = o.userData.trap || ''; $('powerW').value = powerOf(o);
 }
+$('trapSel').onchange = () => {
+  if (!selected) return; pushUndo(); let v = $('trapSel').value;
+  if (v === 'near') { const p = selected.getWorldPosition(new THREE.Vector3()), d = t => t.getWorldPosition(new THREE.Vector3()).distanceTo(p);
+    v = String(trapList().reduce((b, t) => !b || d(t) < d(b) ? t : b, null)?.userData.trap.n ?? ''); $('trapSel').value = v; }
+  selected.userData.trap = v ? +v : undefined;
+};
+$('powerW').onchange = () => { if (selected) { pushUndo(); selected.userData.power = Math.max(0, +$('powerW').value || 0); } };
 function setMode(m) { tc.setMode(m); $('mTrans').classList.toggle('on', m === 'translate'); $('mRot').classList.toggle('on', m === 'rotate'); tc.showX = tc.showZ = m === 'translate'; tc.showY = true; }
 function applySnap() { const on = $('snap').checked; tc.setTranslationSnap(on ? 0.5 : null); tc.setRotationSnap(on ? THREE.MathUtils.degToRad(15) : null); }
 $('snap').onchange = applySnap; applySnap();
@@ -577,12 +679,12 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g) })), moved, view };
+  return { props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
@@ -680,7 +782,7 @@ function cote(out, g, a, b, dir, len) {
     + `<text transform="translate(${f(mx)} ${f(my)}) rotate(${f(ang)})" y="-0.08" font-size="0.25" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="0.05" paint-order="stroke">${len.toFixed(2)} m</text>`);
 }
 let fondSrc = null; // fond de plan complet (plan_fond.svg), chargé au premier export seulement
-async function exportPlan2D() {
+async function planSvg() {
   const items = props.children.filter(shown).map(g => {
     const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
     return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
@@ -750,6 +852,13 @@ async function exportPlan2D() {
     const [cx, cy] = toPlan(g, 0, 0), fs = f(Math.min(0.4, Math.max(0.18, Math.min(w, d) / 3)));
     out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${fs}" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="${f(fs / 5)}" paint-order="stroke"><tspan x="${f(cx)}" dy="0" font-weight="bold">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w} × ${d} m</tspan></text>`);
   }
+  // palans du grill avec leur charge, câbles depuis les trappes
+  const rig = rigging();
+  if (rig) { legend.set('Palan (charge au point)', { col:'#2c7a3f', n:rig.pts.length });
+    for (const p of rig.pts) { const [x, y] = [p.world.x, p.world.z], col = p.kg > rig.max ? '#d0021b' : '#2c7a3f';
+      out.push(`<polygon points="${f(x)},${f(y - 0.3)} ${f(x + 0.26)},${f(y + 0.15)} ${f(x - 0.26)},${f(y + 0.15)}" fill="${col}"/><text x="${f(x + 0.35)}" y="${f(y - 0.25)}" font-size="0.3" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">P${p.n} ${Math.round(p.kg)} kg</text>`); } }
+  for (const e of cabling()) for (const { a, b, len } of e.items)
+    out.push(`<polyline points="${f(a.x)},${f(a.z)} ${f(b.x)},${f(a.z)} ${f(b.x)},${f(b.z)}" fill="none" stroke="${TRAP[e.t.userData.trap.kind].css}" stroke-width="0.06" stroke-dasharray="0.4 0.2"/><text x="${f((a.x + b.x) / 2)}" y="${f(a.z - 0.15)}" font-size="0.28" text-anchor="middle" fill="${TRAP[e.t.userData.trap.kind].css}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${Math.ceil(len)} m</text>`);
   // règles graduées (distance depuis le bord du cadre) en haut et à gauche
   const RW = 0.6; let tk = '', lb = '';
   out.push(`<rect x="${f(x0)}" y="${f(py0)}" width="${f(W)}" height="${RW}" fill="#fff" fill-opacity="0.9"/><rect x="${f(x0)}" y="${f(py0)}" width="${RW}" height="${f(H - H0)}" fill="#fff" fill-opacity="0.9"/>`);
@@ -771,11 +880,45 @@ async function exportPlan2D() {
     lx += wItem;
   }
   out.push('</svg>');
+  return out.join('\n');
+}
+async function exportPlan2D() {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([out.join('\n')], { type:'image/svg+xml' }));
+  a.href = URL.createObjectURL(new Blob([await planSvg()], { type:'image/svg+xml' }));
   a.download = `plan-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}.svg`; a.click();
 }
 $('plan2d').onclick = exportPlan2D;
+// --- fiche setup : page imprimable (plan + tableaux), « Enregistrer en PDF » depuis l'impression du navigateur ---
+$('fiche').onclick = async () => {
+  const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour générer la fiche.'); // ouverte avant l'attente (anti pop-up)
+  w.document.write('<p style="font:14px sans-serif">Préparation de la fiche…</p>');
+  const svg = await planSvg(), r = rigging(), j = jauge(), c = cabling(), title = setupName || 'Setup de salle';
+  const mat = new Map();
+  for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:WEIGHT[o.userData.kind], W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
+  const td = v => `<td>${v}</td>`, num = v => `<td class="n">${v}</td>`;
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
+    @page { size:A4 landscape; margin:10mm } body { font:11px/1.35 Helvetica, Arial, sans-serif; color:#111; margin:0 }
+    h1 { font-size:18px; margin:0 0 2px } h2 { font-size:13px; margin:14px 0 4px; border-bottom:1px solid #999 } .sub { color:#555; margin-bottom:6px }
+    .plan svg { width:100%; height:auto; max-height:178mm } .plan { page-break-after:always }
+    table { border-collapse:collapse; width:100%; margin-bottom:6px } th, td { border:1px solid #bbb; padding:2px 5px; text-align:left } th { background:#eee } td.n { text-align:right }
+    .warn { color:#c00; font-weight:bold } .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px }</style></head><body>
+    <div class="plan"><h1>${esc(title)}</h1><div class="sub">Grandes Serres de Pantin · ${new Date().toLocaleDateString('fr')} · plan à l'échelle 1:100 sur le fichier SVG</div>${svg.replace(/^<svg [^>]*?width="[^"]+" height="[^"]+"/, m => m.replace(/ width="[^"]+" height="[^"]+"/, ''))}</div>
+    <h1>${esc(title)} — dossier technique</h1>
+    <div class="cols"><div>
+    <h2>Matériel</h2><table><tr><th>Désignation</th><th>Qté</th><th>Poids unit.</th><th>Poids total</th><th>Puissance</th></tr>
+    ${[...mat].map(([k, e]) => `<tr>${td(esc(k))}${num(e.n)}${num(e.kg ? e.kg + ' kg' : '—')}${num(e.kg ? e.kg * e.n + ' kg' : '—')}${num(e.W ? fr(e.W / 1000) + ' kW' : '—')}</tr>`).join('')}</table>
+    <div>${esc(charges())}</div>
+    <h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}</div>
+    </div><div>
+    ${r ? `<h2>Rigging — grill</h2><table><tr><th>Point</th><th>Charge</th><th></th></tr>${r.pts.map(p => `<tr>${td('P' + p.n)}${num(kg(p.kg))}${td(p.kg > r.max ? '<span class="warn">> ' + kg(r.max) + '</span>' : 'ok')}</tr>`).join('')}
+      <tr>${td('<b>Total</b>')}${num('<b>' + kg(r.total) + '</b>')}${td('')}</tr></table><div>Hypothèses : poutres ${esc($('trussKg').value)} kg/m, palans ${esc($('hoistKg').value)} kg, limite ${kg(r.max)} par point, poids des poutres réparti par demi-travée.${r.off.length ? ` <span class="warn">Hors grill : ${r.off.map(esc).join(', ')}</span>` : ''}</div>` : ''}
+    <h2>Trappes de sol et câblage</h2>${c.length ? `<table><tr><th>Trappe</th><th>Élément</th><th>Câble estimé</th><th>Touret</th><th>Puissance</th></tr>
+    ${c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind];
+      return e.items.map((i, k) => `<tr>${k ? '<td></td>' : td(`<b>T${t.n}</b> ${esc(t.label)}<br>${fr(e.W / 1000)} / ${fr(cap)} kW${e.W / 1000 > cap ? ' <span class="warn">dépassé</span>' : ''}`)}${td(esc(i.o.name))}${num(Math.ceil(i.len) + ' m')}${num(i.touret + ' m')}${num(fr(powerOf(i.o) / 1000) + ' kW')}</tr>`).join(''); }).join('')}</table>
+    <div>Câble estimé = trajet au sol en L + hauteur + 2 m. Puissance des trappes en triphasé 400 V.</div>` : '<div>Aucun élément relié à une trappe.</div>'}
+    </div></div></body></html>`;
+  w.document.open(); w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400);
+};
 
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
