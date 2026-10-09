@@ -339,8 +339,9 @@ function charges() {
 }
 const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
-// axe de l'Agora : à mi-distance des 2 rangées de piliers (IFC : piliers côté mezzanine z = −15,90, poteaux lamellé-collé de la verrière z = +15,53)
-const AXE_AGORA = (-15.90 + 15.53) / 2;
+// axe de l'Agora : à mi-distance des 2 rangées de piliers = axes des 2 grandes poutres du marquage jaune du DXF (scénographie),
+// indiqués par le régisseur : côté mezzanine bords z = −10,1 / −9,0, côté verrière bords z = 14,73 / 15,32
+const PIL_MEZZ_Z = -9.55, PIL_VERR_Z = 15.03, AXE_AGORA = (PIL_MEZZ_Z + PIL_VERR_Z) / 2;
 function placeMach() {
   const dz = AXE_AGORA - MACH.scene.c[1]; // scène recentrée entre les piliers ; le grill suit avec le même décalage
   const s = makeProp('scene_m', [MACH.scene.w, MACH.scene.d, 1.2]); s.position.set(MACH.scene.c[0], 0, MACH.scene.c[1] + dz); s.position.y = floorAt(s.position);
@@ -376,8 +377,9 @@ $('concertBtn').onclick = async () => {
 };
 // --- axe et piliers de l'Agora (piliers du RDC relevés dans l'IFC) : repères des enceintes de délai ---
 const PILIERS = [
-  ...[32.73, 38.43, 44.13, 49.83, 55.53, 58.66, 63.93, 69.08, 72.93, 76.78].map((x, i) => ({ n:`M${i + 1}`, x, z:-15.90 })), // côté mezzanine
-  ...[28.64, 38.69, 48.70, 58.68, 68.69, 78.70].map((x, i) => ({ n:`V${i + 1}`, x, z:15.53 })),                       // côté verrière (lamellé-collé)
+  // ponytail: abscisses reprises des poteaux du RDC (IFC) faute de piliers modélisés sur la ligne jaune : à corriger si l'espacement réel diffère
+  ...[32.73, 38.43, 44.13, 49.83, 55.53, 58.66, 63.93, 69.08, 72.93, 76.78].map((x, i) => ({ n:`M${i + 1}`, x, z:PIL_MEZZ_Z })), // côté mezzanine
+  ...[28.64, 38.69, 48.70, 58.68, 68.69, 78.70].map((x, i) => ({ n:`V${i + 1}`, x, z:PIL_VERR_Z })),                       // côté verrière (lamellé-collé)
 ];
 const SON = 343, AXE_X = [26, 88]; // vitesse du son (m/s, 20 °C) ; étendue de l'axe tracé
 const agora = new THREE.Group(); agora.name = 'Axe et piliers Agora'; scene.add(agora);
