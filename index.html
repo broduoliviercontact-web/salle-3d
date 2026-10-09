@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Salle 3D</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg"><meta name="theme-color" content="#16181d"><meta name="apple-mobile-web-app-capable" content="yes">
 <style>
   :root { --bg:#16181d; --panel:#1f232b; --line:#333a46; --fg:#e6e8ec; --mute:#9aa3b2; --acc:#f0a53a; }
   * { box-sizing:border-box; }
@@ -22,6 +23,8 @@
   .grow { flex:1; }
   label.cb { display:flex; gap:6px; align-items:center; }
   #sel { color:var(--acc); min-height:1.4em; }
+  #uiToggle { position:fixed; top:8px; left:268px; z-index:3; } body.noui #ui { display:none; } body.noui #uiToggle { left:8px; }
+  @media (pointer:coarse) { #hint { display:none; } button, select, input { padding:8px 10px; } }
   .info { font-size:11px; color:var(--mute); margin-bottom:6px; } .info b { color:var(--fg); font-weight:600; } .warn { color:#ff6b5b; }
   #hint { position:fixed; right:12px; bottom:10px; color:var(--mute); font-size:12px; text-align:right; pointer-events:none; }
   #drop { position:fixed; inset:0; background:rgba(240,165,58,.15); border:3px dashed var(--acc); display:none; place-items:center; font-size:20px; z-index:5; }
@@ -31,6 +34,7 @@
 </style>
 </head>
 <body>
+<button id="uiToggle" title="Afficher / masquer le panneau">☰</button>
 <div id="ui">
   <h1>Salle 3D — configs de scène</h1>
 
@@ -42,9 +46,10 @@
 
   <h2>Ajouter</h2>
   <div class="row">L <input type="number" id="w" value="12" step="0.5"> P <input type="number" id="d" value="8" step="0.5"> H <input type="number" id="h" value="1" step="0.1"></div>
-  <div class="row"><button data-add="scene">Scène</button><button data-add="prat">Praticable 2×1</button><button data-add="regie">Régie</button></div>
+  <div class="row"><button data-add="scene">Scène</button><button data-add="prat" title="Hauteur = champ H">Samia 2×1</button><button data-add="regie">Régie</button></div>
   <div class="row"><button data-add="enceinte">Enceinte</button><button data-add="ecran">Écran</button><button data-add="perso">Personne</button></div>
   <div class="row"><button data-add="vch30">VCH30 ×1</button><button data-add="vch30x2">VCH30 ×2</button><button data-add="vtl218">Sub VTL218</button></div>
+  <div class="row"><button data-add="lyre">Lyre</button><button data-add="par">PAR LED</button><button data-add="led" title="Largeur = L, hauteur = H, en dalles de 50 cm">Écran LED L×H</button><button data-add="crash">Barrière crash</button></div>
   <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
   <div class="row"><button data-add="ks28">KS28</button><button data-add="ks28x2">KS28 ×2</button><button data-add="l2d">L2D accroché</button></div>
   <div class="row"><button data-add="kara2">Kara II</button><button data-add="x15">X15 sol</button><button data-add="x15p">X15 sur pied</button></div>
@@ -62,8 +67,8 @@
   <div class="row"><label class="cb"><input type="checkbox" id="carry" checked> La scène emporte son matériel</label></div>
 
   <h2>Vue</h2>
-  <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button></div>
-  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn">Trappes de sol</button><button class="on" id="agoraBtn">Axe &amp; piliers</button></div>
+  <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button><button id="vPublic" title="Clique ensuite un point de la salle : vue à hauteur d'yeux vers la scène">Vue public (V)</button></div>
+  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn">Trappes de sol</button><button class="on" id="agoraBtn">Axe &amp; piliers</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button></div>
   <div class="row">Enceintes piliers à <input type="number" id="delayH" value="4" step="0.5" style="width:52px"> m <span style="opacity:.7">(délai / L2D)</span></div>
   <div class="row"><button id="measure">Mesurer (M)</button><button id="clearMeasure">Effacer mesures</button></div>
 
@@ -87,7 +92,7 @@
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
-<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · G/B : monter/descendre · Maj : rapide · T/E : déplacer/tourner · H : masquer · M : mesurer · C : centrer · Suppr · Échap</div>
+<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD / flèches : avancer · G/B : monter/descendre · Maj : rapide · T/E : déplacer/tourner · H : masquer · M : mesurer · V : vue public · C : centrer · Suppr · Échap</div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -230,9 +235,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -349,13 +354,48 @@ function buildX15p() {
     leg.position.set(Math.sin(a) * 0.25, 0.22, Math.cos(a) * 0.25); leg.rotation.set(Math.cos(a) * 0.9, 0, -Math.sin(a) * 0.9); out.push(leg); }
   return out;
 }
-const WEIGHT = { ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21 }, FLOWN = new Set(['l2d']);
+const WEIGHT = { ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
+// écran LED : dalles de 50 × 50 cm, ~8 kg et ~150 W en moyenne chacune (ordre de grandeur, selon le modèle loué)
+const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData.dims[2] / 0.5);
+const weightOf = o => o.userData.kind === 'led' ? dalles(o) * 8 : WEIGHT[o.userData.kind] || 0;
+const isFlown = o => o.position.y > 2.5; // ponytail: accroché = posé à plus de 2,5 m (sol de la halle ≈ 0)
 function charges() {
   let up = 0, down = 0;
-  for (const g of props.children) if (g.visible && WEIGHT[g.userData.kind]) FLOWN.has(g.userData.kind) ? up += WEIGHT[g.userData.kind] : down += WEIGHT[g.userData.kind];
-  return up + down ? `Charges son : accroché ${up} kg · posé ${down} kg` : '';
+  for (const g of props.children) if (g.visible) { const w = weightOf(g); isFlown(g) ? up += w : down += w; }
+  return up + down ? `Charges : accroché ${up} kg · posé ${down} kg` : '';
 }
-const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+// --- catalogue lumière / vidéo / sécurité (volumes indicatifs, face avant = +z) ---
+const dark = c => new THREE.MeshStandardMaterial({ color:c });
+function buildLyre() { // socle, lyre et tête
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.3), dark(0x30343c)); base.position.y = 0.07;
+  const out = [base];
+  for (const x of [-0.17, 0.17]) { const a = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.34, 0.12), dark(0x30343c)); a.position.set(x, 0.31, 0); out.push(a); }
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.34, 20).rotateX(Math.PI / 2), dark(0x22252b)); head.position.set(0, 0.42, 0.02);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.11, 20), new THREE.MeshBasicMaterial({ color:0xfff3c4 })); lens.position.set(0, 0.42, 0.195);
+  return [...out, head, lens];
+}
+function buildPar() {
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.25, 20).rotateX(Math.PI / 2), dark(0x30343c)); body.position.y = 0.17;
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.1, 20), new THREE.MeshBasicMaterial({ color:0xfff3c4 })); lens.position.set(0, 0.17, 0.127);
+  const lyre = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.03, 0.06), dark(0x111111)); lyre.position.y = 0.015;
+  return [body, lens, lyre];
+}
+function buildLed(dims) { // écran en dalles de 50 cm (largeur dims[0], hauteur dims[2]), posé au sol
+  const [w, , h] = dims, g = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.1), dark(0x111318)); m.position.y = h / 2;
+  const p = [];
+  for (let x = -w / 2; x <= w / 2 + 1e-6; x += 0.5) p.push(x, 0, 0.052, x, h, 0.052);
+  for (let y = 0; y <= h + 1e-6; y += 0.5) p.push(-w / 2, y, 0.052, w / 2, y, 0.052);
+  g.add(m, new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(p, 3)), new THREE.LineBasicMaterial({ color:0x3a6ea5 })));
+  return [g];
+}
+function buildCrash() { // barrière crash type Mojo : semelle côté public (+z), paroi de 1,2 m, jambes de force côté scène
+  const mat = new THREE.MeshStandardMaterial({ color:0x8a9099, metalness:0.5 }), base = new THREE.Mesh(new THREE.BoxGeometry(1, 0.03, 1.1), mat); base.position.y = 0.015;
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(1, 1.2, 0.04), mat); wall.position.set(0, 0.6, -0.1);
+  const out = [base, wall];
+  for (const x of [-0.45, 0.45]) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.75), mat); s.position.set(x, 0.6, -0.4); s.rotation.x = -0.9; out.push(s); }
+  return out;
+}
+const BUILD = { lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -423,7 +463,7 @@ const fr = (v, n = 1) => v.toFixed(n).replace('.', ',');
 // ponytail: recalcul toutes les 0,5 s, étiquette regénérée seulement si son texte change
 let lastDelay = 0;
 function updateDelays(t) {
-  if (t - lastDelay < 500) return; lastDelay = t; updateDossier();
+  if (t - lastDelay < 500) return; lastDelay = t; updateDossier(); updateCover();
   if (agora.visible) for (const g of agora.children) {
     const p = g.userData.pilier; if (!p) continue;
     const H = +$('delayH').value || 4, q = g.position.clone().setY(g.position.y + H), src = mainSource(q), d = src && src.distanceTo(q);
@@ -467,13 +507,13 @@ function rigging() {
   for (const L of lines) for (let i = 1; i < L.length; i++) { const w = Math.hypot(L[i].x - L[i - 1].x, L[i].z - L[i - 1].z) * kgm / 2; L[i].kg += w; L[i - 1].kg += w; }
   // charges accrochées : sur la poutre la plus proche (≤ 1 m), réparties entre ses 2 palans voisins (bras de levier)
   const off = []; gr.updateMatrixWorld();
-  for (const o of props.children) if (o.visible && FLOWN.has(o.userData.kind)) {
+  for (const o of props.children) if (o.visible && isFlown(o) && weightOf(o)) {
     const p = gr.worldToLocal(o.getWorldPosition(new THREE.Vector3())); let best = null;
     for (const L of lines) for (let i = 1; i < L.length; i++) {
       const a = L[i - 1], b = L[i], dx = b.x - a.x, dz = b.z - a.z, t = THREE.MathUtils.clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz), 0, 1);
       const d = Math.hypot(a.x + t * dx - p.x, a.z + t * dz - p.z); if (!best || d < best.d) best = { d, a, b, t };
     }
-    if (best && best.d <= 1) { const w = WEIGHT[o.userData.kind]; best.a.kg += w * (1 - best.t); best.b.kg += w * best.t; } else off.push(o.name);
+    if (best && best.d <= 1) { const w = weightOf(o); best.a.kg += w * (1 - best.t); best.b.kg += w * best.t; } else off.push(o.name);
   }
   pts.forEach((p, i) => { p.n = i + 1; p.world = gr.localToWorld(new THREE.Vector3(p.x, 0, p.z)); });
   return { pts, off, total:pts.reduce((s, p) => s + p.kg, 0), max:+$('pointMax').value || Infinity };
@@ -489,10 +529,10 @@ function jauge() {
 }
 // --- câblage : élément relié à une trappe -> longueur de câble estimée et puissance par trappe ---
 const TRAP_KW = { '63A':63 * 400 * Math.sqrt(3) / 1000, '32A':32 * 400 * Math.sqrt(3) / 1000 }; // ponytail: triphasé 400 V supposé (≈ 43,6 / 22,2 kW)
-const POWER = { regie:3000, ecran:2500, enceinte:1000, vch30:1000, vch30x2:2000, vtl218:2000 }; // W par défaut, modifiable par élément
+const POWER = { lyre:600, par:200, regie:3000, ecran:2500, enceinte:1000, vch30:1000, vch30x2:2000, vtl218:2000 }; // W par défaut, modifiable par élément
 const TOURETS = [5, 10, 15, 20, 25, 50];
 const trapList = () => venue.children.find(o => o.name === 'Trappes de sol (PDF)')?.children || [];
-const powerOf = o => o.userData.power ?? POWER[o.userData.kind] ?? 0;
+const powerOf = o => o.userData.power ?? (o.userData.kind === 'led' ? dalles(o) * 150 : POWER[o.userData.kind] ?? 0);
 function cabling() {
   const out = new Map();
   for (const o of props.children) if (o.visible && o.userData.trap) {
@@ -535,10 +575,37 @@ function updateDossier() {
     const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:TRAP[e.t.userData.trap.kind].color, depthTest:false })); l.renderOrder = 2; cables.add(l);
   }
 }
+// --- couverture : ouverture horizontale des enceintes projetée au sol (ou sur le plateau), valeurs indicatives des fiches ---
+const COVER = { l2d:[70, 30, 0x3fa7ff], kara2:[110, 10, 0x56d38a], x15:[40, 5, 0xffb03f], x15p:[40, 8, 0xffb03f], vch30:[90, 20, 0x3fa7ff], vch30x2:[150, 20, 0x3fa7ff], enceinte:[90, 20, 0x3fa7ff] }; // [° horizontal, portée m, couleur]
+const cover = new THREE.Group(); cover.visible = false; scene.add(cover);
+const coverMat = {};
+$('coverBtn').onclick = () => { cover.visible = !cover.visible; $('coverBtn').classList.toggle('on', cover.visible); };
+function updateCover() {
+  cover.children.forEach(m => m.geometry.dispose()); cover.clear(); if (!cover.visible) return;
+  for (const o of props.children) { const c = COVER[o.userData.kind]; if (!o.visible || !c) continue;
+    const [deg, R, col] = c, H = THREE.MathUtils.degToRad(deg), th = o.rotation.y - Math.PI / 2; // face avant +z -> angle du secteur dans le plan
+    const m = new THREE.Mesh(new THREE.CircleGeometry(R, 40, th - H / 2, H).rotateX(-Math.PI / 2),
+      coverMat[col] ||= new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.16, depthWrite:false, side:THREE.DoubleSide }));
+    m.position.set(o.position.x, (isFlown(o) ? floorAt(o.position) : o.position.y) + 0.04, o.position.z); m.renderOrder = 1; cover.add(m); }
+}
+// --- vue depuis le public : clic sur un point -> œil à 1,60 m, regard vers le plateau ---
+let pickEye = false;
+const setPickEye = on => { pickEye = on; $('vPublic').classList.toggle('on', on); renderer.domElement.style.cursor = on ? 'crosshair' : ''; };
+$('vPublic').onclick = () => setPickEye(!pickEye);
+function eyeAt(hit) {
+  setPickEye(false); if (!hit) return;
+  const s = props.children.filter(o => o.visible && /^scene/.test(o.userData.kind)).pop();
+  const tgt = s ? s.localToWorld(new THREE.Vector3(0, s.userData.dims[2] + 1.2, 0)) : orbit.target.clone().setY(floorAt(hit.point) + 1.6);
+  select(null); camera.position.copy(hit.point).setY(floorAt(hit.point) + 1.6); orbit.target.copy(tgt); goal = null; // yeux à 1,60 m du sol, même si on clique sur un objet
+  if (s) { const f = s.localToWorld(new THREE.Vector3(s.userData.dims[0] / 2, 0, 0)); $('sel').textContent = `Vue public : ${fr(Math.hypot(f.x - hit.point.x, f.z - hit.point.z))} m du nez de scène`; }
+}
+// panneau repliable (tablette / téléphone : replié au départ)
+$('uiToggle').onclick = () => document.body.classList.toggle('noui');
+if (innerWidth < 760) document.body.classList.add('noui');
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = LABELS[kind];
+    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -552,7 +619,8 @@ function makeProp(kind, dims) {
 }
 document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
   pushUndo(); const k = b.dataset.add;
-  const dims = k === 'scene' ? [+$('w').value, +$('d').value, +$('h').value] : DEFAULT[k];
+  const L = +$('w').value || 1, H = +$('h').value || 1, half = v => Math.max(0.5, Math.round(v * 2) / 2);
+  const dims = k === 'scene' ? [L, +$('d').value, H] : k === 'prat' ? [2, 1, H] : k === 'led' ? [half(L), 0.1, half(H)] : DEFAULT[k];
   const g = makeProp(k, dims); g.position.copy(orbit.target); g.position.y = floorAt(g.position); select(g);
 });
 // hauteur du sol de la maquette sous un point (le sol n'est pas forcément à 0)
@@ -598,6 +666,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   ray.setFromCamera(ptr, camera);
   const hit = ray.intersectObjects([props, venue], true).find(h => h.object.visible && (h.object.isMesh || h.object.isLineSegments) && visibleHit(h));
   if (measuring) return measureAt(hit);
+  if (pickEye) return eyeAt(hit);
   if (!hit) return select(null);
   let o = hit.object;
   const p = props.children.find(c => isIn(o, c));
@@ -632,6 +701,7 @@ addEventListener('keydown', e => {
   if (e.key === 'Delete' || e.key === 'Backspace') $('del').click();
   if (e.key === 'Escape') { select(null); setMeasure(false); }
   if (e.key === 'm') setMeasure(!measuring);
+  if (e.key === 'v') setPickEye(!pickEye);
   if (e.key === 'h') $('hide').click();
   if (e.key === 'c' && selected) frame(selected);
 });
@@ -901,7 +971,7 @@ $('fiche').onclick = async () => {
   w.document.write('<p style="font:14px sans-serif">Préparation de la fiche…</p>');
   const svg = await planSvg(), r = rigging(), j = jauge(), c = cabling(), title = setupName || 'Setup de salle';
   const mat = new Map();
-  for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:WEIGHT[o.userData.kind], W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
+  for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
   const td = v => `<td>${v}</td>`, num = v => `<td class="n">${v}</td>`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
     @page { size:A4 landscape; margin:10mm } body { font:11px/1.35 Helvetica, Arial, sans-serif; color:#111; margin:0 }
@@ -930,8 +1000,8 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
-const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6 };
+const DXF_LAYER = { lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
 function exportDxf() {
@@ -985,10 +1055,17 @@ function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = i
 addEventListener('resize', resize); resize();
 // --- navigation : double-clic pour centrer, clavier pour se déplacer ---
 let goal = null; // point vers lequel on glisse la cible d'orbite
-renderer.domElement.addEventListener('dblclick', e => {
-  ptr.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1); ray.setFromCamera(ptr, camera);
+function centerAt(x, y) {
+  ptr.set(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1); ray.setFromCamera(ptr, camera);
   const hit = ray.intersectObjects([props, venue], true).find(h => h.object.visible && h.object.isMesh && visibleHit(h));
   if (hit) goal = hit.point.clone();
+}
+renderer.domElement.addEventListener('dblclick', e => centerAt(e.clientX, e.clientY));
+let lastTap = null; // double-tap au doigt (pas de dblclick fiable en tactile)
+renderer.domElement.addEventListener('pointerup', e => {
+  if (e.pointerType !== 'touch') return;
+  if (lastTap && e.timeStamp - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 25) { centerAt(e.clientX, e.clientY); lastTap = null; }
+  else lastTap = { t:e.timeStamp, x:e.clientX, y:e.clientY };
 });
 const keys = new Set(), clock = new THREE.Clock();
 addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) keys.add(e.code); });
@@ -1008,6 +1085,7 @@ function navigate(dt) {
   }
   orbit.target.add(v); camera.position.add(v);
 }
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); // hors connexion après une 1ʳᵉ visite
 renderer.setAnimationLoop(t => { updateDelays(t); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
 </script>
 </body>

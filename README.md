@@ -19,7 +19,7 @@ Aucune installation : tout tient dans `index.html`, avec Three.js chargé depuis
 - **Éléments mobiles de la maquette** sélectionnables et déplaçables : sièges de l'auditorium, mobilier, panneaux acoustiques, bar.
 
 ### Ajouter des éléments
-Scène (dimensions libres), praticable 2 × 1, régie, enceinte, écran, silhouette de personne. S'y ajoutent les modèles **PIKIP** construits d'après les fiches techniques :
+Scène (dimensions libres), praticable Samia 2 × 1 (hauteur = champ H), régie, enceinte, écran, silhouette de personne. Lumière : **lyre** (22 kg, 600 W) et **PAR LED** (5 kg, 200 W). Vidéo : **écran LED** en dalles de 50 cm (largeur = L, hauteur = H ; environ 8 kg et 150 W par dalle). Sécurité : **barrière crash** (module de 1 m, 35 kg). Tout élément posé à plus de 2,5 m compte comme accroché (charges et rigging). S'y ajoutent les modèles **PIKIP** construits d'après les fiches techniques :
 - **VCH30 ×1** : 680 × 510 mm, face 387 mm, dos 120 mm, courbure 30°.
 - **VCH30 ×2** : deux unités en éventail à 60°, avec plaque d'accroche.
 - **Sub VTL218** : 1300 × 775 × 570 mm.
@@ -48,6 +48,8 @@ Quand on déplace ou tourne une scène, elle **emporte son matériel** : tout é
 - Liste **Maquettes et calques** (repliée par défaut) : chaque niveau et chaque calque se masque.
 - **Masquer (H)** : cacher n'importe quel élément gênant. **Tout réafficher** l'annule.
 - Vues **Dessus**, **Perspective** et **Face**.
+- **Vue public (V)** : on clique un point de la salle, la caméra se place à 1,60 m du sol et regarde le plateau ; la distance au nez de scène s'affiche.
+- **Couverture** : ouverture horizontale des enceintes dessinée au sol (ou sur le plateau). Valeurs indicatives : L2D 70°, Kara II 110°, X15 40°, VCH30 90°.
 - **Mesurer (M)** : deux clics donnent la distance totale, horizontale (↔) et verticale (↕). *Effacer mesures* les retire.
 - **Axe & piliers** : l'axe de l'Agora (rose, pointillé) et les piliers de la charpente métallique relevés dans l'IFC, M1–M6 côté mezzanine (sur le marquage jaune, z = −9,52) et V1–V6 côté verrière (z = +15,20), face à face tous les 10 m. Chaque pilier affiche sa **distance et son délai (ms)** par rapport à la L2D la plus proche (ou au nez de scène), pour une enceinte posée à la hauteur choisie (4 m par défaut), avec un son à 343 m/s sans marge Haas. Une enceinte sélectionnée affiche aussi son délai. L'axe et les piliers sortent dans l'aperçu 2D et dans le DXF (calque `AGORA_AXE`).
 
@@ -80,6 +82,10 @@ On clique sur **Sauver** puis sur **Charger**. **Lien** copie une adresse qui ou
 
 ---
 
+## Tablette et hors connexion
+- Sur un écran étroit, le panneau est replié au départ ; le bouton **☰** l'ouvre ou le ferme. Au doigt : un doigt pour orbiter, deux pour zoomer et se déplacer, double-tap pour centrer la vue.
+- Le site s'installe comme une application (« Ajouter à l'écran d'accueil ») et fonctionne **hors connexion** après une première visite : `sw.js` garde en cache le site, la maquette et Three.js. Les fichiers du site sont toujours repris du réseau quand il est disponible, donc les mises à jour arrivent normalement.
+
 ## Commandes
 
 | Action | Commande |
@@ -93,6 +99,7 @@ On clique sur **Sauver** puis sur **Charger**. **Lien** copie une adresse qui ou
 | Déplacer / tourner la sélection | T / E (magnétisme 0,5 m / 15°) |
 | Centrer sur la sélection | C |
 | Masquer la sélection | H |
+| Mesurer / vue public | M / V |
 | Supprimer | Suppr. Un élément de la maquette est masqué, pas effacé. |
 | Annuler / rétablir | ⌘Z / ⌘⇧Z (Ctrl+Z / Ctrl+Y sur PC) |
 | Désélectionner | Échap |
@@ -136,6 +143,7 @@ Le site est déployé sur **Vercel** en site statique (`vercel.json` force le bu
 | Fichier | Contenu |
 |---|---|
 | `index.html` | le visualiseur (Three.js) |
+| `sw.js`, `manifest.webmanifest`, `icon.svg` | mode hors connexion et installation sur tablette |
 | `halle_ifc.glb` | la maquette 3D convertie depuis l'IFC (Draco, environ 4 Mo) |
 | `plan_scene.json` | le plan DXF calé sur la 3D (bâti, scénographie, équipements) |
 | `plan_fond.svg` | le fond de plan complet de l'aperçu 2D, chargé seulement à l'export |
