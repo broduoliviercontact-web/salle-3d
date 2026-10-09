@@ -339,9 +339,9 @@ function charges() {
 }
 const BUILD = { vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
-// axe de l'Agora : à mi-distance des 2 rangées de piliers = axes des 2 grandes poutres du marquage jaune du DXF (scénographie),
-// indiqués par le régisseur : côté mezzanine bords z = −10,1 / −9,0, côté verrière bords z = 14,73 / 15,32
-const PIL_MEZZ_Z = -9.55, PIL_VERR_Z = 15.03, AXE_AGORA = (PIL_MEZZ_Z + PIL_VERR_Z) / 2;
+// axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
+// pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
+const PIL_MEZZ_Z = -9.52, PIL_VERR_Z = 15.20, AXE_AGORA = (PIL_MEZZ_Z + PIL_VERR_Z) / 2;
 function placeMach() {
   const dz = AXE_AGORA - MACH.scene.c[1]; // scène recentrée entre les piliers ; le grill suit avec le même décalage
   const s = makeProp('scene_m', [MACH.scene.w, MACH.scene.d, 1.2]); s.position.set(MACH.scene.c[0], 0, MACH.scene.c[1] + dz); s.position.y = floorAt(s.position);
@@ -377,9 +377,8 @@ $('concertBtn').onclick = async () => {
 };
 // --- axe et piliers de l'Agora (piliers du RDC relevés dans l'IFC) : repères des enceintes de délai ---
 const PILIERS = [
-  // ponytail: abscisses reprises des poteaux du RDC (IFC) faute de piliers modélisés sur la ligne jaune : à corriger si l'espacement réel diffère
-  ...[32.73, 38.43, 44.13, 49.83, 55.53, 58.66, 63.93, 69.08, 72.93, 76.78].map((x, i) => ({ n:`M${i + 1}`, x, z:PIL_MEZZ_Z })), // côté mezzanine
-  ...[28.64, 38.69, 48.70, 58.68, 68.69, 78.70].map((x, i) => ({ n:`V${i + 1}`, x, z:PIL_VERR_Z })),                       // côté verrière (lamellé-collé)
+  ...[27.76, 38.73, 48.73, 58.73, 68.85, 78.77].map((x, i) => ({ n:`M${i + 1}`, x, z:PIL_MEZZ_Z })), // côté mezzanine
+  ...[28.64, 38.69, 48.70, 58.68, 68.69, 78.70].map((x, i) => ({ n:`V${i + 1}`, x, z:PIL_VERR_Z })), // côté verrière
 ];
 const SON = 343, AXE_X = [26, 88]; // vitesse du son (m/s, 20 °C) ; étendue de l'axe tracé
 const agora = new THREE.Group(); agora.name = 'Axe et piliers Agora'; scene.add(agora);
@@ -388,7 +387,8 @@ function buildAgora() {
   const axe = new THREE.Line(new THREE.BufferGeometry().setFromPoints(AXE_X.map(x => new THREE.Vector3(x, y, AXE_AGORA))), new THREE.LineDashedMaterial({ color:0xff00aa, dashSize:1, gapSize:0.5, depthTest:false }));
   axe.computeLineDistances(); axe.renderOrder = 2; agora.add(axe);
   for (const p of PILIERS) {
-    const g = new THREE.Group(); g.position.set(p.x, floorAt(new THREE.Vector3(p.x, 0, p.z + Math.sign(AXE_AGORA - p.z))), p.z); g.userData.pilier = p; // sol lu à 1 m du pilier (pas sur son dessus)
+    const g = new THREE.Group(); const side = Math.sign(AXE_AGORA - p.z); // repère sur la face du pilier côté axe (là où l'enceinte est fixée), sol lu à 1 m du pilier
+    g.position.set(p.x, floorAt(new THREE.Vector3(p.x, 0, p.z + side)), p.z + side * 0.5); g.userData.pilier = p;
     g.add(new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), new THREE.MeshBasicMaterial({ color:0xff00aa }))); agora.add(g);
   }
 }
@@ -408,7 +408,7 @@ function updateDelays(t) {
   if (t - lastDelay < 500) return; lastDelay = t;
   if (agora.visible) for (const g of agora.children) {
     const p = g.userData.pilier; if (!p) continue;
-    const H = +$('delayH').value || 4, q = new THREE.Vector3(p.x, g.position.y + H, p.z), src = mainSource(q), d = src && src.distanceTo(q);
+    const H = +$('delayH').value || 4, q = g.position.clone().setY(g.position.y + H), src = mainSource(q), d = src && src.distanceTo(q);
     g.children[0].position.y = H;
     const txt = src ? `${p.n} · ${fr(d)} m · ${fr(d / SON * 1000)} ms` : p.n;
     if (g.userData.txt === txt) continue;

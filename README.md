@@ -23,7 +23,7 @@ Scène (dimensions libres), praticable 2 × 1, régie, enceinte, écran, silhoue
 - **VCH30 ×2** : deux unités en éventail à 60°, avec plaque d'accroche.
 - **Sub VTL218** : 1300 × 775 × 570 mm.
 
-Le bouton **Setup du machiniste (DWG)** place la **scène 11 × 9 m** (en lames de 1 m) et le **grill de poutres S500 triangulaires** issus du DWG « scène et grill » d'un machiniste. La scène est **recentrée sur l'axe de l'Agora**, à mi-distance de la ligne de piliers côté mezzanine (marquage jaune du DXF, z = −9,55 m) et de celle côté verrière (marquage jaune, z = +15,03 m), soit z = +2,74 m, pour la cohérence avec les enceintes sur piliers ; le grill garde sa position relative à la scène. Le grill compte 4 poutres de 11,6 m et 2 de 10,3 m ; sa hauteur d'accroche se règle à côté du bouton (7 m par défaut). La scène fait 1,20 m de haut. Les deux éléments se déplacent et s'exportent comme les autres : dans le DXF, le grill est sur le calque `SETUP_GRILL`, en axes de poutres.
+Le bouton **Setup du machiniste (DWG)** place la **scène 11 × 9 m** (en lames de 1 m) et le **grill de poutres S500 triangulaires** issus du DWG « scène et grill » d'un machiniste. La scène est **recentrée sur l'axe de l'Agora**, à mi-distance des deux rangées de piliers de la charpente métallique (côté mezzanine sur le marquage jaune, z = −9,52 m ; côté verrière z = +15,20 m), soit z = +2,84 m, pour la cohérence avec les enceintes sur piliers ; le grill garde sa position relative à la scène. Le grill compte 4 poutres de 11,6 m et 2 de 10,3 m ; sa hauteur d'accroche se règle à côté du bouton (7 m par défaut). La scène fait 1,20 m de haut. Les deux éléments se déplacent et s'exportent comme les autres : dans le DXF, le grill est sur le calque `SETUP_GRILL`, en axes de poutres.
 
 Les modèles **L-Acoustics** (volumes simplifiés d'après les dimensions et poids fournis) :
 - **KS28** seul ou en pile de 2, posés à plat : 1340 × 700 × 550 mm, 79 kg.
@@ -48,7 +48,7 @@ Quand on déplace ou tourne une scène, elle **emporte son matériel** : tout é
 - **Masquer (H)** : cacher n'importe quel élément gênant. **Tout réafficher** l'annule.
 - Vues **Dessus**, **Perspective** et **Face**.
 - **Mesurer (M)** : deux clics donnent la distance totale, horizontale (↔) et verticale (↕). *Effacer mesures* les retire.
-- **Axe & piliers** : l'axe de l'Agora (rose, pointillé) et les piliers du RDC relevés dans l'IFC, M1–M10 côté mezzanine, sur le marquage jaune (z = −9,55 ; espacement repris des poteaux du RDC, à confirmer) et V1–V6 côté verrière, sur le marquage jaune (z = +15,03). Chaque pilier affiche sa **distance et son délai (ms)** par rapport à la L2D la plus proche (ou au nez de scène), pour une enceinte posée à la hauteur choisie (4 m par défaut), avec un son à 343 m/s sans marge Haas. Une enceinte sélectionnée affiche aussi son délai. L'axe et les piliers sortent dans l'aperçu 2D et dans le DXF (calque `AGORA_AXE`).
+- **Axe & piliers** : l'axe de l'Agora (rose, pointillé) et les piliers de la charpente métallique relevés dans l'IFC, M1–M6 côté mezzanine (sur le marquage jaune, z = −9,52) et V1–V6 côté verrière (z = +15,20), face à face tous les 10 m. Chaque pilier affiche sa **distance et son délai (ms)** par rapport à la L2D la plus proche (ou au nez de scène), pour une enceinte posée à la hauteur choisie (4 m par défaut), avec un son à 343 m/s sans marge Haas. Une enceinte sélectionnée affiche aussi son délai. L'axe et les piliers sortent dans l'aperçu 2D et dans le DXF (calque `AGORA_AXE`).
 
 ### Setups de salle
 Un setup enregistre :
