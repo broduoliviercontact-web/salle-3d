@@ -78,7 +78,15 @@ Un setup enregistre :
 - la caméra ;
 - les calques visibles et la coupe.
 
-On clique sur **Sauver** puis sur **Charger**. **Lien** copie une adresse qui ouvre le setup courant sur n'importe quel ordinateur (le setup est compressé dans l'adresse, environ 700 caractères, sans serveur). C'est une copie : les modifications de l'autre personne ne reviennent pas, il faut qu'elle renvoie un lien. Les setups sont stockés **dans le navigateur** : utilise **Exporter JSON** / **Importer** pour les sauvegarder ou les partager. **⌘Z / ⌘⇧Z** annule ou rétablit chaque modification.
+Chaque setup appartient à un **événement** avec une **date** (ex. « FIP 360 », 14/11). La liste est rangée par événement, du plus proche au plus lointain ; les setups sans événement sont regroupés à la fin. Sur chaque setup :
+- **▶** le charge (les champs nom / événement / date se remplissent : **Sauver** met alors à jour ce setup) ;
+- **⧉** le duplique pour faire une variante ;
+- **✎** le renomme ou le change d'événement ;
+- **✕** le supprime.
+
+On coche **deux setups** puis **Comparer** : une page montre les deux plans de l'Agora côte à côte et un tableau des écarts (jauge, charges, rigging, matériel ligne par ligne), à imprimer en A3 paysage.
+
+On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre le setup courant sur n'importe quel ordinateur (le setup est compressé dans l'adresse, environ 700 caractères, sans serveur). C'est une copie : les modifications de l'autre personne ne reviennent pas, il faut qu'elle renvoie un lien. Les setups sont stockés **dans le navigateur** : utilise **Exporter JSON** / **Importer** pour les sauvegarder ou les partager. **⌘Z / ⌘⇧Z** annule ou rétablit chaque modification.
 
 ### Exports
 - **Aperçu 2D (SVG)** : vue de dessus du setup sur le plan DXF complet en gris (murs, portes, axes, noms des locaux). Il contient :

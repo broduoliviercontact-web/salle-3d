@@ -30,6 +30,7 @@
   #drop { position:fixed; inset:0; background:rgba(240,165,58,.15); border:3px dashed var(--acc); display:none; place-items:center; font-size:20px; z-index:5; }
   ul { list-style:none; padding:0; margin:0; }
   li { display:flex; gap:6px; align-items:center; margin-bottom:4px; }
+  li.ev { margin-top:8px; color:var(--acc); font-weight:600; } li.ev small { color:var(--mute); font-weight:400; } li button { padding:3px 6px; }
   li span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 </style>
 </head>
@@ -89,8 +90,11 @@
   <div class="row"><button id="fiche" class="grow">Fiche setup (PDF)</button></div>
 
   <h2>Setups de salle</h2>
-  <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: frontale 800)"><button id="save">Sauver</button><button id="share" title="Copie un lien qui ouvre ce setup sur n'importe quel ordinateur">Lien</button></div>
+  <div class="row"><input id="cfgEvent" class="grow" placeholder="Événement (ex: FIP 360)" list="eventList"><input type="date" id="cfgDate" style="width:128px"></div>
+  <datalist id="eventList"></datalist>
+  <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: version A)"><button id="save">Sauver</button><button id="share" title="Copie un lien qui ouvre ce setup sur n'importe quel ordinateur">Lien</button></div>
   <ul id="cfgs"></ul>
+  <div class="row"><button id="compare" class="grow" disabled title="Coche deux setups dans la liste">Comparer les 2 setups cochés</button></div>
   <div class="row"><button id="dxf" class="grow">Export AutoCAD (DXF)</button><button id="plan2d">Aperçu 2D (SVG)</button></div>
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
@@ -856,19 +860,47 @@ tc.addEventListener('mouseUp', () => carried = null);
 const store = { get() { try { return JSON.parse(localStorage.getItem('cfgs') || '{}'); } catch { return {}; } },
                 set(v) { try { localStorage.setItem('cfgs', JSON.stringify(v)); } catch {} } };
 let cfgs = store.get();
+// bibliothèque : setups rangés par événement (méta event / date / saved dans chaque setup), du plus proche au plus lointain
+const NO_EVENT = 'Sans événement';
+const meta = () => ({ event:$('cfgEvent').value.trim(), date:$('cfgDate').value, saved:Date.now() });
+const fillMeta = (n, c) => { $('cfgName').value = n; $('cfgEvent').value = c.event || ''; $('cfgDate').value = c.date || ''; };
+const fmtDate = d => d ? new Date(d + 'T12:00').toLocaleDateString('fr', { weekday:'short', day:'numeric', month:'short', year:'numeric' }) : '';
 function refreshCfgs() {
-  $('cfgs').innerHTML = '';
-  Object.keys(cfgs).forEach(n => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span></span><button>Charger</button><button>✕</button>`;
-    li.children[0].textContent = n;
-    li.children[1].onclick = () => { pushUndo(); restore(cfgs[n]); setupName = n; };
-    li.children[2].onclick = () => { if (confirm(`Supprimer « ${n} » ?`)) { delete cfgs[n]; store.set(cfgs); refreshCfgs(); } };
-    $('cfgs').appendChild(li);
-  });
+  const ul = $('cfgs'); ul.innerHTML = '';
+  const groups = new Map();
+  for (const [n, c] of Object.entries(cfgs)) { const k = c.event || NO_EVENT; if (!groups.has(k)) groups.set(k, []); groups.get(k).push([n, c]); }
+  const first = list => list.map(([, c]) => c.date || '9999').sort()[0];
+  for (const [ev, list] of [...groups].sort((a, b) => first(a[1]).localeCompare(first(b[1])) || a[0].localeCompare(b[0]))) {
+    const h = document.createElement('li'); h.className = 'ev'; h.innerHTML = '<span></span>'; ul.appendChild(h);
+    const dates = [...new Set(list.map(([, c]) => c.date).filter(Boolean))].sort();
+    h.firstChild.innerHTML = `${esc(ev)} <small>${dates.map(fmtDate).join(' · ')}</small>`;
+    for (const [n, c] of list.sort((a, b) => (a[1].saved || 0) - (b[1].saved || 0))) {
+      const li = document.createElement('li');
+      li.innerHTML = `<input type="checkbox" title="Cocher pour comparer"><span></span><button title="Charger ce setup">▶</button><button title="Dupliquer (variante)">⧉</button><button title="Renommer / changer d'événement">✎</button><button title="Supprimer">✕</button>`;
+      const [cb, label, load, dup, ren, del] = li.children;
+      cb.dataset.n = n; cb.onchange = syncCompare; label.textContent = n; label.title = n + (c.saved ? ` — enregistré le ${new Date(c.saved).toLocaleString('fr')}` : '');
+      load.onclick = () => { pushUndo(); restore(c); setupName = n; fillMeta(n, c); };
+      dup.onclick = () => { const m = prompt('Nom de la variante :', n + ' (variante)')?.trim(); if (!m) return; if (cfgs[m] && !confirm(`« ${m} » existe déjà. Le remplacer ?`)) return; cfgs[m] = { ...structuredClone(c), saved:Date.now() }; store.set(cfgs); refreshCfgs(); };
+      ren.onclick = () => {
+        const m = prompt('Nom du setup :', n)?.trim(); if (!m) return;
+        const e = prompt('Événement :', c.event || '')?.trim(); if (e === undefined) return;
+        if (m !== n && cfgs[m] && !confirm(`« ${m} » existe déjà. Le remplacer ?`)) return;
+        delete cfgs[n]; cfgs[m] = { ...c, event:e }; if (setupName === n) setupName = m; store.set(cfgs); refreshCfgs();
+      };
+      del.onclick = () => { if (confirm(`Supprimer « ${n} » ?`)) { delete cfgs[n]; store.set(cfgs); refreshCfgs(); } };
+      ul.appendChild(li);
+    }
+  }
+  $('eventList').innerHTML = [...groups.keys()].filter(k => k !== NO_EVENT).map(k => `<option value="${esc(k)}">`).join('');
+  syncCompare();
 }
+function syncCompare() { const n = document.querySelectorAll('#cfgs input:checked').length; $('compare').disabled = n !== 2; $('compare').textContent = n === 2 ? 'Comparer les 2 setups cochés' : `Comparer : coche 2 setups (${n}/2)`; }
 let setupName = '';
-$('save').onclick = () => { const n = $('cfgName').value.trim() || new Date().toLocaleString('fr'); setupName = n; cfgs[n] = snapshot(); store.set(cfgs); refreshCfgs(); $('cfgName').value = ''; };
+$('save').onclick = () => {
+  const n = $('cfgName').value.trim() || new Date().toLocaleString('fr');
+  if (cfgs[n] && n !== setupName && !confirm(`« ${n} » existe déjà. Le remplacer ?`)) return;
+  setupName = n; cfgs[n] = { ...snapshot(), ...meta() }; store.set(cfgs); refreshCfgs(); // les champs restent remplis : « Sauver » à nouveau met à jour ce setup
+};
 $('exp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(cfgs, null, 1)], { type:'application/json' })); a.download = 'setups-salle.json'; a.click(); };
 $('imp').onchange = e => e.target.files[0]?.text().then(t => { Object.assign(cfgs, JSON.parse(t)); store.set(cfgs); refreshCfgs(); });
 refreshCfgs();
@@ -878,7 +910,7 @@ const b64u = { enc:u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').re
 const pipe = async (data, stream) => new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());
 $('share').onclick = async () => {
   const name = $('cfgName').value.trim() || setupName || 'Setup partagé';
-  const url = `${location.origin}${location.pathname}#s=${b64u.enc(await pipe(JSON.stringify({ name, cfg:snapshot() }), new CompressionStream('deflate-raw')))}`;
+  const url = `${location.origin}${location.pathname}#s=${b64u.enc(await pipe(JSON.stringify({ name, cfg:{ ...snapshot(), ...meta() } }), new CompressionStream('deflate-raw')))}`;
   try { await navigator.clipboard.writeText(url); $('share').textContent = 'Copié ✓'; setTimeout(() => $('share').textContent = 'Lien', 2000); }
   catch { prompt('Lien de partage du setup :', url); }
 };
@@ -887,7 +919,7 @@ async function openShared() {
   try {
     const { name, cfg } = JSON.parse(new TextDecoder().decode(await pipe(b64u.dec(m[1]), new DecompressionStream('deflate-raw'))));
     if (!Array.isArray(cfg?.props) || !Array.isArray(cfg.moved)) throw new Error('format');
-    restore(cfg); setupName = String(name || '').slice(0, 80); $('cfgName').value = setupName; // « Sauver » pour le garder dans ce navigateur
+    restore(cfg); setupName = String(name || '').slice(0, 80); fillMeta(setupName, { event:String(cfg.event || '').slice(0, 80), date:/^\d{4}-\d\d-\d\d$/.test(cfg.date) ? cfg.date : '' }); // « Sauver » pour le garder dans ce navigateur
   } catch { alert('Ce lien de setup est illisible ou incomplet.'); }
 }
 
@@ -895,7 +927,7 @@ async function openShared() {
 // 1 unité SVG = 1 m ; largeur en mm = 10 × mètres -> échelle 1:100 si imprimé à 100 %
 const SPEAKERS = new Set(['syva', 'enceinte', 'vch30', 'vch30x2', 'vtl218', 'ks28', 'ks28x2', 'l2d', 'kara2', 'x15', 'x15p']);
 const hex = c => '#' + c.toString(16).padStart(6, '0');
-const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+function esc(t) { return String(t).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch])); } // déclaration : utilisable avant sa ligne (liste des setups)
 const shown = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
 // coin local (x, z) d'un objet -> plan (x, z) monde, rotation autour de la verticale seulement
 const toPlan = (o, x, z) => { const c = Math.cos(o.rotation.y), s = Math.sin(o.rotation.y); return [o.position.x + x * c + z * s, o.position.z - x * s + z * c]; };
@@ -1022,14 +1054,45 @@ async function exportPlan2D() {
   a.download = `plan-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}.svg`; a.click();
 }
 $('plan2d').onclick = exportPlan2D;
+// matériel du setup courant : désignation -> quantité, poids unitaire, puissance totale
+function materiel() {
+  const mat = new Map();
+  for (const o of props.children) if (o.visible && /^scene/.test(o.userData.kind)) mat.set(`Praticables 2×1 pour ${o.name}`, { n:pratLayout(...o.userData.dims).length, kg:WEIGHT.prat, W:0 });
+  for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
+  return mat;
+}
+// --- comparaison de 2 setups : plans de l'Agora côte à côte + écarts de matériel, jauge, charges, rigging ---
+$('compare').onclick = async () => {
+  const names = [...document.querySelectorAll('#cfgs input:checked')].map(c => c.dataset.n); if (names.length !== 2) return;
+  const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour comparer.');
+  w.document.write('<p style="font:14px sans-serif">Préparation de la comparaison…</p>');
+  const cur = snapshot(), curName = setupName, res = [];
+  try {
+    for (const n of names) { restore(cfgs[n]); setupName = n; const r = rigging();
+      res.push({ n, c:cfgs[n], svg:await planSvg(true), mat:materiel(), j:jauge(), ch:charges(), rig:r ? `${kg(r.total)} · max ${kg(Math.max(...r.pts.map(p => p.kg)))}` : '—' }); }
+  } finally { restore(cur); setupName = curName; } // on remet la salle telle qu'elle était
+  const [A, B] = res, keys = [...new Set([...A.mat.keys(), ...B.mat.keys()])];
+  const row = (k, a, b) => `<tr${a !== b ? ' class="d"' : ''}><td>${k}</td><td class="n">${a}</td><td class="n">${b}</td></tr>`;
+  const head = x => `<h2>${esc(x.n)}</h2><div class="sub">${esc(x.c.event || NO_EVENT)}${x.c.date ? ' · ' + fmtDate(x.c.date) : ''}</div>`;
+  const strip = svg => svg.replace(/^<svg [^>]*?width="[^"]+" height="[^"]+"/, m => m.replace(/ width="[^"]+" height="[^"]+"/, ''));
+  w.document.open(); w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Comparaison — ${esc(A.n)} / ${esc(B.n)}</title><style>
+    @page { size:A3 landscape; margin:10mm } body { font:12px/1.4 Helvetica, Arial, sans-serif; margin:12px; color:#111 }
+    .cols { display:grid; grid-template-columns:1fr 1fr; gap:16px } svg { width:100%; height:auto; border:1px solid #ccc }
+    h2 { margin:0; font-size:16px } .sub { color:#555; margin-bottom:6px } table { border-collapse:collapse; width:100%; margin-top:14px }
+    th, td { border:1px solid #bbb; padding:3px 6px; text-align:left } th { background:#eee } td.n { text-align:right; white-space:nowrap } tr.d td { background:#fff3cd; font-weight:600 }</style></head><body>
+    <div class="cols"><div>${head(A)}${strip(A.svg)}</div><div>${head(B)}${strip(B.svg)}</div></div>
+    <table><tr><th>Écarts surlignés</th><th>${esc(A.n)}</th><th>${esc(B.n)}</th></tr>
+    ${row('<b>Jauge</b>', A.j.n.toLocaleString('fr') + ' pers.', B.j.n.toLocaleString('fr') + ' pers.')}
+    ${row('<b>Charges</b>', esc(A.ch || '—'), esc(B.ch || '—'))}
+    ${row('<b>Rigging grill</b>', A.rig, B.rig)}
+    ${keys.map(k => row(esc(k), A.mat.get(k)?.n || 0, B.mat.get(k)?.n || 0)).join('')}</table></body></html>`); w.document.close();
+};
 // --- fiche setup : page imprimable (plan + tableaux), « Enregistrer en PDF » depuis l'impression du navigateur ---
 $('fiche').onclick = async () => {
   const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour générer la fiche.'); // ouverte avant l'attente (anti pop-up)
   w.document.write('<p style="font:14px sans-serif">Préparation de la fiche…</p>');
   const svg = await planSvg(true), r = rigging(), j = jauge(), c = cabling(), title = setupName || 'Setup de salle';
-  const mat = new Map();
-  for (const o of props.children) if (o.visible && /^scene/.test(o.userData.kind)) mat.set(`Praticables 2×1 pour ${o.name}`, { n:pratLayout(...o.userData.dims).length, kg:WEIGHT.prat, W:0 });
-  for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
+  const mat = materiel();
   const td = v => `<td>${v}</td>`, num = v => `<td class="n">${v}</td>`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
     @page { size:A4 landscape; margin:10mm } body { font:11px/1.35 Helvetica, Arial, sans-serif; color:#111; margin:0 }
