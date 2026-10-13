@@ -103,7 +103,8 @@
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+               "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.16/build/index.module.js" } }
 </script>
 <script type="module">
 import * as THREE from 'three';
@@ -111,6 +112,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+// index spatial (BVH) : sans lui, chaque recherche du sol ou clic parcourt les 2,2 M triangles de la maquette (≈ 200 ms)
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast; // sans index construit, retombe sur le raycast normal
 
 const $ = id => document.getElementById(id);
 const scene = new THREE.Scene();
@@ -132,8 +137,14 @@ scene.add(new THREE.GridHelper(100, 100, 0x555c6a, 0x2c313b));
 const venue = new THREE.Group(); venue.name = 'venue'; scene.add(venue);
 const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/'));
 
+const FLOORS = []; // dalles de la maquette : seules surfaces testées pour trouver le sol
 function addModel(name, gltf) {
   const root = gltf.scene; root.name = name; venue.add(root);
+  const meshes = []; root.traverse(o => { if (o.isMesh) meshes.push(o); });
+  const isSlab = o => { for (let n = o; n && n !== root; n = n.parent) if (/^Dalles/.test(n.name)) return true; return false; };
+  for (const o of meshes) if (isSlab(o)) { o.geometry.computeBoundsTree(); FLOORS.push(o); } // tout de suite : le placement au sol en a besoin
+  const rest = meshes.filter(o => !o.geometry.boundsTree); // le reste (clics) en tâche de fond, par tranches de 20 ms
+  (function step() { const t = performance.now(); while (rest.length && performance.now() - t < 20) rest.pop().geometry.computeBoundsTree(); if (rest.length) setTimeout(step, 0); })();
   refreshModels(); frame(root);
 }
 // Ponts roulants (passerelles dorées) : l'IFC les place n'importe où sur leurs rails ; on les recale sur leur marquage au sol du DXF (scénographie)
@@ -681,7 +692,7 @@ document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
 function floorAt(p) {
   // ponytail: on part de 3 m (niveau RDC) vers le bas : 1ʳᵉ surface horizontale = sol ; pour un étage, déplacer l'élément à la main
   ray.set(new THREE.Vector3(p.x, 3, p.z), new THREE.Vector3(0, -1, 0)); ray.camera = camera; // requis pour les étiquettes (sprites)
-  const hit = ray.intersectObject(venue, true).find(h => h.object.visible && h.face && Math.abs(h.face.normal.y) > 0.9);
+  const hit = (FLOORS.length ? ray.intersectObjects(FLOORS, false) : ray.intersectObject(venue, true)).find(h => h.object.visible && h.face && Math.abs(h.face.normal.y) > 0.9);
   return hit ? hit.point.y : 0;
 }
 
