@@ -54,6 +54,8 @@
   <div class="row"><button data-add="ks28">KS28</button><button data-add="ks28x2">KS28 ×2</button><button data-add="l2d">L2D accroché</button></div>
   <div class="row"><button data-add="kara2">Kara II</button><button data-add="x15">X15 sol</button><button data-add="x15p">X15 sur pied</button></div>
   <div class="row"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
+  <div class="row"><button id="fipBtn" class="grow" title="Cercle de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4">FIP 360</button>Ø <input type="number" id="fipD" value="20" step="1" min="12" max="25"> m</div>
+  <div class="row"><button data-add="syva">Syva + Low sur estrade</button></div>
   <div id="charges" style="font-size:11px;opacity:.8"></div>
 
   <h2>Sélection</h2>
@@ -235,9 +237,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -354,7 +356,7 @@ function buildX15p() {
     leg.position.set(Math.sin(a) * 0.25, 0.22, Math.cos(a) * 0.25); leg.rotation.set(Math.cos(a) * 0.9, 0, -Math.sin(a) * 0.9); out.push(leg); }
   return out;
 }
-const WEIGHT = { ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
+const WEIGHT = { syva:50, ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
 // écran LED : dalles de 50 × 50 cm, ~8 kg et ~150 W en moyenne chacune (ordre de grandeur, selon le modèle loué)
 const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData.dims[2] / 0.5);
 const weightOf = o => o.userData.kind === 'led' ? dalles(o) * 8 : WEIGHT[o.userData.kind] || 0;
@@ -395,7 +397,16 @@ function buildCrash() { // barrière crash type Mojo : semelle côté public (+z
   for (const x of [-0.45, 0.45]) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.75), mat); s.position.set(x, 0.6, -0.4); s.rotation.x = -0.9; out.push(s); }
   return out;
 }
-const BUILD = { lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+// --- FIP 360 (fiche technique Radio France) : colonne Syva + Syva Low sur estrade 1 × 1 × 1 m, face avant = +z ---
+// Syva 144 l × 209 p × 1301 h mm (21 kg), Syva Low 350 l × 334 p × 849 h mm (29 kg) : 2,128 m + 1 m d'estrade
+function buildSyva() {
+  const out = [], leg = dark(0x111111);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 1), dark(0x6b5440)); plate.position.y = 0.975; out.push(plate);
+  for (const x of [-0.45, 0.45]) for (const z of [-0.45, 0.45]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.95, 0.05), leg); l.position.set(x, 0.475, z); out.push(l); }
+  const low = cab(0.35, 0.849, 0.334, 1), col = cab(0.144, 1.301, 0.209, 1.849);
+  return [...out, low, col];
+}
+const BUILD = { syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -408,6 +419,18 @@ function placeMach() {
   select(g); frame(g); return [s, g];
 }
 // Système du concert 05/12, placé dans le repère de la scène du machiniste : x local = vers le public (+x), z local = « X » de la fiche
+// FIP 360 : 12 colonnes tous les 30° tournées vers le centre, 2 KS28 empilés à chaque point cardinal (à l'extérieur du cercle), scène 4 × 4 au centre.
+// Centre par défaut : sur l'axe de l'Agora, entre les piliers M3/M4 ; tout l'ensemble se déplace en attrapant la scène centrale.
+$('fipBtn').onclick = () => {
+  pushUndo();
+  const R = THREE.MathUtils.clamp(+$('fipD').value || 20, 12, 25) / 2, c = new THREE.Vector3(50, 0, AXE_AGORA); c.y = floorAt(c);
+  const put = (kind, dims, a, r) => { const o = makeProp(kind, dims); o.position.set(c.x + r * Math.cos(a), 0, c.z - r * Math.sin(a)); o.position.y = floorAt(o.position); o.rotation.y = Math.atan2(-Math.cos(a), Math.sin(a)); return o; };
+  for (let i = 0; i < 12; i++) put('syva', DEFAULT.syva, i * Math.PI / 6, R);
+  for (let i = 0; i < 4; i++) put('ks28x2', DEFAULT.ks28x2, i * Math.PI / 2, R + 1.2);
+  const s = makeProp('scene_fip', [4, 4, 1, R]); s.position.copy(c); select(s);
+  orbit.target.copy(c); camera.position.copy(c).add(new THREE.Vector3(0.6, 0.45, 0.7).multiplyScalar(R * 3.2)); goal = null; // tout le cercle dans la vue
+  $('charges').textContent = charges() + ` · cercle Ø ${2 * R} m, zone public ≈ ${Math.round(Math.PI * R * R - 16)} m²`;
+};
 $('concertBtn').onclick = async () => {
   await machReady; if (!MACH) return alert('machiniste.json introuvable');
   pushUndo();
@@ -474,7 +497,7 @@ function updateDelays(t) {
     const lab = label3d(txt, '#b0007a', 384); lab.position.y = H + 0.5; g.add(lab); g.userData.lab = lab; g.userData.txt = txt;
   }
   // enceinte sélectionnée (hors L2D) : son délai par rapport à la diffusion principale
-  if (selected && SPEAKERS.has(selected.userData.kind) && selected.userData.kind !== 'l2d') {
+  if (selected && SPEAKERS.has(selected.userData.kind) && selected.userData.kind !== 'l2d' && selected.userData.kind !== 'syva') { // FIP 360 : délais gérés par L-ISA
     const q = selected.localToWorld(new THREE.Vector3(0, (selected.userData.dims[2] || 0) / 2, 0)), src = mainSource(q);
     $('sel').textContent = selected.name + (src ? ` · ${fr(src.distanceTo(q))} m de la diffusion principale · délai ${fr(src.distanceTo(q) / SON * 1000)} ms` : '');
   }
@@ -519,7 +542,7 @@ function rigging() {
   return { pts, off, total:pts.reduce((s, p) => s + p.kg, 0), max:+$('pointMax').value || Infinity };
 }
 // --- jauge : surface publique de l'Agora (calcul DACAM) moins scènes, praticables et régies posés dans l'Agora ---
-const AGORA_PUBLIC = 3184.9, JAUGE_KINDS = new Set(['scene', 'scene_m', 'prat', 'regie']), DACAM_RDC = 2164;
+const AGORA_PUBLIC = 3184.9, JAUGE_KINDS = new Set(['scene_fip', 'scene', 'scene_m', 'prat', 'regie']), DACAM_RDC = 2164;
 // ponytail: deux éléments superposés (praticable sur la scène) sont déduits deux fois
 function jauge() {
   let occ = 0;
@@ -576,7 +599,7 @@ function updateDossier() {
   }
 }
 // --- couverture : ouverture horizontale des enceintes projetée au sol (ou sur le plateau), valeurs indicatives des fiches ---
-const COVER = { l2d:[70, 30, 0x3fa7ff], kara2:[110, 10, 0x56d38a], x15:[40, 5, 0xffb03f], x15p:[40, 8, 0xffb03f], vch30:[90, 20, 0x3fa7ff], vch30x2:[150, 20, 0x3fa7ff], enceinte:[90, 20, 0x3fa7ff] }; // [° horizontal, portée m, couleur]
+const COVER = { syva:[140, 35, 0xc77dff], l2d:[70, 30, 0x3fa7ff], kara2:[110, 10, 0x56d38a], x15:[40, 5, 0xffb03f], x15p:[40, 8, 0xffb03f], vch30:[90, 20, 0x3fa7ff], vch30x2:[150, 20, 0x3fa7ff], enceinte:[90, 20, 0x3fa7ff] }; // [° horizontal, portée m, couleur]
 const cover = new THREE.Group(); cover.visible = false; scene.add(cover);
 const coverMat = {};
 $('coverBtn').onclick = () => { cover.visible = !cover.visible; $('coverBtn').classList.toggle('on', cover.visible); };
@@ -637,7 +660,7 @@ function makeProp(kind, dims) {
   mesh.position.y = h / 2;
   mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
   const g = new THREE.Group(); g.add(mesh);
-  if (kind === 'scene') g.add(pratLines(w, d, h));
+  if (kind === 'scene' || kind === 'scene_fip') g.add(pratLines(w, d, h));
   if (kind === 'ecran') mesh.position.y += 1.5; // bas d'écran à 1,5 m
   g.userData = { kind, dims:[w, d, h] }; g.name = `${LABELS[kind]} ${w}×${d}×${h} m`;
   props.add(g); return g;
@@ -815,8 +838,8 @@ let carried = null;
 tc.addEventListener('mouseDown', () => {
   const s = selected; carried = null;
   if (!s || !/^scene/.test(s.userData.kind) || !$('carry').checked) return;
-  s.updateMatrix(); const inv = s.matrix.clone().invert(), [w, d] = s.userData.dims, m = 1.5;
-  carried = props.children.filter(o => o !== s && o.visible).filter(o => { const p = o.position.clone().applyMatrix4(inv); return Math.abs(p.x) <= w / 2 + m && Math.abs(p.z) <= d / 2 + m; })
+  s.updateMatrix(); const inv = s.matrix.clone().invert(), [w, d, , ring] = s.userData.dims, m = 1.5; // ring : rayon du cercle FIP 360
+  carried = props.children.filter(o => o !== s && o.visible).filter(o => { const p = o.position.clone().applyMatrix4(inv); return ring ? Math.hypot(p.x, p.z) <= ring + 2.5 : Math.abs(p.x) <= w / 2 + m && Math.abs(p.z) <= d / 2 + m; })
     .map(o => (o.updateMatrix(), { o, rel:inv.clone().multiply(o.matrix) }));
 });
 tc.addEventListener('objectChange', () => {
@@ -865,7 +888,7 @@ async function openShared() {
 
 // --- export plan 2D (SVG, vue de dessus) : plan du bâtiment + éléments ajoutés ---
 // 1 unité SVG = 1 m ; largeur en mm = 10 × mètres -> échelle 1:100 si imprimé à 100 %
-const SPEAKERS = new Set(['enceinte', 'vch30', 'vch30x2', 'vtl218', 'ks28', 'ks28x2', 'l2d', 'kara2', 'x15', 'x15p']);
+const SPEAKERS = new Set(['syva', 'enceinte', 'vch30', 'vch30x2', 'vtl218', 'ks28', 'ks28x2', 'l2d', 'kara2', 'x15', 'x15p']);
 const hex = c => '#' + c.toString(16).padStart(6, '0');
 const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
 const shown = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
@@ -1030,7 +1053,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_LAYER = { syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
 const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');

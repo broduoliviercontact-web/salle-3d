@@ -44,6 +44,13 @@ Le panneau, l'aperçu 2D et le DXF affichent le **bilan des charges** (accroché
 
 Quand on déplace ou tourne une scène, elle **emporte son matériel** : tout élément dont le centre est sur la scène ou à moins de 1,5 m de son bord (subs, L2D, grill, retours…). Décocher *La scène emporte son matériel* pour la bouger seule.
 
+Le bouton **FIP 360** pose l'installation de la fiche technique Radio France (spatialisation L-ISA) au centre de l'Agora, sur son axe :
+- 12 colonnes **Syva + Syva Low** (2,128 m) sur estrades de 1 × 1 × 1 m, tous les 30°, tournées vers le centre, sur un cercle de 20 m de diamètre par défaut (réglable de 12 à 25 m ; la fiche donne 20 à 24 m) ;
+- 8 **KS28** empilés par 2 aux 4 points cardinaux, juste à l'extérieur du cercle ;
+- une **scène centrale 4 × 4 m** (1 m de haut supposé). En la déplaçant, on emporte tout le cercle.
+
+Le modèle **Syva + Low sur estrade** s'ajoute aussi seul (50 kg d'enceintes, ouverture horizontale 140°).
+
 ### Vue
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
