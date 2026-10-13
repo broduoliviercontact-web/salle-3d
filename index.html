@@ -602,6 +602,30 @@ function eyeAt(hit) {
 // panneau repliable (tablette / téléphone : replié au départ)
 $('uiToggle').onclick = () => document.body.classList.toggle('noui');
 if (innerWidth < 760) document.body.classList.add('noui');
+// --- calepinage d'une scène en praticables 2 × 1 m : rangées de 2 m dans un sens, la bande restante dans l'autre ; garde la variante la plus économe ---
+// renvoie les praticables [x, z, largeur, profondeur] depuis le coin de la scène ; ceux de la bande finale peuvent dépasser si la cote n'est pas paire
+function pratLayout(W, D) {
+  const e = 1e-6, fill = (W, D) => {
+    const r = [], nx = Math.floor(W / 2 + e);
+    for (let i = 0; i < nx; i++) for (let z = 0; z < D - e; z++) r.push([i * 2, z, 2, 1]);
+    for (let x = nx * 2; x < W - e; x++) for (let z = 0; z < D - e; z += 2) r.push([x, z, 1, 2]);
+    return r;
+  };
+  const a = fill(W, D), b = fill(D, W).map(([x, z, w, d]) => [z, x, d, w]);
+  return a.length <= b.length ? a : b;
+}
+function pratInfo(o) {
+  if (!/^scene/.test(o?.userData.kind)) return '';
+  const [w, d] = o.userData.dims, n = pratLayout(w, d).length, extra = n * 2 - w * d;
+  return ` · ${n} praticables 2×1` + (extra > 0.01 ? ` (${fr(extra)} m² en trop : à recouper ou compléter en 1×1)` : '');
+}
+// contours des praticables sur le dessus de la scène
+function pratLines(W, D, h) {
+  const p = [], y = h + 0.004;
+  for (const [x, z, w, d] of pratLayout(W, D)) { const x0 = x - W / 2, z0 = z - D / 2, x1 = x0 + w, z1 = z0 + d;
+    p.push(x0, y, z0, x1, y, z0, x1, y, z0, x1, y, z1, x1, y, z1, x0, y, z1, x0, y, z1, x0, y, z0); }
+  return new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(p, 3)), new THREE.LineBasicMaterial({ color:0xd9b98c }));
+}
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
@@ -613,6 +637,7 @@ function makeProp(kind, dims) {
   mesh.position.y = h / 2;
   mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
   const g = new THREE.Group(); g.add(mesh);
+  if (kind === 'scene') g.add(pratLines(w, d, h));
   if (kind === 'ecran') mesh.position.y += 1.5; // bas d'écran à 1,5 m
   g.userData = { kind, dims:[w, d, h] }; g.name = `${LABELS[kind]} ${w}×${d}×${h} m`;
   props.add(g); return g;
@@ -638,7 +663,7 @@ tc.addEventListener('dragging-changed', e => orbit.enabled = !e.value);
 let selected = null;
 function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
-  $('sel').textContent = o ? (o.name || o.type) : '—';
+  $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) : '—';
   const isProp = !!o && props.children.includes(o); $('linkRow').hidden = !isProp; if (!isProp) return;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
     + trapList().map(t => `<option value="${t.userData.trap.n}">T${t.userData.trap.n} · ${t.userData.trap.label}</option>`).join('');
@@ -975,6 +1000,7 @@ $('fiche').onclick = async () => {
   w.document.write('<p style="font:14px sans-serif">Préparation de la fiche…</p>');
   const svg = await planSvg(true), r = rigging(), j = jauge(), c = cabling(), title = setupName || 'Setup de salle';
   const mat = new Map();
+  for (const o of props.children) if (o.visible && /^scene/.test(o.userData.kind)) mat.set(`Praticables 2×1 pour ${o.name}`, { n:pratLayout(...o.userData.dims).length, kg:WEIGHT.prat, W:0 });
   for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
   const td = v => `<td>${v}</td>`, num = v => `<td class="n">${v}</td>`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(title)}</title><style>

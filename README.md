@@ -19,6 +19,8 @@ Aucune installation : tout tient dans `index.html`, avec Three.js chargé depuis
 - **Éléments mobiles de la maquette** sélectionnables et déplaçables : sièges de l'auditorium, mobilier, panneaux acoustiques, bar.
 
 ### Ajouter des éléments
+Chaque **scène** est calepinée en **praticables 2 × 1 m** : leur nombre s'affiche quand on la sélectionne, leur disposition est dessinée sur le plateau, et le décompte apparaît dans la fiche setup. Si une cote n'est pas paire (11 × 9 par exemple), le site indique la surface en trop, à recouper ou à compléter en 1 × 1.
+
 Scène (dimensions libres), praticable Samia 2 × 1 (hauteur = champ H), régie, enceinte, écran, silhouette de personne. Lumière : **lyre** (22 kg, 600 W) et **PAR LED** (5 kg, 200 W). Vidéo : **écran LED** en dalles de 50 cm (largeur = L, hauteur = H ; environ 8 kg et 150 W par dalle). Sécurité : **barrière crash** (module de 1 m, 35 kg). Tout élément posé à plus de 2,5 m compte comme accroché (charges et rigging). S'y ajoutent les modèles **PIKIP** construits d'après les fiches techniques :
 - **VCH30 ×1** : 680 × 510 mm, face 387 mm, dos 120 mm, courbure 30°.
 - **VCH30 ×2** : deux unités en éventail à 60°, avec plaque d'accroche.
