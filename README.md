@@ -47,7 +47,9 @@ Quand on déplace ou tourne une scène, elle **emporte son matériel** : tout é
 Le bouton **FIP 360** pose l'installation de la fiche technique Radio France (spatialisation L-ISA) au centre de l'Agora, sur son axe :
 - 12 colonnes **Syva + Syva Low** (2,128 m) sur estrades de 1 × 1 × 1 m, tous les 30°, tournées vers le centre, sur un cercle de 20 m de diamètre par défaut (réglable de 12 à 25 m ; la fiche donne 20 à 24 m) ;
 - 8 **KS28** empilés par 2 aux 4 points cardinaux, juste à l'extérieur du cercle ;
-- une **scène centrale 4 × 4 m** (1 m de haut supposé). En la déplaçant, on emporte tout le cercle.
+- une **scène centrale 4 × 4 m** (1 m de haut supposé).
+
+Les 17 éléments sont **liés** : en attraper un (colonne, sub ou scène) déplace ou tourne tout l'ensemble. Le lien est gardé dans les setups et les liens de partage ; **Délier** retire l'élément sélectionné du groupe.
 
 Le modèle **Syva + Low sur estrade** s'ajoute aussi seul (50 kg d'enceintes, ouverture horizontale 140°).
 

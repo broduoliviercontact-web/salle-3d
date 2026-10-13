@@ -60,13 +60,14 @@
 
   <h2>Sélection</h2>
   <div id="sel">—</div>
+  <div class="row" id="grpRow" hidden><span id="grpInfo" class="grow info"></span><button id="unlink" title="Retire cet élément du groupe : il se déplacera seul">Délier</button></div>
   <div class="row" id="linkRow" hidden>Trappe <select id="trapSel"></select><input type="number" id="powerW" step="100" min="0" style="width:72px" title="Puissance électrique de l'élément"> W</div>
   <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (R)</button></div>
   <div class="row"><button id="parent">Parent ↑</button><button id="dup">Dupliquer</button><button id="del">Suppr.</button></div>
   <div class="row"><button id="hide">Masquer (H)</button><button id="showAll">Tout réafficher</button></div>
   <div class="row"><button id="undo">↶ Annuler (⌘Z)</button><button id="redo">↷ Rétablir</button></div>
   <div class="row"><label class="cb"><input type="checkbox" id="snap" checked> Magnétisme 0,5 m / 15°</label></div>
-  <div class="row"><label class="cb"><input type="checkbox" id="carry" checked> La scène emporte son matériel</label></div>
+  <div class="row"><label class="cb"><input type="checkbox" id="carry" checked> La scène et les groupes liés emportent leur matériel</label></div>
 
   <h2>Vue</h2>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button><button id="vPublic" title="Clique ensuite un point de la salle : vue à hauteur d'yeux vers la scène">Vue public (V)</button></div>
@@ -424,10 +425,11 @@ function placeMach() {
 $('fipBtn').onclick = () => {
   pushUndo();
   const R = THREE.MathUtils.clamp(+$('fipD').value || 20, 12, 25) / 2, c = new THREE.Vector3(50, 0, AXE_AGORA); c.y = floorAt(c);
-  const put = (kind, dims, a, r) => { const o = makeProp(kind, dims); o.position.set(c.x + r * Math.cos(a), 0, c.z - r * Math.sin(a)); o.position.y = floorAt(o.position); o.rotation.y = Math.atan2(-Math.cos(a), Math.sin(a)); return o; };
+  const grp = 'FIP 360 #' + Date.now().toString(36); // tous les éléments liés : en attraper un déplace l'ensemble
+  const put = (kind, dims, a, r) => { const o = makeProp(kind, dims); o.userData.grp = grp; o.position.set(c.x + r * Math.cos(a), 0, c.z - r * Math.sin(a)); o.position.y = floorAt(o.position); o.rotation.y = Math.atan2(-Math.cos(a), Math.sin(a)); return o; };
   for (let i = 0; i < 12; i++) put('syva', DEFAULT.syva, i * Math.PI / 6, R);
   for (let i = 0; i < 4; i++) put('ks28x2', DEFAULT.ks28x2, i * Math.PI / 2, R + 1.2);
-  const s = makeProp('scene_fip', [4, 4, 1, R]); s.position.copy(c); select(s);
+  const s = makeProp('scene_fip', [4, 4, 1, R]); s.userData.grp = grp; s.position.copy(c); select(s);
   orbit.target.copy(c); camera.position.copy(c).add(new THREE.Vector3(0.6, 0.45, 0.7).multiplyScalar(R * 3.2)); goal = null; // tout le cercle dans la vue
   $('charges').textContent = charges() + ` · cercle Ø ${2 * R} m, zone public ≈ ${Math.round(Math.PI * R * R - 16)} m²`;
 };
@@ -687,11 +689,13 @@ let selected = null;
 function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) : '—';
-  const isProp = !!o && props.children.includes(o); $('linkRow').hidden = !isProp; if (!isProp) return;
+  const isProp = !!o && props.children.includes(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); if (!isProp) return;
+  if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
     + trapList().map(t => `<option value="${t.userData.trap.n}">T${t.userData.trap.n} · ${t.userData.trap.label}</option>`).join('');
   $('trapSel').value = o.userData.trap || ''; $('powerW').value = powerOf(o);
 }
+$('unlink').onclick = () => { if (!selected) return; pushUndo(); delete selected.userData.grp; select(selected); };
 $('trapSel').onchange = () => {
   if (!selected) return; pushUndo(); let v = $('trapSel').value;
   if (v === 'near') { const p = selected.getWorldPosition(new THREE.Vector3()), d = t => t.getWorldPosition(new THREE.Vector3()).distanceTo(p);
@@ -804,12 +808,12 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power })), moved, view };
+  return { props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
@@ -837,9 +841,10 @@ tc.addEventListener('mouseDown', () => { if (selected && isIn(selected, venue) &
 let carried = null;
 tc.addEventListener('mouseDown', () => {
   const s = selected; carried = null;
-  if (!s || !/^scene/.test(s.userData.kind) || !$('carry').checked) return;
-  s.updateMatrix(); const inv = s.matrix.clone().invert(), [w, d, , ring] = s.userData.dims, m = 1.5; // ring : rayon du cercle FIP 360
-  carried = props.children.filter(o => o !== s && o.visible).filter(o => { const p = o.position.clone().applyMatrix4(inv); return ring ? Math.hypot(p.x, p.z) <= ring + 2.5 : Math.abs(p.x) <= w / 2 + m && Math.abs(p.z) <= d / 2 + m; })
+  if (!s || !props.children.includes(s) || !$('carry').checked || !(s.userData.grp || /^scene/.test(s.userData.kind))) return;
+  s.updateMatrix(); const inv = s.matrix.clone().invert(), [w, d] = s.userData.dims, m = 1.5;
+  carried = props.children.filter(o => o !== s && o.visible).filter(s.userData.grp ? o => o.userData.grp === s.userData.grp // éléments liés (FIP 360)
+    : o => { const p = o.position.clone().applyMatrix4(inv); return Math.abs(p.x) <= w / 2 + m && Math.abs(p.z) <= d / 2 + m; })
     .map(o => (o.updateMatrix(), { o, rel:inv.clone().multiply(o.matrix) }));
 });
 tc.addEventListener('objectChange', () => {
