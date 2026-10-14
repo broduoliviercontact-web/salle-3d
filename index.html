@@ -58,6 +58,8 @@
   <div class="row"><button id="addBtn" class="grow on" title="Catalogue des éléments 3D">＋ Ajouter un élément…</button></div>
   <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Échap = fin">Tracer Vauban</button></div>
   <div class="row"><button id="trussDraw" class="grow" title="Clic = départ puis chaque clic pose un pont (longueurs au 0,5 m, angles à 90° avec cube d'angle) ; Échap = fin">Tracer des ponts</button><select id="trussSeries" title="Série de pont"><option value="truss30">290</option><option value="truss40">390</option></select> à <input type="number" id="trussH" value="6" step="0.5" min="0" style="width:52px"> m</div>
+  <div class="row"><label class="cb"><input type="checkbox" id="hoistAuto" checked> Moteurs auto</label> tous les ≤ <input type="number" id="hoistSpan" value="6" step="0.5" min="2" style="width:48px"> m</div>
+  <div class="row">Capacité moteur <input type="number" id="hoistCap" value="500" step="250" min="250" style="width:62px"> kg <button id="hoistBtn" title="Replace les moteurs du pont sélectionné (après l'avoir modifié)">Replacer</button></div>
   <h2>Installations</h2>
   <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
   <div class="row"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
@@ -91,6 +93,7 @@
   <div class="row">Poutre <input type="number" id="trussKg" value="10" step="1"> kg/m · palan <input type="number" id="hoistKg" value="50" step="5"> kg</div>
   <div class="row">Limite / point <input type="number" id="pointMax" value="500" step="50"> kg · <input type="number" id="m2pp" value="3" step="0.5"> m²/pers.</div>
   <div id="rigInfo" class="info"></div>
+  <div id="trussInfo" class="info"></div>
   <div id="jaugeInfo" class="info"></div>
   <div id="elecInfo" class="info"></div>
   <div class="row"><button id="fiche" class="grow">Fiche setup (PDF)</button></div>
@@ -689,7 +692,7 @@ function rigging() {
   for (const L of lines) for (let i = 1; i < L.length; i++) { const w = Math.hypot(L[i].x - L[i - 1].x, L[i].z - L[i - 1].z) * kgm / 2; L[i].kg += w; L[i - 1].kg += w; }
   // charges accrochées : sur la poutre la plus proche (≤ 1 m), réparties entre ses 2 palans voisins (bras de levier)
   const off = []; gr.updateMatrixWorld();
-  for (const o of props.children) if (o.visible && isFlown(o) && weightOf(o) && !RIG_SELF.has(o.userData.kind)) {
+  for (const o of props.children) if (o.visible && isFlown(o) && weightOf(o) && !RIG_SELF.has(o.userData.kind) && !trussAssigned.has(o)) {
     const p = gr.worldToLocal(o.getWorldPosition(new THREE.Vector3())); let best = null;
     for (const L of lines) for (let i = 1; i < L.length; i++) {
       const a = L[i - 1], b = L[i], dx = b.x - a.x, dz = b.z - a.z, t = THREE.MathUtils.clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz), 0, 1);
@@ -729,7 +732,65 @@ function cabling() {
 // rendu du dossier dans le panneau et en 3D (étiquettes de palans, câbles), appelé toutes les 0,5 s
 const rigLabels = new THREE.Group(), cables = new THREE.Group(); scene.add(rigLabels, cables);
 const kg = v => Math.round(v).toLocaleString('fr') + ' kg';
+// --- ponts : moteurs automatiques et charge par moteur ---
+// ponytail: charge répartie sur les 2 moteurs les plus proches au prorata inverse de la distance (exact entre 2 moteurs alignés,
+// approché aux angles) ; pas de calcul de flèche ni de poutre continue — à faire valider par un rigger
+function trussRuns() { // tracé (groupe) -> ponts et cubes d'angle
+  const runs = new Map();
+  for (const o of props.children) if (o.visible && (TRUSS[o.userData.kind] || /^tcorner/.test(o.userData.kind))) {
+    const k = o.userData.grp || o.uuid; if (!runs.has(k)) runs.set(k, { segs:[], corners:[] }); (TRUSS[o.userData.kind] ? runs.get(k).segs : runs.get(k).corners).push(o); }
+  for (const [k, r] of runs) if (!r.segs.length) runs.delete(k);
+  return runs;
+}
+const segEnds = o => { const d = new THREE.Vector3(Math.cos(o.rotation.y), 0, -Math.sin(o.rotation.y)), L = o.userData.dims[0]; return { a:o.position.clone().addScaledVector(d, -L / 2), b:o.position.clone().addScaledVector(d, L / 2), d, L }; };
+function placeHoists(key) {
+  const run = trussRuns().get(key); if (!run) return;
+  if (!run.segs[0].userData.grp) { const g = 'Ponts #' + Date.now().toString(36); [...run.segs, ...run.corners].forEach(o => o.userData.grp = g); key = g; }
+  const grp = run.segs[0].userData.grp; props.children.filter(o => o.userData.kind === 'hoist' && o.userData.grp === grp && o.userData.auto).forEach(o => props.remove(o));
+  const S = TRUSS[run.segs[0].userData.kind].S, span = +$('hoistSpan').value || 6, pts = [];
+  const add = p => { if (!pts.some(q => q.distanceTo(p) < 0.6)) pts.push(p.clone()); };
+  run.corners.forEach(c => add(c.position)); // un moteur à chaque angle
+  for (const sg of run.segs) { // près des extrémités libres (0,25 m) puis tous les ≤ span m
+    const { a, b, d } = segEnds(sg), near = p => run.corners.find(c => c.position.distanceTo(p) < S);
+    const A = near(a)?.position || a.clone().addScaledVector(d, 0.25), B = near(b)?.position || b.clone().addScaledVector(d, -0.25), n = Math.max(1, Math.ceil(A.distanceTo(B) / span));
+    for (let i = 0; i <= n; i++) add(A.clone().lerp(B, i / n));
+  }
+  for (const p of pts) { const h = makeProp('hoist', DEFAULT.hoist); h.userData.auto = true; h.userData.grp = grp; h.position.copy(p).setY(p.y + S); } // crochet sur la membrure haute
+}
+$('hoistBtn').onclick = () => { const g = selected?.userData.grp; const k = g && [...trussRuns().keys()].find(k => k === g); if (!k) return alert('Sélectionne un pont (ou un élément de son tracé).'); pushUndo(); placeHoists(k); };
+let trussAssigned = new Set(); // charges portées par les ponts (exclues du grill du machiniste)
+function trussRig() {
+  const out = [], cap = +$('hoistCap').value || 500; trussAssigned = new Set(); let n = 0;
+  for (const run of trussRuns().values()) {
+    const grp = run.segs[0].userData.grp, hs = props.children.filter(o => o.visible && o.userData.kind === 'hoist' && grp && o.userData.grp === grp);
+    if (!hs.length) continue;
+    const pts = hs.map(h => ({ h, kg:0, n:++n })), S = TRUSS[run.segs[0].userData.kind].S, kgm = TRUSS[run.segs[0].userData.kind].kgm;
+    const share = (q, w) => { const by = pts.map(x => ({ x, d:Math.hypot(x.h.position.x - q.x, x.h.position.z - q.z) })).sort((u, v) => u.d - v.d);
+      if (by.length === 1 || by[0].d < 1e-3) { by[0].x.kg += w; return; } const [u, v] = by; u.x.kg += w * v.d / (u.d + v.d); v.x.kg += w * u.d / (u.d + v.d); };
+    for (const sg of run.segs) { const { a, d, L } = segEnds(sg), k = Math.max(1, Math.round(L / 0.5)); for (let i = 0; i < k; i++) share(a.clone().addScaledVector(d, (i + 0.5) * L / k), kgm * L / k); }
+    for (const c of run.corners) share(c.position, weightOf(c));
+    for (const o of props.children) { // charges accrochées sous ce pont (à moins de S/2 + 0,6 m de son axe)
+      if (!o.visible || RIG_SELF.has(o.userData.kind) || !isFlown(o) || !weightOf(o) || trussAssigned.has(o)) continue;
+      const hit = run.segs.some(sg => { const { a, d, L } = segEnds(sg), v = o.position.clone().sub(a), t = THREE.MathUtils.clamp(v.dot(d), 0, L), q = a.clone().addScaledVector(d, t);
+        return Math.hypot(q.x - o.position.x, q.z - o.position.z) < S / 2 + 0.6 && o.position.y < sg.position.y + S + 0.5; });
+      if (hit) { trussAssigned.add(o); share(o.position, weightOf(o)); }
+    }
+    out.push({ grp, pts, cap });
+  }
+  return out;
+}
+const hoistLabels = new THREE.Group(); scene.add(hoistLabels);
 function updateDossier() {
+  const tr = trussRig(), hp = tr.flatMap(t => t.pts), cap = +$('hoistCap').value || 500;
+  const hkey = hp.map(p => `${p.n}:${Math.round(p.kg)}`).join('|') + cap;
+  if (hoistLabels.userData.key !== hkey) {
+    hoistLabels.children.forEach(sp => { sp.material.map.dispose(); sp.material.dispose(); }); hoistLabels.clear();
+    hp.forEach(p => { const sp = label3d(`M${p.n} · ${kg(p.kg)}`, p.kg > cap ? '#d0021b' : '#1f6fb2', 320); sp.userData.h = p.h; hoistLabels.add(sp); }); hoistLabels.userData.key = hkey;
+  }
+  hoistLabels.children.forEach(sp => sp.position.copy(sp.userData.h.position).add(new THREE.Vector3(0, 1.1, 0)));
+  if (hp.length) { const top = hp.reduce((a, b) => b.kg > a.kg ? b : a), over = hp.filter(p => p.kg > cap);
+    $('trussInfo').innerHTML = `<b>Ponts</b> : ${hp.length} moteurs · total ${kg(hp.reduce((s, p) => s + p.kg, 0))} · max M${top.n} ${kg(top.kg)} / ${kg(cap)}` + (over.length ? `<br><span class="warn">⚠ au-delà de ${kg(cap)} : ${over.map(p => 'M' + p.n).join(', ')}</span>` : '');
+  } else $('trussInfo').textContent = '';
   const r = rigging();
   const want = r ? r.pts.map(p => ({ txt:`P${p.n} · ${kg(p.kg)}`, css:p.kg > r.max ? '#d0021b' : '#2c7a3f', pos:p.world.clone().add(new THREE.Vector3(0, 1.2, 0)) })) : [];
   const key = want.map(w => w.txt + w.css).join('|'); // étiquettes regénérées seulement si un texte change
@@ -950,6 +1011,7 @@ const preview = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 0.29), new THREE.M
 preview.renderOrder = 4; preview.visible = false; scene.add(preview);
 let previewLab = null;
 function setCable(on, kind = 'defender') {
+  if (cable?.placed && TRUSS[cable.kind] && $('hoistAuto').checked) placeHoists(cable.grp); // fin d'un tracé de ponts : moteurs auto
   cable = on ? { start:null, heading:null, kind, grp:(kind === 'vauban' ? 'Ligne Vauban #' : TRUSS[kind] ? 'Ponts #' : 'Passe-câbles #') + Date.now().toString(36) } : null;
   $('cableDraw').classList.toggle('on', on && kind === 'defender'); $('vaubanDraw').classList.toggle('on', on && kind === 'vauban'); $('trussDraw').classList.toggle('on', !!(on && TRUSS[kind])); ghostCube.visible = false; renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false; ghosts.forEach(g => g.visible = false);
   if (previewLab) { scene.remove(previewLab); previewLab = null; }
@@ -1351,6 +1413,10 @@ async function planSvg(whole = false) {
   if (rig) { legend.set('Palan (charge au point)', { col:'#2c7a3f', n:rig.pts.length });
     for (const p of rig.pts) { const [x, y] = [p.world.x, p.world.z], col = p.kg > rig.max ? '#d0021b' : '#2c7a3f';
       out.push(`<polygon points="${f(x)},${f(y - 0.3)} ${f(x + 0.26)},${f(y + 0.15)} ${f(x - 0.26)},${f(y + 0.15)}" fill="${col}"/><text x="${f(x + 0.35)}" y="${f(y - 0.25)}" font-size="0.3" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">P${p.n} ${Math.round(p.kg)} kg</text>`); } }
+  if (grill) { const tr = trussRig(), cap = +$('hoistCap').value || 500, hp = tr.flatMap(t => t.pts);
+    if (hp.length) legend.set('Moteur de pont (charge)', { col:'#1f6fb2', n:hp.length });
+    for (const p of hp) { const x = p.h.position.x, y = p.h.position.z, col = p.kg > cap ? '#d0021b' : '#1f6fb2';
+      out.push(`<circle cx="${f(x)}" cy="${f(y)}" r="0.22" fill="${col}"/><text x="${f(x + 0.3)}" y="${f(y - 0.25)}" font-size="0.3" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">M${p.n} ${Math.round(p.kg)} kg</text>`); } }
   for (const e of cabling()) for (const { a, b, len } of e.items)
     out.push(`<polyline points="${f(a.x)},${f(a.z)} ${f(b.x)},${f(a.z)} ${f(b.x)},${f(b.z)}" fill="none" stroke="${TRAP[e.t.userData.trap.kind].css}" stroke-width="0.06" stroke-dasharray="0.4 0.2"/><text x="${f((a.x + b.x) / 2)}" y="${f(a.z - 0.15)}" font-size="0.28" text-anchor="middle" fill="${TRAP[e.t.userData.trap.kind].css}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${Math.ceil(len)} m</text>`);
   // règles graduées (distance depuis le bord du cadre) en haut et à gauche
@@ -1446,6 +1512,7 @@ $('fiche').onclick = async () => {
     </div><div>
     ${r ? `<h2>Rigging — grill</h2><table><tr><th>Point</th><th>Charge</th><th></th></tr>${r.pts.map(p => `<tr>${td('P' + p.n)}${num(kg(p.kg))}${td(p.kg > r.max ? '<span class="warn">> ' + kg(r.max) + '</span>' : 'ok')}</tr>`).join('')}
       <tr>${td('<b>Total</b>')}${num('<b>' + kg(r.total) + '</b>')}${td('')}</tr></table><div>Hypothèses : poutres ${esc($('trussKg').value)} kg/m, palans ${esc($('hoistKg').value)} kg, limite ${kg(r.max)} par point, poids des poutres réparti par demi-travée.${r.off.length ? ` <span class="warn">Hors grill : ${r.off.map(esc).join(', ')}</span>` : ''}</div>` : ''}
+    ${(() => { const hp = trussRig().flatMap(t => t.pts), cap = +$('hoistCap').value || 500; return hp.length ? `<h2>Ponts — moteurs</h2><table><tr><th>Moteur</th><th>Charge</th><th></th></tr>${hp.map(p => `<tr>${td('M' + p.n)}${num(kg(p.kg))}${td(p.kg > cap ? '<span class="warn">> ' + kg(cap) + '</span>' : 'ok')}</tr>`).join('')}</table><div>Capacité ${kg(cap)} par moteur ; ponts ≈ 6 kg/m (290) / 7,5 kg/m (390) ; charge répartie sur les 2 moteurs voisins. À faire valider par un rigger.</div>` : ''; })()}
     <h2>Trappes de sol et câblage</h2>${c.length ? `<table><tr><th>Trappe</th><th>Élément</th><th>Câble estimé</th><th>Touret</th><th>Puissance</th></tr>
     ${c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind];
       return e.items.map((i, k) => `<tr>${k ? '<td></td>' : td(`<b>T${t.n}</b> ${esc(t.label)}<br>${fr(e.W / 1000)} / ${fr(cap)} kW${e.W / 1000 > cap ? ' <span class="warn">dépassé</span>' : ''}`)}${td(esc(i.o.name))}${num(Math.ceil(i.len) + ' m')}${num(i.touret + ' m')}${num(fr(powerOf(i.o) / 1000) + ' kW')}</tr>`).join(''); }).join('')}</table>
