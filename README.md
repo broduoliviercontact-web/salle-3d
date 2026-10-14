@@ -55,6 +55,8 @@ Les 17 éléments sont **liés** : en attraper un (colonne, sub ou scène) dépl
 
 Le modèle **Syva + Low sur estrade** s'ajoute aussi seul (50 kg d'enceintes, ouverture horizontale 140°).
 
+**Tracer un passage de câbles (P)**, comme une route dans SimCity : un clic sur le sol pose le point de départ, puis le tronçon suit la souris en aperçu (longueur arrondie au module Defender Mini, angle accroché tous les 45° avec le magnétisme) ; chaque clic pose le tronçon et le suivant repart de son bout. **Échap** termine. Les tronçons d'un même tracé sont liés (ils se déplacent ensemble) et un seul ⌘Z annule le tracé. Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent pour le rallonger ou le raccourcir, module par module.
+
 ### Vue
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
@@ -124,6 +126,7 @@ On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre 
 | Centrer sur la sélection | C |
 | Masquer la sélection | H |
 | Mesurer / vue public | M / V |
+| Tracer des passe-câbles | P (Échap pour finir) |
 | Supprimer | Suppr. Un élément de la maquette est masqué, pas effacé. |
 | Annuler / rétablir | ⌘Z / ⌘⇧Z (Ctrl+Z / Ctrl+Y sur PC) |
 | Désélectionner | Échap |

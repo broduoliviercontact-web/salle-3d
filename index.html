@@ -51,6 +51,7 @@
   <div class="row"><button data-add="enceinte">Enceinte</button><button data-add="ecran">Écran</button><button data-add="perso">Personne</button></div>
   <div class="row"><button data-add="vch30">VCH30 ×1</button><button data-add="vch30x2">VCH30 ×2</button><button data-add="vtl218">Sub VTL218</button></div>
   <div class="row"><button data-add="lyre">Lyre</button><button data-add="par">PAR LED</button><button data-add="led" title="Largeur = L, hauteur = H, en dalles de 50 cm">Écran LED L×H</button><button data-add="crash">Barrière crash</button><button data-add="defender" title="Defender Mini : modules de 1,005 m ; longueur modifiable ensuite (champ L)">Passe-câbles</button></div>
+  <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Échap = fin">Tracer un passage de câbles (P)</button></div>
   <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
   <div class="row"><button data-add="ks28">KS28</button><button data-add="ks28x2">KS28 ×2</button><button data-add="l2d">L2D accroché</button></div>
   <div class="row"><button data-add="kara2">Kara II</button><button data-add="x15">X15 sol</button><button data-add="x15p">X15 sur pied</button></div>
@@ -101,7 +102,7 @@
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
 <div id="drop">Dépose un fichier .glb</div>
-<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD : avancer · A/E : tourner la vue · ↑↓ : incliner · G/B ou → ← : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · V : vue public · C : centrer · Suppr · Échap</div>
+<div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD : avancer · A/E : tourner la vue · ↑↓ : incliner · G/B ou → ← : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · P : tracer des passe-câbles · V : vue public · C : centrer · Suppr · Échap</div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -736,11 +737,77 @@ function resizeSelected() {
   if (o.userData.kind === 'led') dims = [half(dims[0]), 0.1, half(dims[2])];
   if (o.userData.kind === 'defender') dims = [Math.max(1, Math.round(dims[0] / MOD)) * MOD, 0.29, 0.05]; // longueur arrondie au module
   if (dims.every((x, i) => x === o.userData.dims[i])) return;
-  pushUndo();
+  pushUndo(); rebuildProp(o, dims);
+}
+// reconstruit un élément avec d'autres dimensions, à la même place et au même rang, en gardant trappe, puissance et groupe
+function rebuildProp(o, dims) {
   const n = makeProp(o.userData.kind, dims), keep = { ...o.userData }; delete keep.kind; delete keep.dims;
   Object.assign(n.userData, keep); n.position.copy(o.position); n.rotation.copy(o.rotation);
-  const arr = props.children, i = arr.indexOf(o); props.remove(o); arr.splice(arr.indexOf(n), 1); arr.splice(i, 0, n); // même rang dans la liste
-  select(n);
+  const arr = props.children, i = arr.indexOf(o); props.remove(o); arr.splice(arr.indexOf(n), 1); arr.splice(i, 0, n);
+  select(n); return n;
+}
+// --- passe-câbles : poignées aux 2 bouts du tronçon sélectionné (glisser = rallonger / raccourcir au module, l'autre bout reste fixe) ---
+const isDef = o => o?.userData.kind === 'defender' && props.children.includes(o);
+const endOf = (o, side) => o.localToWorld(new THREE.Vector3(side * o.userData.dims[0] / 2, 0, 0));
+const hMat = new THREE.MeshBasicMaterial({ color:0xff7a00, depthTest:false });
+const handles = [-1, 1].map(side => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 10), hMat); m.renderOrder = 5; m.userData.side = side; m.visible = false; scene.add(m); return m; });
+function syncHandles() { const on = isDef(selected) && !cable; handles.forEach(h => { h.visible = on; if (on) h.position.copy(endOf(selected, h.userData.side)).setY(selected.position.y + 0.12); }); }
+const floorPlane = y => new THREE.Plane(new THREE.Vector3(0, 1, 0), -y);
+const setPtr = e => { ptr.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1); ray.setFromCamera(ptr, camera); };
+let hDrag = null;
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (!isDef(selected) || cable || e.button) return;
+  setPtr(e); const h = ray.intersectObjects(handles, false)[0]; if (!h) return;
+  pushUndo(); orbit.enabled = false;
+  const side = h.object.userData.side, fixed = endOf(selected, -side);
+  hDrag = { fixed, dir:endOf(selected, side).sub(fixed).setY(0).normalize(), plane:floorPlane(selected.position.y) };
+});
+addEventListener('pointermove', e => {
+  if (!hDrag) return;
+  setPtr(e); const p = ray.ray.intersectPlane(hDrag.plane, new THREE.Vector3()); if (!p) return;
+  const n = Math.max(1, Math.round(p.sub(hDrag.fixed).dot(hDrag.dir) / MOD)); if (n === modules(selected)) return;
+  const o = rebuildProp(selected, [n * MOD, 0.29, 0.05]); o.position.copy(hDrag.fixed).addScaledVector(hDrag.dir, n * MOD / 2).setY(selected.position.y);
+});
+addEventListener('pointerup', () => { if (hDrag) { hDrag = null; orbit.enabled = true; } });
+// --- tracé façon « route » : clic = départ, chaque clic pose un tronçon (longueur au module, angle tous les 45° avec le magnétisme), Échap = fin ---
+let cable = null; // { start, grp } pendant le tracé
+const preview = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 0.29), new THREE.MeshBasicMaterial({ color:0xf2c200, transparent:true, opacity:0.55, depthTest:false }));
+preview.renderOrder = 4; preview.visible = false; scene.add(preview);
+let previewLab = null;
+function setCable(on) {
+  cable = on ? { start:null, grp:'Passe-câbles #' + Date.now().toString(36) } : null;
+  $('cableDraw').classList.toggle('on', on); renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false;
+  if (previewLab) { scene.remove(previewLab); previewLab = null; }
+  if (on) { setMeasure(false); select(null); }
+}
+$('cableDraw').onclick = () => setCable(!cable);
+function floorPoint(e) { // point du sol sous la souris
+  setPtr(e); const h = ray.intersectObjects(FLOORS, false).find(h => h.object.visible && h.face && Math.abs(h.face.normal.y) > 0.9);
+  return h ? h.point : ray.ray.intersectPlane(floorPlane(0), new THREE.Vector3());
+}
+function segTo(p) { // tronçon du départ vers p : direction (accrochée), nombre de modules
+  const s = cable.start, d = new THREE.Vector3(p.x - s.x, 0, p.z - s.z);
+  let a = Math.atan2(-d.z, d.x); if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4);
+  const n = Math.max(1, Math.round(d.length() / MOD)), dir = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a));
+  return { a, n, dir, end:s.clone().addScaledVector(dir, n * MOD) };
+}
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!cable?.start) return;
+  const p = floorPoint(e); if (!p) return;
+  const { a, n, dir } = segTo(p), L = n * MOD;
+  preview.scale.set(L, 1, 1); preview.rotation.y = a; preview.position.copy(cable.start).addScaledVector(dir, L / 2).setY(cable.start.y + 0.03); preview.visible = true;
+  const txt = `${n} module${n > 1 ? 's' : ''} · ${fr(L, 2)} m`;
+  if (previewLab?.userData.txt !== txt) { if (previewLab) scene.remove(previewLab); previewLab = label3d(txt, '#8a6d00', 320); previewLab.userData.txt = txt; scene.add(previewLab); }
+  previewLab.position.copy(preview.position).setY(cable.start.y + 0.6);
+});
+function cableClick(e) {
+  const p = floorPoint(e); if (!p) return;
+  if (!cable.start) { cable.start = p; return; }
+  const { a, n, dir, end } = segTo(p);
+  if (!cable.placed) { pushUndo(); cable.placed = true; } // un seul ⌘Z annule tout le tracé en cours
+  const o = makeProp('defender', [n * MOD, 0.29, 0.05]); o.userData.grp = cable.grp;
+  o.position.copy(cable.start).addScaledVector(dir, n * MOD / 2).setY(cable.start.y); o.rotation.y = a;
+  cable.start = end.setY(cable.start.y);
 }
 ['sW', 'sD', 'sH'].forEach(id => $(id).onchange = resizeSelected);
 $('unlink').onclick = () => { if (!selected) return; pushUndo(); delete selected.userData.grp; select(selected); };
@@ -761,12 +828,13 @@ $('mTrans').onclick = () => setMode('translate'); $('mRot').onclick = () => setM
 const ptr = new THREE.Vector2(); let down;
 renderer.domElement.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
 renderer.domElement.addEventListener('pointerup', e => {
-  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4 || tc.dragging || e.button) return;
+  if (!down || hDrag || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4 || tc.dragging || e.button) return; // hDrag : poignée de passe-câbles tenue
   ptr.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
   ray.setFromCamera(ptr, camera);
   const hit = ray.intersectObjects([props, venue], true).find(h => h.object.visible && (h.object.isMesh || h.object.isLineSegments) && visibleHit(h));
   if (measuring) return measureAt(hit);
   if (pickEye) return eyeAt(hit);
+  if (cable) return cableClick(e);
   if (!hit) return select(null);
   let o = hit.object;
   const p = props.children.find(c => isIn(o, c));
@@ -799,7 +867,8 @@ addEventListener('keydown', e => {
   }
   if (e.key === 't') setMode('translate'); if (e.key === 'r') setMode('rotate');
   if (e.key === 'Delete' || e.key === 'Backspace') $('del').click();
-  if (e.key === 'Escape') { select(null); setMeasure(false); }
+  if (e.key === 'Escape') { select(null); setMeasure(false); if (cable) setCable(false); }
+  if (e.key === 'p') setCable(!cable);
   if (e.key === 'm') setMeasure(!measuring);
   if (e.key === 'v') setPickEye(!pickEye);
   if (e.key === 'h') $('hide').click();
@@ -1274,7 +1343,7 @@ function navigate(dt) {
   }
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); // hors connexion après une 1ʳᵉ visite
-renderer.setAnimationLoop(t => { updateDelays(t); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
+renderer.setAnimationLoop(t => { updateDelays(t); syncHandles(); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
 </script>
 </body>
 </html>
