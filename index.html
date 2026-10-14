@@ -430,7 +430,9 @@ $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('m
 const PIL_MEZZ_Z = -9.52, PIL_VERR_Z = 15.20, AXE_AGORA = (PIL_MEZZ_Z + PIL_VERR_Z) / 2;
 function placeMach() {
   const dz = AXE_AGORA - MACH.scene.c[1]; // scène recentrée entre les piliers ; le grill suit avec le même décalage
-  const s = makeProp('scene_m', [MACH.scene.w, MACH.scene.d, 1.2]); s.position.set(MACH.scene.c[0], 0, MACH.scene.c[1] + dz); s.position.y = floorAt(s.position);
+  // scène du preset : 8 × 8 m (le DWG en dessine une de 11 × 9), même nez de scène côté public, centrée sur l'axe ; redimensionnable ensuite
+  const STAGE = [8, 8, 1.2], nez = MACH.scene.c[0] + MACH.scene.w / 2;
+  const s = makeProp('scene', STAGE); s.position.set(nez - STAGE[0] / 2, 0, MACH.scene.c[1] + dz); s.position.y = floorAt(s.position);
   const { xs, zs } = MACH.grill, g = makeProp('grill', [+(xs[xs.length - 1] - xs[0] + 0.5).toFixed(2), +(Math.abs(zs[zs.length - 1] - zs[0]) + 0.5).toFixed(2), 0.43]);
   g.position.set(MACH.grill.c[0], s.position.y + (+$('grillH').value || 7), MACH.grill.c[1] + dz);
   select(g); frame(g); return [s, g];
@@ -452,8 +454,8 @@ $('fipBtn').onclick = () => {
 $('concertBtn').onclick = async () => {
   await machReady; if (!MACH) return alert('machiniste.json introuvable');
   pushUndo();
-  const last = k => props.children.filter(c => c.userData.kind === k).pop();
-  let s = last('scene_m'), gr = last('grill');
+  const last = re => props.children.filter(c => re.test(c.userData.kind)).pop();
+  let s = last(/^scene(_m)?$/), gr = last(/^grill$/); // la dernière scène posée (preset 8 × 8, scène libre ou ancienne 11 × 9)
   if (!s) [s, gr] = placeMach();
   s.updateMatrixWorld(); const front = s.userData.dims[0] / 2, top = s.userData.dims[2], deg = Math.PI / 180;
   const put = (kind, x, y, z, rot) => { const o = makeProp(kind, DEFAULT[kind]); o.position.copy(s.localToWorld(new THREE.Vector3(x, y, z))); o.rotation.y = s.rotation.y + rot; return o; };
@@ -468,10 +470,11 @@ $('concertBtn').onclick = async () => {
   }
   for (const z of [-4, 4]) put('l2d', hx, hy - 1.55, z, 90 * deg);
   // 3 Kara II au nez de scène : centre de face, côtés ouverts de 30° vers l'extérieur
-  for (const z of [-4, 0, 4]) put('kara2', front - 0.35, top, z, (90 - Math.sign(z) * 30) * deg);
+  const side = Math.min(4, s.userData.dims[1] / 2 - 0.5); // Kara des côtés : à ±4 m, ramenées sur le plateau si la scène est plus étroite
+  for (const z of [-side, 0, side]) put('kara2', front - 0.35, top, z, (90 - Math.sign(z) * 30) * deg);
   // retours X15 : 1 au sol en avant-scène, 2 sur pied tournés vers le centre de la scène
   put('x15', front - 1.2, top, 0, -90 * deg);
-  for (const z of [-3.5, 3.5]) put('x15p', front - 2, top, z, (-90 - Math.sign(z) * 30) * deg);
+  for (const z of [-side + 0.5, side - 0.5]) put('x15p', front - 2, top, z, (-90 - Math.sign(z) * 30) * deg);
   select(null); frame(s); $('charges').textContent = charges() + ` · bas des L2D à ${(hy - 1.55).toFixed(2)} m du sol`;
 };
 // --- axe et piliers de l'Agora (piliers du RDC relevés dans l'IFC) : repères des enceintes de délai ---
