@@ -66,6 +66,10 @@ Le modèle **Syva + Low sur estrade** s'ajoute aussi seul (50 kg d'enceintes, ou
 
 Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent pour le rallonger ou le raccourcir, module par module.
 
+**Structures et levage** (catalogue) : pont alu carré **290** (type Prolyte H30V / Global Truss F34, ≈ 6 kg/m) et **390** (type H40V / F44, ≈ 7,5 kg/m), cube d'angle, **tour ground support** (type Prolyte MPT, 115 kg), **moteur de levage** D8+ 500 kg (24 kg), **perche / porteuse** Ø 48 (≈ 3,6 kg/m). Ponts, perches et tours se redimensionnent (L ou H) ; la longueur d'un pont est arrondie au 0,5 m et décomposée en éléments standard (ex. « 7 m = 2 × 3 m + 1 × 1 m »).
+
+**Tracer des ponts** : choisir la série (290 / 390) et la hauteur, puis tracer comme une route : chaque clic pose un pont (longueur au 0,5 m) ; viser à 90° pose automatiquement un **cube d'angle** entre deux ponts. Les éléments d'un tracé sont liés. Ponts, moteurs et perches comptent dans les charges accrochées mais pas sur les palans du grill du machiniste (ils ont leurs propres points d'accroche).
+
 ### Vue
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
