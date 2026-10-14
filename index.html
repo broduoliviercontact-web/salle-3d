@@ -63,11 +63,14 @@
   <h2>Installations</h2>
   <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
   <div class="row"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
+  <div class="row"><button id="gsBtn" class="grow" title="4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour ; se pose au centre de la vue">Gril ground support</button><select id="gsSeries"><option value="truss30">290</option><option value="truss40">390</option></select></div>
+  <div class="row">Ponts <input type="number" id="gsW" value="10" step="0.5" style="width:48px"> × <input type="number" id="gsD" value="8" step="0.5" style="width:48px"> m, cadre à <input type="number" id="gsH" value="6" step="0.5" style="width:48px"> m</div>
   <div class="row"><button id="fipBtn" class="grow" title="Cercle de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4">FIP 360</button>Ø <input type="number" id="fipD" value="20" step="1" min="12" max="25"> m</div>
   <div id="charges" style="font-size:11px;opacity:.8"></div>
 
   <h2>Sélection</h2>
   <div id="sel">—</div>
+  <div class="row" id="liftRow" hidden>Hauteur sous pont <input type="number" id="liftH" step="0.1" style="width:60px"> m <button id="liftDown" title="Descendre (clic : 10 cm, maintenir : continu)">▼</button><button id="liftUp" title="Monter (clic : 10 cm, maintenir : continu)">▲</button></div>
   <div class="row" id="sizeRow" hidden>L <input type="number" id="sW" step="0.5" min="0.5"> P <input type="number" id="sD" step="0.5" min="0.5"> H <input type="number" id="sH" step="0.1" min="0.1"> m</div>
   <div class="row" id="grpRow" hidden><span id="grpInfo" class="grow info"></span><button id="unlink" title="Retire cet élément du groupe : il se déplacera seul">Délier</button></div>
   <div class="row" id="linkRow" hidden>Trappe <select id="trapSel"></select><input type="number" id="powerW" step="100" min="0" style="width:72px" title="Puissance électrique de l'élément"> W</div>
@@ -270,7 +273,7 @@ const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
 const COLORS = { truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
 const LABELS = { truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29], tcorner40:[0.39, 0.39, 0.39], tower:[1.6, 1.6, 6], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const DEFAULT = { tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29], tcorner40:[0.39, 0.39, 0.39], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -552,18 +555,27 @@ function buildTower(dims) {
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.06, 0.6), steel); base.position.y = 0.03; out.push(base);
   for (const a of [0, 1, 2, 3]) { const o = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.08), steel); o.rotation.y = a * Math.PI / 2 + Math.PI / 4; o.position.set(Math.cos(a * Math.PI / 2 + Math.PI / 4) * 0.4, 0.03, -Math.sin(a * Math.PI / 2 + Math.PI / 4) * 0.4); out.push(o); }
   const mast = trussMesh(H - 0.06, 0.29, 'y'); mast.position.set(0.145, 0.06 + (H - 0.06) / 2, 0); out.push(mast);
-  const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.45, 0.42), steel); sleeve.position.y = H - 0.6; out.push(sleeve);
+  const sy = dims[3] ?? H - 1.2, sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.45, 0.42), steel); sleeve.position.y = sy + 0.145; out.push(sleeve); // dims[3] : dessous du cadre
+  const motor = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.26), dark(0x3a3f47)); motor.position.set(0, H + 0.12, 0.3); out.push(motor); // moteur en tête (top section)
+  out.push(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0.05, H + 0.02, 0.3, 0.05, sy + 0.37, 0.25], 3)), new THREE.LineBasicMaterial({ color:0x222222 })));
   return out;
 }
 // moteur de levage à chaîne (D8+ 500 kg) : corps, crochet, chaîne qui monte vers la charpente (3 m indicatifs)
 function buildHoist() {
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.26), dark(0x3a3f47)); body.position.y = 0.32;
   const hook = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 6, 12), dark(0x111111)); hook.position.y = 0.06;
-  const chain = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0.1, 0, 0, 0.22, 0, 0.05, 0.42, 0, 0.05, 3.4, 0], 3)), new THREE.LineBasicMaterial({ color:0x222222 }));
+  const chain = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0.1, 0, 0, 0.22, 0, 0.05, 0.42, 0, 0.05, 3.4, 0], 3)), new THREE.LineBasicMaterial({ color:0x222222 })); chain.userData.chain = true;
   return [body, hook, chain];
 }
 // perche / porteuse : tube acier Ø 48,3 le long de x (≈ 3,6 kg/m)
 const buildPerche = dims => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, dims[0], 10).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({ color:0x8a9099, metalness:0.6 })); m.position.y = 0.024; return [m]; };
+// la chaîne monte jusqu'au point d'accroche (userData.top, en m monde, fixé à la pose) : elle s'allonge quand on descend le pont
+function syncChains() {
+  for (const o of props.children) { if (o.userData.kind !== 'hoist') continue;
+    o.userData.top ??= o.position.y + 3.4; const len = Math.max(0.5, o.userData.top - o.position.y);
+    const c = o.children.find(m => m.userData.chain); if (!c || c.userData.len === len) continue;
+    const a = c.geometry.attributes.position; a.setY(3, len); a.needsUpdate = true; c.geometry.computeBoundingSphere(); c.userData.len = len; }
+}
 const BUILD = { truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
@@ -755,16 +767,17 @@ function placeHoists(key) {
     const A = near(a)?.position || a.clone().addScaledVector(d, 0.25), B = near(b)?.position || b.clone().addScaledVector(d, -0.25), n = Math.max(1, Math.ceil(A.distanceTo(B) / span));
     for (let i = 0; i <= n; i++) add(A.clone().lerp(B, i / n));
   }
-  for (const p of pts) { const h = makeProp('hoist', DEFAULT.hoist); h.userData.auto = true; h.userData.grp = grp; h.position.copy(p).setY(p.y + S); } // crochet sur la membrure haute
+  for (const p of pts) { const h = makeProp('hoist', DEFAULT.hoist); h.userData.auto = true; h.userData.grp = grp; h.position.copy(p).setY(p.y + S); h.userData.top = p.y + S + 4; } // crochet sur la membrure haute, accroche 4 m au-dessus
 }
-$('hoistBtn').onclick = () => { const g = selected?.userData.grp; const k = g && [...trussRuns().keys()].find(k => k === g); if (!k) return alert('Sélectionne un pont (ou un élément de son tracé).'); pushUndo(); placeHoists(k); };
+$('hoistBtn').onclick = () => { const g = selected?.userData.grp; const k = g && [...trussRuns().keys()].find(k => k === g); if (!k) return alert('Sélectionne un pont (ou un élément de son tracé).');
+  if (props.children.some(o => o.userData.grp === g && o.userData.kind === 'tower')) return alert('Gril ground support : les tours portent le cadre, pas de moteurs à ajouter.'); pushUndo(); placeHoists(k); };
 let trussAssigned = new Set(); // charges portées par les ponts (exclues du grill du machiniste)
 function trussRig() {
   const out = [], cap = +$('hoistCap').value || 500; trussAssigned = new Set(); let n = 0;
   for (const run of trussRuns().values()) {
-    const grp = run.segs[0].userData.grp, hs = props.children.filter(o => o.visible && o.userData.kind === 'hoist' && grp && o.userData.grp === grp);
+    const grp = run.segs[0].userData.grp, hs = props.children.filter(o => o.visible && (o.userData.kind === 'hoist' || o.userData.kind === 'tower') && grp && o.userData.grp === grp);
     if (!hs.length) continue;
-    const pts = hs.map(h => ({ h, kg:0, n:++n })), S = TRUSS[run.segs[0].userData.kind].S, kgm = TRUSS[run.segs[0].userData.kind].kgm;
+    const pts = hs.map(h => ({ h, kg:0, n:++n, cap:h.userData.kind === 'tower' ? 1000 : cap })), loads = [], S = TRUSS[run.segs[0].userData.kind].S, kgm = TRUSS[run.segs[0].userData.kind].kgm;
     const share = (q, w) => { const by = pts.map(x => ({ x, d:Math.hypot(x.h.position.x - q.x, x.h.position.z - q.z) })).sort((u, v) => u.d - v.d);
       if (by.length === 1 || by[0].d < 1e-3) { by[0].x.kg += w; return; } const [u, v] = by; u.x.kg += w * v.d / (u.d + v.d); v.x.kg += w * u.d / (u.d + v.d); };
     for (const sg of run.segs) { const { a, d, L } = segEnds(sg), k = Math.max(1, Math.round(L / 0.5)); for (let i = 0; i < k; i++) share(a.clone().addScaledVector(d, (i + 0.5) * L / k), kgm * L / k); }
@@ -773,23 +786,60 @@ function trussRig() {
       if (!o.visible || RIG_SELF.has(o.userData.kind) || !isFlown(o) || !weightOf(o) || trussAssigned.has(o)) continue;
       const hit = run.segs.some(sg => { const { a, d, L } = segEnds(sg), v = o.position.clone().sub(a), t = THREE.MathUtils.clamp(v.dot(d), 0, L), q = a.clone().addScaledVector(d, t);
         return Math.hypot(q.x - o.position.x, q.z - o.position.z) < S / 2 + 0.6 && o.position.y < sg.position.y + S + 0.5; });
-      if (hit) { trussAssigned.add(o); share(o.position, weightOf(o)); }
+      if (hit) { trussAssigned.add(o); loads.push(o); share(o.position, weightOf(o)); }
     }
-    out.push({ grp, pts, cap });
+    out.push({ grp, pts, cap, loads });
   }
   return out;
 }
 const hoistLabels = new THREE.Group(); scene.add(hoistLabels);
+// pont (tracé) contenant l'élément sélectionné, et sa hauteur sous pont
+function liftTarget(o) {
+  const g = o?.userData.grp; if (!g) return null;
+  const run = [...trussRuns().values()].find(r => r.segs[0].userData.grp === g); if (!run) return null;
+  const s0 = run.segs[0], tw = props.children.find(o => o.userData.grp === g && o.userData.kind === 'tower');
+  return { g, run, y:s0.position.y - (tw ? tw.position.y : floorAt(s0.position)) }; // ground support : depuis le pied des tours
+}
+function syncLift(o = selected) { const t = liftTarget(o); $('liftRow').hidden = !t; if (t && document.activeElement !== $('liftH')) $('liftH').value = t.y.toFixed(2); }
+// monte / descend tout le pont : ponts, cubes, moteurs (crochets), charges accrochées dessous ; en ground support, les manchons glissent sur les tours
+function liftBy(dy) {
+  const t = liftTarget(selected); if (!t) return;
+  const towers = props.children.filter(o => o.userData.grp === t.g && o.userData.kind === 'tower');
+  const maxY = towers.length ? Math.min(...towers.map(o => o.userData.dims[2] - 1)) : Infinity; // le cadre reste sous la tête des tours
+  dy = THREE.MathUtils.clamp(t.y + dy, 0.3, maxY) - t.y; if (Math.abs(dy) < 1e-4) return;
+  const loads = trussRig().find(r => r.grp === t.g)?.loads || [];
+  for (const o of [...props.children.filter(o => o.userData.grp === t.g && o.userData.kind !== 'tower'), ...loads]) o.position.y += dy;
+  const sel = selected;
+  for (const tw of towers) { const n = rebuildProp(tw, [...tw.userData.dims.slice(0, 3), (tw.userData.dims[3] ?? tw.userData.dims[2] - 1.2) + dy]); if (sel !== tw) select(sel); }
+  syncLift();
+}
+let liftTimer = null;
+for (const [id, dir] of [['liftUp', 1], ['liftDown', -1]]) {
+  $(id).onpointerdown = () => { pushUndo(); liftBy(dir * 0.1); let k = 0; liftTimer = setInterval(() => { if (++k > 4) liftBy(dir * 0.05); }, 50); }; // maintenu : ≈ 1 m/s
+}
+addEventListener('pointerup', () => { clearInterval(liftTimer); liftTimer = null; });
+$('liftH').onchange = () => { const t = liftTarget(selected); if (!t) return; pushUndo(); liftBy((+$('liftH').value || 0) - t.y); };
+// --- gril ground support : 4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour
+$('gsBtn').onclick = () => {
+  pushUndo();
+  const kind = $('gsSeries').value, S = TRUSS[kind].S, Lw = Math.max(1, Math.round(+$('gsW').value * 2) / 2), Ld = Math.max(1, Math.round(+$('gsD').value * 2) / 2), H = Math.max(2, +$('gsH').value || 6);
+  const c = orbit.target.clone(); c.y = floorAt(c);
+  const sl = 0.42, ax = (Lw + sl) / 2, az = (Ld + sl) / 2, grp = 'Ground support #' + Date.now().toString(36); // entraxe des tours = pont + manchon
+  for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const t = makeProp('tower', [1.6, 1.6, H + 1.5, H]); t.userData.grp = grp; t.position.set(c.x + sx * ax, c.y, c.z + sz * az); }
+  for (const [L, x, z, rot] of [[Lw, 0, -az, 0], [Lw, 0, az, 0], [Ld, -ax, 0, Math.PI / 2], [Ld, ax, 0, Math.PI / 2]]) {
+    const o = makeProp(kind, [L, S, S]); o.userData.grp = grp; o.position.set(c.x + x, c.y + H, c.z + z); o.rotation.y = rot; }
+  select(props.children[props.children.length - 1]); frame(selected);
+};
 function updateDossier() {
   const tr = trussRig(), hp = tr.flatMap(t => t.pts), cap = +$('hoistCap').value || 500;
   const hkey = hp.map(p => `${p.n}:${Math.round(p.kg)}`).join('|') + cap;
   if (hoistLabels.userData.key !== hkey) {
     hoistLabels.children.forEach(sp => { sp.material.map.dispose(); sp.material.dispose(); }); hoistLabels.clear();
-    hp.forEach(p => { const sp = label3d(`M${p.n} · ${kg(p.kg)}`, p.kg > cap ? '#d0021b' : '#1f6fb2', 320); sp.userData.h = p.h; hoistLabels.add(sp); }); hoistLabels.userData.key = hkey;
+    hp.forEach(p => { const sp = label3d(`${p.h.userData.kind === 'tower' ? 'T' : 'M'}${p.n} · ${kg(p.kg)}`, p.kg > p.cap ? '#d0021b' : '#1f6fb2', 320); sp.userData.h = p.h; hoistLabels.add(sp); }); hoistLabels.userData.key = hkey;
   }
-  hoistLabels.children.forEach(sp => sp.position.copy(sp.userData.h.position).add(new THREE.Vector3(0, 1.1, 0)));
-  if (hp.length) { const top = hp.reduce((a, b) => b.kg > a.kg ? b : a), over = hp.filter(p => p.kg > cap);
-    $('trussInfo').innerHTML = `<b>Ponts</b> : ${hp.length} moteurs · total ${kg(hp.reduce((s, p) => s + p.kg, 0))} · max M${top.n} ${kg(top.kg)} / ${kg(cap)}` + (over.length ? `<br><span class="warn">⚠ au-delà de ${kg(cap)} : ${over.map(p => 'M' + p.n).join(', ')}</span>` : '');
+  hoistLabels.children.forEach(sp => { const h = sp.userData.h; sp.position.copy(h.position).add(new THREE.Vector3(0, h.userData.kind === 'tower' ? h.userData.dims[2] + 0.8 : 1.1, 0)); });
+  if (hp.length) { const top = hp.reduce((a, b) => b.kg > a.kg ? b : a), over = hp.filter(p => p.kg > p.cap);
+    $('trussInfo').innerHTML = `<b>Ponts</b> : ${hp.length} points d'accroche · total ${kg(hp.reduce((s, p) => s + p.kg, 0))} · max ${top.h.userData.kind === 'tower' ? 'T' : 'M'}${top.n} ${kg(top.kg)} / ${kg(top.cap)}` + (over.length ? `<br><span class="warn">⚠ au-delà de leur capacité : ${over.map(p => (p.h.userData.kind === 'tower' ? 'T' : 'M') + p.n).join(', ')}</span>` : '');
   } else $('trussInfo').textContent = '';
   const r = rigging();
   const want = r ? r.pts.map(p => ({ txt:`P${p.n} · ${kg(p.kg)}`, css:p.kg > r.max ? '#d0021b' : '#2c7a3f', pos:p.world.clone().add(new THREE.Vector3(0, 1.2, 0)) })) : [];
@@ -953,7 +1003,7 @@ let selected = null;
 function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) : '—';
-  const isProp = !!o && props.children.includes(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
+  const isProp = !!o && props.children.includes(o); syncLift(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
   if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
@@ -970,7 +1020,7 @@ function resizeSelected() {
   if (o.userData.kind === 'defender') dims = [Math.max(1, Math.round(dims[0] / MOD)) * MOD, 0.29, 0.05]; // longueur arrondie au module
   if (TRUSS[o.userData.kind]) { const S = TRUSS[o.userData.kind].S; dims = [Math.max(0.5, Math.round(dims[0] * 2) / 2), S, S]; } // ponts : longueurs au 0,5 m
   if (o.userData.kind === 'perche') dims = [dims[0], 0.05, 0.05];
-  if (o.userData.kind === 'tower') dims = [1.6, 1.6, Math.max(2, dims[2])];
+  if (o.userData.kind === 'tower') dims = [1.6, 1.6, Math.max(2, dims[2]), Math.min(o.userData.dims[3] ?? dims[2] - 1.2, dims[2] - 1)];
   if (dims.every((x, i) => x === o.userData.dims[i])) return;
   pushUndo(); rebuildProp(o, dims, o.userData.kind === 'scene_m' ? 'scene' : o.userData.kind); // l'ancienne scène 11 × 9 du DWG devient une scène classique
 }
@@ -1196,12 +1246,12 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp })), moved, view };
+  return { props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
@@ -1625,7 +1675,7 @@ function navigate(dt) {
   }
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); // hors connexion après une 1ʳᵉ visite
-renderer.setAnimationLoop(t => { updateDelays(t); syncHandles(); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
+renderer.setAnimationLoop(t => { updateDelays(t); syncHandles(); syncChains(); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
 </script>
 </body>
 </html>
