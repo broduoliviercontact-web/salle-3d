@@ -2,3 +2,4 @@ ifcopenshell
 ezdxf
 numpy
 Pillow
+pymupdf

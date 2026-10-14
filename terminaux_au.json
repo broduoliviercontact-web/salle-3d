@@ -1,0 +1,859 @@
+[
+{
+"id": "BAV-PMS-01",
+"kind": "BAV",
+"lvl": "R1",
+"x": -74.0,
+"z": 3.22,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-01",
+"kind": "BAV",
+"lvl": "R2",
+"x": -66.81,
+"z": 9.76,
+"y": 8.24,
+"lead": true
+},
+{
+"id": "BAV-PMS-02",
+"kind": "BAV",
+"lvl": "R1",
+"x": -74.0,
+"z": 2.67,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-02",
+"kind": "BAV",
+"lvl": "R2",
+"x": -66.13,
+"z": 1.45,
+"y": 8.24,
+"lead": true
+},
+{
+"id": "BAV-03",
+"kind": "BAV",
+"lvl": "R2",
+"x": -64.54,
+"z": 3.76,
+"y": 8.24,
+"lead": true
+},
+{
+"id": "BAV-04",
+"kind": "BAV",
+"lvl": "R2",
+"x": -66.8,
+"z": -3.9,
+"y": 8.24,
+"lead": true
+},
+{
+"id": "BAV-05",
+"kind": "BAV",
+"lvl": "R2",
+"x": -69.98,
+"z": 3.17,
+"y": 8.24,
+"lead": true
+},
+{
+"id": "BAV-06",
+"kind": "BAV",
+"lvl": "R2",
+"x": -83.51,
+"z": 2.73,
+"y": null,
+"lead": true,
+"bar": "F1"
+},
+{
+"id": "BAV-07",
+"kind": "BAV",
+"lvl": "R1",
+"x": -79.3,
+"z": 14.78,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-08",
+"kind": "BAV",
+"lvl": "R1",
+"x": -80.57,
+"z": 10.99,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-09",
+"kind": "BAV",
+"lvl": "R1",
+"x": -80.54,
+"z": -5.15,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-10",
+"kind": "BAV",
+"lvl": "R1",
+"x": -82.73,
+"z": 13.83,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-11",
+"kind": "BAV",
+"lvl": "R1",
+"x": -83.68,
+"z": 10.37,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-12",
+"kind": "BAV",
+"lvl": "R1",
+"x": -88.19,
+"z": 15.01,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-13",
+"kind": "BAV",
+"lvl": "R1",
+"x": -88.21,
+"z": 10.37,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "BAV-14",
+"kind": "BAV",
+"lvl": "R0",
+"x": -71.79,
+"z": -4.92,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-15",
+"kind": "BAV",
+"lvl": "R0",
+"x": -70.44,
+"z": -8.67,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-16",
+"kind": "BAV",
+"lvl": "R0",
+"x": -80.0,
+"z": 10.12,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-17",
+"kind": "BAV",
+"lvl": "R0",
+"x": -78.49,
+"z": 3.06,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-18",
+"kind": "BAV",
+"lvl": "R0",
+"x": -79.99,
+"z": -4.25,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-19",
+"kind": "BAV",
+"lvl": "R0",
+"x": -79.07,
+"z": -7.65,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-20",
+"kind": "BAV",
+"lvl": "R0",
+"x": -82.83,
+"z": 9.24,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-21",
+"kind": "BAV",
+"lvl": "R0",
+"x": -82.82,
+"z": 8.23,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-22",
+"kind": "BAV",
+"lvl": "R0",
+"x": -83.74,
+"z": -2.42,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-23",
+"kind": "BAV",
+"lvl": "R0",
+"x": -82.81,
+"z": -3.61,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-24",
+"kind": "BAV",
+"lvl": "R0",
+"x": -86.89,
+"z": 9.96,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-25",
+"kind": "BAV",
+"lvl": "R0",
+"x": -87.14,
+"z": -4.99,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-26",
+"kind": "BAV",
+"lvl": "R0",
+"x": -88.64,
+"z": 9.76,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-27",
+"kind": "BAV",
+"lvl": "R0",
+"x": -89.38,
+"z": -3.93,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BAV-28",
+"kind": "BAV",
+"lvl": "R0",
+"x": -89.19,
+"z": -3.58,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-01",
+"kind": "BECL",
+"lvl": "R2",
+"x": -66.23,
+"z": 2.68,
+"y": 8.24,
+"lead": true
+},
+{
+"id": "BECL-02",
+"kind": "BECL",
+"lvl": "R2",
+"x": -79.24,
+"z": 7.44,
+"y": null,
+"lead": true,
+"bar": "S1"
+},
+{
+"id": "BECL-03",
+"kind": "BECL",
+"lvl": "R2",
+"x": -79.24,
+"z": 5.7,
+"y": null,
+"lead": true,
+"bar": "S1"
+},
+{
+"id": "BECL-04",
+"kind": "BECL",
+"lvl": "R2",
+"x": -79.24,
+"z": 4.1,
+"y": null,
+"lead": true,
+"bar": "S1"
+},
+{
+"id": "BECL-05",
+"kind": "BECL",
+"lvl": "R2",
+"x": -79.24,
+"z": 1.86,
+"y": null,
+"lead": true,
+"bar": "S1"
+},
+{
+"id": "BECL-06",
+"kind": "BECL",
+"lvl": "R2",
+"x": -79.24,
+"z": 0.28,
+"y": null,
+"lead": true,
+"bar": "S1"
+},
+{
+"id": "BECL-07",
+"kind": "BECL",
+"lvl": "R2",
+"x": -79.24,
+"z": -1.62,
+"y": null,
+"lead": true,
+"bar": "S1"
+},
+{
+"id": "BECL-08",
+"kind": "BECL",
+"lvl": "R2",
+"x": -83.51,
+"z": 7.44,
+"y": null,
+"lead": true,
+"bar": "F1"
+},
+{
+"id": "BECL-09",
+"kind": "BECL",
+"lvl": "R2",
+"x": -83.51,
+"z": 5.01,
+"y": null,
+"lead": true,
+"bar": "F1"
+},
+{
+"id": "BECL-10",
+"kind": "BECL",
+"lvl": "R2",
+"x": -83.51,
+"z": 3.56,
+"y": null,
+"lead": true,
+"bar": "F1"
+},
+{
+"id": "BECL-11",
+"kind": "BECL",
+"lvl": "R2",
+"x": -83.51,
+"z": 2.3,
+"y": null,
+"lead": true,
+"bar": "F1"
+},
+{
+"id": "BECL-12",
+"kind": "BECL",
+"lvl": "R2",
+"x": -83.51,
+"z": 0.9,
+"y": null,
+"lead": true,
+"bar": "F1"
+},
+{
+"id": "BECL-13",
+"kind": "BECL",
+"lvl": "R2",
+"x": -83.51,
+"z": -1.62,
+"y": null,
+"lead": true,
+"bar": "F1"
+},
+{
+"id": "BECL-14",
+"kind": "BECL",
+"lvl": "R2",
+"x": -86.06,
+"z": 9.85,
+"y": null,
+"lead": true,
+"bar": "F2"
+},
+{
+"id": "BECL-15",
+"kind": "BECL",
+"lvl": "R2",
+"x": -86.06,
+"z": 7.44,
+"y": null,
+"lead": true,
+"bar": "F2"
+},
+{
+"id": "BECL-16",
+"kind": "BECL",
+"lvl": "R2",
+"x": -86.06,
+"z": 5.01,
+"y": null,
+"lead": true,
+"bar": "F2"
+},
+{
+"id": "BECL-17",
+"kind": "BECL",
+"lvl": "R2",
+"x": -86.06,
+"z": 3.56,
+"y": null,
+"lead": true,
+"bar": "F2"
+},
+{
+"id": "BECL-18",
+"kind": "BECL",
+"lvl": "R2",
+"x": -86.06,
+"z": 2.3,
+"y": null,
+"lead": true,
+"bar": "F2"
+},
+{
+"id": "BECL-19",
+"kind": "BECL",
+"lvl": "R2",
+"x": -86.06,
+"z": 0.9,
+"y": null,
+"lead": true,
+"bar": "F2"
+},
+{
+"id": "BECL-20",
+"kind": "BECL",
+"lvl": "R2",
+"x": -86.06,
+"z": -1.62,
+"y": null,
+"lead": true,
+"bar": "F2"
+},
+{
+"id": "BECL-21",
+"kind": "BECL",
+"lvl": "R2",
+"x": -86.06,
+"z": -3.94,
+"y": null,
+"lead": true,
+"bar": "F2"
+},
+{
+"id": "BECL-22",
+"kind": "BECL",
+"lvl": "R2",
+"x": -89.12,
+"z": 9.85,
+"y": null,
+"lead": true,
+"bar": "F3"
+},
+{
+"id": "BECL-23",
+"kind": "BECL",
+"lvl": "R2",
+"x": -89.12,
+"z": 7.44,
+"y": null,
+"lead": true,
+"bar": "F3"
+},
+{
+"id": "BECL-24",
+"kind": "BECL",
+"lvl": "R2",
+"x": -89.12,
+"z": 5.01,
+"y": null,
+"lead": true,
+"bar": "F3"
+},
+{
+"id": "BECL-25",
+"kind": "BECL",
+"lvl": "R2",
+"x": -89.12,
+"z": 3.56,
+"y": null,
+"lead": true,
+"bar": "F3"
+},
+{
+"id": "BECL-26",
+"kind": "BECL",
+"lvl": "R2",
+"x": -89.12,
+"z": 2.3,
+"y": null,
+"lead": true,
+"bar": "F3"
+},
+{
+"id": "BECL-27",
+"kind": "BECL",
+"lvl": "R2",
+"x": -89.12,
+"z": 0.9,
+"y": null,
+"lead": true,
+"bar": "F3"
+},
+{
+"id": "BECL-28",
+"kind": "BECL",
+"lvl": "R2",
+"x": -89.12,
+"z": -1.62,
+"y": null,
+"lead": true,
+"bar": "F3"
+},
+{
+"id": "BECL-29",
+"kind": "BECL",
+"lvl": "R2",
+"x": -89.12,
+"z": -3.94,
+"y": null,
+"lead": true,
+"bar": "F3"
+},
+{
+"id": "BECL-30",
+"kind": "BECL",
+"lvl": "R0",
+"x": -82.28,
+"z": 9.04,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-31",
+"kind": "BECL",
+"lvl": "R0",
+"x": -81.56,
+"z": -4.23,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-32",
+"kind": "BECL",
+"lvl": "R0",
+"x": -81.23,
+"z": 9.76,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-33",
+"kind": "BECL",
+"lvl": "R0",
+"x": -82.26,
+"z": -3.34,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-34",
+"kind": "BECL",
+"lvl": "R0",
+"x": -82.28,
+"z": 10.0,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-35",
+"kind": "BECL",
+"lvl": "R0",
+"x": -82.26,
+"z": -2.56,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-36",
+"kind": "BECL",
+"lvl": "R0",
+"x": -83.54,
+"z": 9.96,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-37",
+"kind": "BECL",
+"lvl": "R0",
+"x": -83.01,
+"z": 9.73,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-38",
+"kind": "BECL",
+"lvl": "R0",
+"x": -83.25,
+"z": 9.15,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-39",
+"kind": "BECL",
+"lvl": "R0",
+"x": -83.05,
+"z": 8.74,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-40",
+"kind": "BECL",
+"lvl": "R0",
+"x": -83.27,
+"z": -2.9,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-41",
+"kind": "BECL",
+"lvl": "R0",
+"x": -83.27,
+"z": -3.32,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-42",
+"kind": "BECL",
+"lvl": "R0",
+"x": -83.0,
+"z": -3.9,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-43",
+"kind": "BECL",
+"lvl": "R0",
+"x": -87.39,
+"z": 9.75,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-44",
+"kind": "BECL",
+"lvl": "R0",
+"x": -89.16,
+"z": 9.76,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-45",
+"kind": "BECL",
+"lvl": "R0",
+"x": -88.53,
+"z": -3.93,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "BECL-46",
+"kind": "BECL",
+"lvl": "R0",
+"x": -88.72,
+"z": -3.58,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-01",
+"kind": "HP",
+"lvl": "R0",
+"x": -81.91,
+"z": 8.94,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-ROE-01",
+"kind": "HP",
+"lvl": "R1",
+"x": -80.4,
+"z": 14.89,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "HP-02",
+"kind": "HP",
+"lvl": "R0",
+"x": -82.13,
+"z": 8.79,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-ROE-02",
+"kind": "HP",
+"lvl": "R1",
+"x": -84.51,
+"z": 14.89,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "HP-03",
+"kind": "HP",
+"lvl": "R0",
+"x": -82.44,
+"z": 8.76,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-ROE-03",
+"kind": "HP",
+"lvl": "R1",
+"x": -87.32,
+"z": 14.89,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "HP-04",
+"kind": "HP",
+"lvl": "R0",
+"x": -82.27,
+"z": 7.6,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-ROE-04",
+"kind": "HP",
+"lvl": "R1",
+"x": -84.5,
+"z": 10.26,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "HP-05",
+"kind": "HP",
+"lvl": "R0",
+"x": -81.91,
+"z": -3.11,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-ROE-05",
+"kind": "HP",
+"lvl": "R1",
+"x": -87.37,
+"z": 10.16,
+"y": 4.81,
+"lead": true
+},
+{
+"id": "HP-ROE-06",
+"kind": "HP",
+"lvl": "R0",
+"x": -70.44,
+"z": -5.67,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-06",
+"kind": "HP",
+"lvl": "R0",
+"x": -81.5,
+"z": -2.83,
+"y": 1.86,
+"lead": false
+},
+{
+"id": "HP-ROE-07",
+"kind": "HP",
+"lvl": "R0",
+"x": -78.87,
+"z": -7.96,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-07",
+"kind": "HP",
+"lvl": "R0",
+"x": -82.31,
+"z": -2.96,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-ROE-08",
+"kind": "HP",
+"lvl": "R0",
+"x": -87.24,
+"z": -5.68,
+"y": 1.86,
+"lead": true
+},
+{
+"id": "HP-08",
+"kind": "HP",
+"lvl": "R0",
+"x": -82.26,
+"z": -1.77,
+"y": 1.86,
+"lead": true
+}
+]

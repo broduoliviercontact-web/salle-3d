@@ -89,7 +89,7 @@
   <div class="row"><button id="salleAgora" class="on" title="Tout le bâtiment, setups de l'Agora">Bâtiment / Agora</button><button id="salleAudi" title="Uniquement l'auditorium, sièges transparents, setups de l'auditorium">Auditorium seul</button></div>
   <div class="row" id="audiRow" hidden>Sièges <input type="range" id="seatOp" min="0" max="100" value="25" class="grow" title="Opacité des sièges"><label class="cb"><input type="checkbox" id="seatMov" checked> Sièges amovibles</label></div>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button><button id="vPublic" title="Clique ensuite un point de la salle : vue à hauteur d'yeux vers la scène">Vue public (V)</button></div>
-  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button></div>
+  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button class="on" id="termBtn" data-salle="audi" hidden title="Boîtiers AV (bleu), boîtiers d'éclairage scénique (rouge) et enceintes (gris) des plans des terminaux audiovisuels">Boîtiers AV / lumière</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button></div>
   <div class="row" data-salle="agora">Enceintes piliers à <input type="number" id="delayH" value="4" step="0.5" style="width:52px"> m <span style="opacity:.7">(délai / L2D)</span></div>
   <div class="row"><button id="measure">Mesurer (M)</button><button id="clearMeasure">Effacer mesures</button></div>
 
@@ -216,6 +216,23 @@ function loadTrappes(url) {
     venue.add(grp); refreshModels();
   });
 }
+// Boîtiers de l'auditorium relevés sur les plans des terminaux audiovisuels (lot 22, R0 / R1 / R2, cf. tools/terminaux.py)
+// BAV : boîtier audiovisuel, BECL : boîtier d'éclairage scénique, HP : enceinte ; ceux des porteuses (bar) suivent leur équipe (syncChains)
+const TERM = { BAV:{ color:0x2f6fd6, css:'#2f6fd6', name:'Boîtier AV' }, BECL:{ color:0xd0021b, css:'#d0021b', name:'Boîtier éclairage' }, HP:{ color:0x555a63, css:'#555a63', name:'Enceinte' } };
+const termGroup = () => venue.children.find(o => o.name === 'Boîtiers auditorium (PDF)');
+function loadTerminaux(url) {
+  return fetch(url).then(r => r.ok ? r.json() : null).then(list => {
+    if (!list) return;
+    const grp = new THREE.Group(); grp.name = 'Boîtiers auditorium (PDF)';
+    for (const t of list) {
+      const st = TERM[t.kind], g = new THREE.Group(); g.name = `${t.id} · ${st.name}${t.bar ? ` (porteuse ${t.bar})` : ` (${t.lvl})`}`; g.userData.sel = 1; g.userData.term = t;
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.3), new THREE.MeshStandardMaterial({ color:st.color })); box.position.y = t.bar ? -0.15 : 0.1;
+      const lab = label3d(t.id, st.css); lab.scale.multiplyScalar(0.4); lab.position.y = t.bar ? -0.45 : 0.45;
+      g.add(box, lab); g.position.set(t.x, t.bar ? 0 : t.lvl === 'R0' ? floorAt(new THREE.Vector3(t.x, 0, t.z)) : t.y, t.z); grp.add(g);
+    }
+    venue.add(grp); refreshModels();
+  });
+}
 // Plan DXF « hall avec scène », déjà recalé sur l'IFC (segments x1,y1,x2,y2 en m) : bâti en rouge, scénographie en jaune
 function loadPlan(url) {
   return fetch(url).then(r => r.ok ? r.json() : null).then(data => {
@@ -269,7 +286,7 @@ function demoHall() {
   venue.add(g); refreshModels();
 }
 const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
-fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json')]).then(() => { buildAgora(); openShared(); }))) : demoHall()).catch(demoHall);
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openShared(); }))) : demoHall()).catch(demoHall);
 $('file').onchange = e => loadFiles(e.target.files);
 addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
 addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });
@@ -406,7 +423,7 @@ const isFlown = o => o.position.y - floorAt(o.position) > 2.5; // ponytail: accr
 function charges() {
   let up = 0, down = 0;
   for (const g of props.children) if (g.visible) { const w = weightOf(g); isFlown(g) ? up += w : down += w; }
-  return up + down ? `Charges : accroché ${up} kg · posé ${down} kg` : '';
+  return up + down ? `Charges : accroché ${Math.round(up)} kg · posé ${Math.round(down)} kg` : '';
 }
 // --- catalogue lumière / vidéo / sécurité (volumes indicatifs, face avant = +z) ---
 const dark = c => new THREE.MeshStandardMaterial({ color:c });
@@ -582,7 +599,12 @@ function buildPerche(dims) { // tube + élingues tous les ≈ 3 m vers le gril (
   return [m, c];
 }
 // la chaîne monte jusqu'au point d'accroche (userData.top, en m monde, fixé à la pose) : elle s'allonge quand on descend le pont
-function syncChains() {
+function syncTerm() { // boîtiers des porteuses : sous leur équipe si elle est posée, sinon au point haut (9,20 m du plateau)
+  const g = termGroup(); if (!g || !g.visible) return; const bars = {};
+  for (const o of props.children) if (o.userData.kind === 'perche' && typeof o.userData.dims[3] === 'string') bars[o.userData.dims[3]] = o.position.y;
+  for (const b of g.children) { const t = b.userData.term; if (t.bar) b.position.y = bars[t.bar] ?? 1.86 + 9.2; }
+}
+function syncChains() { syncTerm();
   for (const o of props.children) { const k = o.userData.kind; if (k !== 'hoist' && k !== 'perche') continue;
     o.userData.top ??= o.position.y + (k === 'perche' ? 5 : 3.4); const len = Math.max(0.5, o.userData.top - o.position.y);
     const c = o.children.find(m => m.userData.chain); if (!c || c.userData.len === len) continue;
@@ -864,8 +886,8 @@ $('percheBtn').onclick = () => {
   select(null);
 };
 // --- cintres motorisés de l'auditorium (plans TAMBE 0003, 0004, 0680, 0691-0693) : cotes depuis le cadre de scène a04 vers le lointain a05 (7,05 m),
-// gril (niv. 64,05) à 10,48 m au-dessus du plateau. ponytail: a05 pris sur la face intérieure du mur du lointain dans l'IFC (x −89,4), axe de scène au milieu de la cage (z 2,9)
-const A04 = -89.4 + 7.05, AXE_AU = 2.9, GRIL_AU = 10.48;
+// gril (niv. 64,05) à 10,48 m au-dessus du plateau. Axe a04 = mur du cadre de scène (linteau IFC x −82,84…−82,64, recoupé sur les plans des terminaux 1:50), axe de scène au milieu de la cage (z 2,9)
+const A04 = -82.74, AXE_AU = 2.9, GRIL_AU = 10.48;
 // [nom, distance au cadre vers le lointain (m ; négatif = en salle), longueur, CMU (kg ≈ daN), point bas, point haut (m / plateau), décalage cour/jardin, le long de la profondeur]
 const EQUIPES_AU = [['F1', 0.77, 12, 350, 1, 9.2], ['F2', 3.32, 12, 350, 1, 9.2], ['C2', 3.9, 10.4, 1500, 0.2, 9.2], ['C1', 5.29, 10.4, 1500, 0.2, 9.2], ['F3', 6.38, 12, 350, 1, 9.2],
   ['S1', -3.5, 10.4, 350, 1.8, 9.2], ['LC', 3.6, 5.5, 350, 1, 9.2, -6.45, true], ['LJ', 3.6, 5.5, 350, 1, 9.2, 6.45, true]]; // cour = −z (à droite vu de la salle)
@@ -1320,7 +1342,8 @@ document.querySelectorAll('[data-env]').forEach(b => b.onclick = () => {
 
 // trappes de sol : afficher / cacher tout le groupe (l'état est gardé dans les setups via la liste des objets masqués)
 const trapGroup = () => venue.children.find(o => o.name === 'Trappes de sol (PDF)');
-const syncTrapBtn = () => $('trapBtn').classList.toggle('on', !!trapGroup()?.visible);
+const syncTrapBtn = () => { $('trapBtn').classList.toggle('on', !!trapGroup()?.visible); $('termBtn').classList.toggle('on', !!termGroup()?.visible); };
+$('termBtn').onclick = () => { const g = termGroup(); if (!g) return; g.visible = !g.visible; $('termBtn').classList.toggle('on', g.visible); refreshModels(); };
 $('trapBtn').onclick = () => { const g = trapGroup(); if (!g) return; g.visible = !g.visible; syncTrapBtn(); refreshModels(); };
 
 // --- coupe : un plan qui tranche la maquette (pas les éléments ajoutés) ---
@@ -1577,6 +1600,15 @@ async function planSvg(whole = false) {
     legend.set(key, { col, n:(legend.get(key)?.n || 0) + 1 });
     out.push(`<g clip-path="url(#cadre)"><rect x="${f(cx - 0.25)}" y="${f(cy - 0.25)}" width="0.5" height="0.5" fill="${col}" stroke="#000" stroke-width="0.03"/><circle cx="${f(cx)}" cy="${f(cy)}" r="0.6" fill="none" stroke="${col}" stroke-width="0.05"/>`);
     out.push(`<text x="${f(cx + 0.75)}" y="${f(cy + 0.12)}" font-size="0.35" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.07" paint-order="stroke">T${t.n}</text></g>`);
+  }
+  // boîtiers de l'auditorium
+  const terms = termGroup();
+  if (terms && shown(terms) && salle === 'audi') for (const g of terms.children) {
+    if (!g.visible) continue;
+    const t = g.userData.term, st = TERM[t.kind], [cx, cy] = toPlan(g, 0, 0), key = `${st.name} (${t.kind})`;
+    legend.set(key, { col:st.css, n:(legend.get(key)?.n || 0) + 1 });
+    out.push(`<g clip-path="url(#cadre)"><rect x="${f(cx - 0.15)}" y="${f(cy - 0.15)}" width="0.3" height="0.3" fill="${st.css}" stroke="#000" stroke-width="0.02"/>`
+      + `<text x="${f(cx + 0.22)}" y="${f(cy + 0.08)}" font-size="0.2" font-weight="bold" fill="${st.css}" stroke="#fff" stroke-width="0.05" paint-order="stroke">${esc(t.id)}</text></g>`);
   }
   // axe de l'Agora et piliers (délai)
   if (agora.visible && agora.children.length && salle !== 'audi') {

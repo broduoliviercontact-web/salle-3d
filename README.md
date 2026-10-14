@@ -93,7 +93,12 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   | S1 (salle) | 3,50 m en salle | 10,4 m | 350 daN | 1,80 → 9,20 |
   | LC, LJ (latérales) | à 6,45 m de l'axe, côté cour et jardin | 5,5 m | 350 daN | 1,00 → 9,20 |
 
-  Le gril est à 10,48 m du plateau (niv. 64,05). Les équipes se posent au point haut, et chacune se lève seule en mode moteurs, bloquée à sa course et arrêtée quand sa charge la plus basse arrive à 0,3 m du sol. La charge (tube + appareils accrochés) est comparée à sa CMU. Repérage : a05 pris sur le mur du lointain de l'IFC (x −89,4), a04 = a05 + 7,05 m, axe de scène z = 2,9.
+  Le gril est à 10,48 m du plateau (niv. 64,05). Les équipes se posent au point haut, et chacune se lève seule en mode moteurs, bloquée à sa course et arrêtée quand sa charge la plus basse arrive à 0,3 m du sol. La charge (tube + appareils accrochés) est comparée à sa CMU. Repérage : axe a04 = mur du cadre de scène (linteau IFC x −82,74), axe de scène z = 2,9.
+- **Boîtiers AV / lumière** (mode auditorium, bouton dans Vue) : les 92 terminaux des plans des terminaux audiovisuels (lot 22, R0 / R1 / R2) :
+  - 30 boîtiers AV (BAV, bleu), 46 boîtiers d'éclairage scénique (BECL, rouge), 16 enceintes (HP, gris), chacun avec son repère ;
+  - ceux montés sur les porteuses (BECL-02 à 29, BAV-06) suivent leur équipe S1, F1, F2 ou F3 quand on la lève ou la descend ;
+  - ils sortent sur le plan 2D de l'auditorium avec leur repère et la légende.
+  Relevé automatique (tools/terminaux.py) : chaque étiquette du PDF est suivie le long de sa ligne de rappel jusqu'au symbole, puis calée sur les axes a05 / a04 et ae / ad (précision ≈ 10–20 cm).
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
 - Liste **Maquettes et calques** (repliée par défaut) : chaque niveau et chaque calque se masque.
@@ -215,6 +220,7 @@ Le site est déployé sur **Vercel** en site statique (`vercel.json` force le bu
 | `bar.json` | les contours du bar central |
 | `machiniste.json` | la scène et le grill relevés dans le DWG du machiniste (coordonnées du site) |
 | `trappes.json` | les 14 trappes de sol (positions dans le site et dans le DWG) |
+| `terminaux_au.json` | les 92 boîtiers de l'auditorium (BAV, BECL, HP), niveau R0 / R1 / R2 ou porteuse |
 | `tools/` | les scripts de conversion (voir ci-dessous) |
 
 ## Régénérer depuis les sources
@@ -233,6 +239,7 @@ python plan.py      # -> ../plan_scene.json
 python bar.py       # -> ../bar.json
 python fond.py      # -> ../plan_fond.svg
 python trappes.py   # -> ../trappes.json (PDF de repérage rendu en PNG, cf. en-tête du script)
+python terminaux.py <dossier des plans TER_AU>   # -> ../terminaux_au.json (plans des terminaux AV de l'auditorium, vectoriels)
 ```
 
 Les fichiers `flags.json`, `align.json`, `pdf2dxf.json` et `pdf2dxf_est.json` sont versionnés : on peut sauter les étapes de calage si les sources n'ont pas changé.
