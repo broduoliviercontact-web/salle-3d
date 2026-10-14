@@ -57,7 +57,7 @@
   <h2>Ajouter</h2>
   <div class="row"><button id="addBtn" class="grow on" title="Catalogue des éléments 3D">＋ Ajouter un élément…</button></div>
   <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Échap = fin">Tracer Vauban</button></div>
-  <div class="row"><button id="trussDraw" class="grow" title="Clic = départ puis chaque clic pose un pont (longueurs au 0,5 m, angles à 90° avec cube d'angle) ; Échap = fin">Tracer des ponts</button><select id="trussSeries" title="Série de pont"><option value="truss30">290</option><option value="truss40">390</option></select> à <input type="number" id="trussH" value="6" step="0.5" min="0" style="width:52px"> m</div>
+  <div class="row"><button id="trussDraw" class="grow" title="Clic = départ puis chaque clic pose un pont (longueurs au 0,5 m, angles à 90° avec cube d'angle) ; Échap = fin">Tracer des ponts</button><select id="trussSeries" title="Série de pont"><option value="truss30">290</option><option value="truss40">390</option><option value="truss30t">290 triangle</option></select> à <input type="number" id="trussH" value="6" step="0.5" min="0" style="width:52px"> m</div>
   <div class="row"><label class="cb"><input type="checkbox" id="hoistAuto" checked> Moteurs auto</label> tous les ≤ <input type="number" id="hoistSpan" value="6" step="0.5" min="2" style="width:48px"> m</div>
   <div class="row">Capacité moteur <input type="number" id="hoistCap" value="500" step="250" min="250" style="width:62px"> kg <button id="hoistBtn" title="Replace les moteurs du pont sélectionné (après l'avoir modifié)">Replacer</button></div>
   <h2>Installations</h2>
@@ -271,9 +271,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29], tcorner40:[0.39, 0.39, 0.39], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { truss30t:0xc9ced6, truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { truss30t:'Pont alu triangulaire 290', truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { truss30t:[3, 0.29, 0.29], tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29, 2], tcorner40:[0.39, 0.39, 0.39, 2], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -523,23 +523,23 @@ function buildFog() {
 }
 // --- structures et levage (recherche : Prolyte H30V / Global Truss F34 = carré 290 mm, membrures Ø 48–50 ; H40V / F44 = 390 mm ;
 // ≈ 6 kg/m en 290, ≈ 7,5 kg/m en 390 ; longueurs standard 0,5 à 3 m ; tours type Prolyte MPT ; moteurs D8+ 500 kg ≈ 24 kg sans chaîne) ---
-const TRUSS = { truss30:{ S:0.29, kgm:6, corner:'tcorner30' }, truss40:{ S:0.39, kgm:7.5, corner:'tcorner40' } };
-const RIG_SELF = new Set(['truss30', 'truss40', 'tcorner30', 'tcorner40', 'hoist', 'perche', 'tower']);
+const TRUSS = { truss30:{ S:0.29, kgm:6, corner:'tcorner30' }, truss40:{ S:0.39, kgm:7.5, corner:'tcorner40' }, truss30t:{ S:0.29, kgm:4.5, corner:'tcorner30', tri:true } }; // triangle 290 type Prolyte X30D / Global Truss F33
+const RIG_SELF = new Set(['truss30t', 'truss30', 'truss40', 'tcorner30', 'tcorner40', 'hoist', 'perche', 'tower']);
 const TRUSS_LEN = [3, 2.5, 2, 1.5, 1, 0.5];
 function trussParts(L) { const out = []; let r = Math.round(L * 2) / 2; for (const l of TRUSS_LEN) while (r >= l - 1e-6) { out.push(l); r -= l; } return out; }
-function trussPartsTxt(L) { const c = {}; trussParts(L).forEach(l => c[l] = (c[l] || 0) + 1); return Object.entries(c).sort((a, b) => b[0] - a[0]).map(([l, n]) => `${n} × ${fr(+l, 1)} m`).join(' + '); }
+function trussPartsTxt(L) { if (Math.abs(L * 2 - Math.round(L * 2)) > 0.02) return 'longueur non standard'; const c = {}; trussParts(L).forEach(l => c[l] = (c[l] || 0) + 1); return Object.entries(c).sort((a, b) => b[0] - a[0]).map(([l, n]) => `${n} × ${fr(+l, 1)} m`).join(' + '); }
 const alu = new THREE.MeshStandardMaterial({ color:0xc9ced6, metalness:0.7, roughness:0.35 }), aluLine = new THREE.LineBasicMaterial({ color:0x9aa0a8 });
 // pont carré le long de x, de section S, dessous à y = 0 : 4 membrures + diagonales en zigzag sur les 4 faces, joints tous les standards
-function trussMesh(L, S, axis = 'x') {
+function trussMesh(L, S, axis = 'x', tri = false) { // tri : section triangulaire, pointe en haut
   const g = new THREE.Group(), r = 0.024, h = S - 2 * r, p = [];
-  for (const [y, z] of [[r, -h / 2], [r, h / 2], [S - r, -h / 2], [S - r, h / 2]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 8).rotateZ(Math.PI / 2), alu); c.position.set(0, y, z); g.add(c); }
-  const n = Math.max(1, Math.round(L / h)), dx = L / n, faces = [[[r, -h / 2], [r, h / 2]], [[S - r, -h / 2], [S - r, h / 2]], [[r, -h / 2], [S - r, -h / 2]], [[r, h / 2], [S - r, h / 2]]];
+  for (const [y, z] of tri ? [[r, -h / 2], [r, h / 2], [S - r, 0]] : [[r, -h / 2], [r, h / 2], [S - r, -h / 2], [S - r, h / 2]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 8).rotateZ(Math.PI / 2), alu); c.position.set(0, y, z); g.add(c); }
+  const n = Math.max(1, Math.round(L / h)), dx = L / n, faces = tri ? [[[r, -h / 2], [r, h / 2]], [[r, -h / 2], [S - r, 0]], [[r, h / 2], [S - r, 0]]] : [[[r, -h / 2], [r, h / 2]], [[S - r, -h / 2], [S - r, h / 2]], [[r, -h / 2], [S - r, -h / 2]], [[r, h / 2], [S - r, h / 2]]];
   for (const [[y0, z0], [y1, z1]] of faces) for (let i = 0; i < n; i++) { const x = -L / 2 + i * dx; p.push(x, y0, z0, x + dx, y1, z1, x, y0, z0, x, y1, z1); }
   g.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(p, 3)), aluLine));
   if (axis === 'y') { g.rotation.z = Math.PI / 2; g.position.set(S / 2, L / 2, 0); } // vertical (tours) : pied à y = 0
   return g;
 }
-const buildTruss30 = dims => [trussMesh(dims[0], 0.29)], buildTruss40 = dims => [trussMesh(dims[0], 0.39)];
+const buildTruss30t = dims => [trussMesh(dims[0], 0.29, 'x', true)], buildTruss30 = dims => [trussMesh(dims[0], 0.29)], buildTruss40 = dims => [trussMesh(dims[0], 0.39)];
 // cube d'angle (box corner) : 12 arêtes
 function buildCorner(S) {
   const g = new THREE.Group(), r = 0.024, h = S - 2 * r;
@@ -576,7 +576,7 @@ function syncChains() {
     const c = o.children.find(m => m.userData.chain); if (!c || c.userData.len === len) continue;
     const a = c.geometry.attributes.position; a.setY(3, len); a.needsUpdate = true; c.geometry.computeBoundingSphere(); c.userData.len = len; }
 }
-const BUILD = { truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+const BUILD = { truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -923,7 +923,7 @@ function pratLines(W, D, h) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : kind === 'perche' ? `Perche / porteuse Ø 48 · ${fr(dims[0], 1)} m` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
+    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `Perche / porteuse Ø 48 · ${fr(dims[0], 1)} m` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -937,7 +937,7 @@ function makeProp(kind, dims) {
   props.add(g); return g;
 }
 // pose un élément du catalogue au centre de la vue, avec ses dimensions par défaut (réglables ensuite : L / P / H)
-const LIFT = { truss30:6, truss40:6, tcorner30:6, tcorner40:6, hoist:6.6, perche:7 }; // posés en l'air (m au-dessus du sol), à ajuster avec T
+const LIFT = { truss30t:6, truss30:6, truss40:6, tcorner30:6, tcorner40:6, hoist:6.6, perche:7 }; // posés en l'air (m au-dessus du sol), à ajuster avec T
 function addKind(k) { pushUndo(); const g = makeProp(k, DEFAULT[k]); g.position.copy(orbit.target); g.position.y = floorAt(g.position) + (LIFT[k] || 0); select(g); }
 // --- catalogue : pour ajouter un objet, écrire son modèle (BUILD) + ses LABELS / DEFAULT, puis une ligne ici ; la vignette se fabrique seule ---
 const CATALOG = [
@@ -946,7 +946,7 @@ const CATALOG = [
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran']],
   ['Sécurité et circulation', ['vauban', 'crash', 'defender']],
-  ['Structures et levage', ['truss30', 'truss40', 'tcorner30', 'tower', 'hoist', 'perche']],
+  ['Structures et levage', ['truss30', 'truss40', 'truss30t', 'tcorner30', 'tower', 'hoist', 'perche']],
   ['Divers', ['perso']],
 ];
 const NAMES = { scene:'Scène', prat:'Praticable Samia 2 × 1', regie:'Régie', enceinte:'Enceinte (générique)', ecran:'Écran (projection)', perso:'Personne (échelle)', led:'Écran LED', defender:'Passe-câbles Defender Mini' };
@@ -1004,14 +1004,14 @@ function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) : '—';
   const isProp = !!o && props.children.includes(o); syncLift(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
-  if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
+  if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40', 'truss30t'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
     + trapList().map(t => `<option value="${t.userData.trap.n}">T${t.userData.trap.n} · ${t.userData.trap.label}</option>`).join('');
   $('trapSel').value = o.userData.trap || ''; $('powerW').value = powerOf(o);
 }
 // redimensionner l'élément sélectionné : on le reconstruit à la même place, en gardant trappe, puissance et groupe
-const RESIZABLE = new Set(['truss30', 'truss40', 'perche', 'tower', 'scene_m', 'scene', 'scene_fip', 'prat', 'regie', 'ecran', 'led', 'defender']);
+const RESIZABLE = new Set(['truss30t', 'truss30', 'truss40', 'perche', 'tower', 'scene_m', 'scene', 'scene_fip', 'prat', 'regie', 'ecran', 'led', 'defender']);
 function resizeSelected() {
   const o = selected; if (!o || !RESIZABLE.has(o.userData.kind)) return;
   const v = (id, min, max) => THREE.MathUtils.clamp(+$(id).value || min, min, max), half = x => Math.max(0.5, Math.round(x * 2) / 2);
@@ -1083,7 +1083,8 @@ function segTo(p) {
   let a = Math.atan2(-(p.z - s.z), p.x - s.x), k = 0, start = s.clone();
   const pieces = [];
   const T = TRUSS[cable.kind];
-  if (cable.heading === null || cable.kind === 'vauban') { if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
+  if (T && cable.heading === null && cable.fromRot != null) { a = cable.fromRot + Math.round((a - cable.fromRot) / (Math.PI / 2)) * (Math.PI / 2); start = s.clone().addScaledVector(heading(a), T.S / 2); } // départ d'un cube : perpendiculaire à ses faces
+  else if (cable.heading === null || cable.kind === 'vauban') { if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
   else if (T) { // ponts : tout droit (raccord) ou angle à 90° avec un cube d'angle entre les 2 ponts
     let d = a - cable.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); k = THREE.MathUtils.clamp(Math.round(d / (Math.PI / 2)), -1, 1); a = cable.heading + k * Math.PI / 2;
     if (k) { const c = s.clone().addScaledVector(heading(cable.heading), T.S / 2); pieces.push({ pos:c, rot:cable.heading, corner:true }); start = c.clone().addScaledVector(heading(a), T.S / 2); }
@@ -1105,7 +1106,7 @@ function segTo(p) {
 renderer.domElement.addEventListener('pointermove', e => {
   if (!cable?.start) return;
   const p = floorPoint(e); if (!p) return;
-  const { a, n, dir, start, pieces, P } = segTo(p), L = n * P, vb = cable.kind === 'vauban', T = TRUSS[cable.kind], H = T ? (+$('trussH').value || 0) : 0;
+  const { a, n, dir, start, pieces, P } = segTo(p), L = n * P, vb = cable.kind === 'vauban', T = TRUSS[cable.kind], H = T ? trussY() - cable.start.y : 0;
   if (T) { preview.scale.set(L, T.S / 0.05, T.S / 0.29); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + H + T.S / 2);
     ghostCube.visible = !!pieces.length; if (pieces.length) { ghostCube.scale.setScalar(T.S); ghostCube.position.copy(pieces[0].pos).setY(cable.start.y + H + T.S / 2); } }
   else { preview.scale.set(L, vb ? 22 : 1, vb ? 1.5 : 1); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + (vb ? 0.55 : 0.03)); }
@@ -1116,19 +1117,61 @@ renderer.domElement.addEventListener('pointermove', e => {
   if (previewLab?.userData.txt !== txt) { if (previewLab) scene.remove(previewLab); previewLab = label3d(txt, '#8a6d00', 320); previewLab.userData.txt = txt; scene.add(previewLab); }
   previewLab.position.copy(preview.position).setY(cable.start.y + (vb ? 1.6 : T ? H + T.S + 0.5 : 0.6));
 });
+// hauteur (dessous) des ponts du tracé : celle du pont rejoint au départ, sinon le réglage
+const trussY = () => cable.Yabs ?? (cable.start.y + (+$('trussH').value || 0));
+// jonction possible sous la souris : cube de même section (à 0,6 m) ou axe d'un pont de même section (à 0,4 m), coupé au pas de 0,5 m
+function trussJoin(p, kind, Y, line) { // line {o, d} : arrivée d'un tracé -> jonction au croisement exact des axes
+  const S = TRUSS[kind].S, hz = o => Math.hypot(o.x - p.x, o.z - p.z), okY = o => Y == null || Math.abs(o.position.y - Y) < 0.3;
+  const cube = props.children.find(o => o.visible && /^tcorner/.test(o.userData.kind) && Math.abs(o.userData.dims[0] - S) < 0.01 && okY(o) && hz(o.position) < 0.6);
+  if (cube) return { c:cube.position.clone(), cube, rot:cube.rotation.y, grp:cube.userData.grp };
+  for (const t of props.children) { if (!t.visible || !TRUSS[t.userData.kind] || TRUSS[t.userData.kind].S !== S || !okY(t)) continue;
+    const { a, d, L } = segEnds(t), v = p.clone().sub(a), u = v.x * d.x + v.z * d.z;
+    if (Math.abs(v.x * d.z - v.z * d.x) > 0.4 || u < 0.5 || u > L - 0.5 - S) continue;
+    let L1 = THREE.MathUtils.clamp(Math.round(u * 2) / 2, 0.5, L - S - 0.5);
+    if (line) { const cr = (p1, p2) => p1.x * p2.z - p1.z * p2.x, den = cr(d, line.d); if (Math.abs(den) < 1e-6) continue; // axes parallèles : pas de croisement
+      const uc = cr(line.o.clone().sub(a), line.d) / den; // a + uc·d est sur la droite o + s·line.d
+      L1 = uc - S / 2; if (L1 < 0.25 || L1 > L - S - 0.25) continue; }
+    return { c:a.clone().addScaledVector(d, L1 + S / 2).setY(t.position.y), truss:t, L1, rot:t.rotation.y, grp:t.userData.grp }; }
+  return null;
+}
+// coupe un pont en 2 et insère un cube (2 directions) au point de jonction ; les 2 bouts gardent leur position
+function splitTruss(j) {
+  const t = j.truss, k = t.userData.kind, S = TRUSS[k].S, { a, d, L } = segEnds(t), L2 = L - j.L1 - S, grp = t.userData.grp, y = t.position.y;
+  props.remove(t);
+  const mk = (len, at) => { const o = makeProp(k, [len, S, S]); o.userData.grp = grp; o.position.copy(at).setY(y); o.rotation.y = t.rotation.y; };
+  mk(j.L1, a.clone().addScaledVector(d, j.L1 / 2));
+  if (L2 > 0.2) mk(L2, a.clone().addScaledVector(d, j.L1 + S + L2 / 2));
+  const c = makeProp(TRUSS[k].corner, [S, S, S, 2]); c.userData.grp = grp; c.position.copy(j.c).setY(y); c.rotation.y = t.rotation.y;
+  return c;
+}
+const bumpCube = c => rebuildProp(c, [...c.userData.dims.slice(0, 3), (c.userData.dims[3] || 2) + 1]); // une direction de plus
+const mergeGrp = (from, to) => { if (from && from !== to) props.children.forEach(o => { if (o.userData.grp === from) o.userData.grp = to; }); };
 function cableClick(e) {
   const p = floorPoint(e); if (!p) return;
-  if (!cable.start) { cable.start = p; return; }
-  const { a, n, dir, start, pieces, end } = segTo(p), y = cable.start.y;
+  const T = TRUSS[cable.kind];
+  if (!cable.start) {
+    const j = T && trussJoin(p, cable.kind);
+    if (j) { pushUndo(); cable.placed = true; const cube = j.cube || splitTruss(j); // départ sur un pont / cube existant : T ou croix
+      cable.joinCube = cube; cable.fromRot = j.rot; cable.Yabs = cube.position.y; cable.grp = cube.userData.grp || cable.grp; cube.userData.grp = cable.grp;
+      cable.start = cube.position.clone().setY(floorAt(cube.position)); select(null); return; }
+    cable.start = p; return;
+  }
+  let { a, n, dir, start, pieces, end } = segTo(p); const y = cable.start.y;
   if (!cable.placed) { pushUndo(); cable.placed = true; } // un seul ⌘Z annule tout le tracé en cours
-  const T = TRUSS[cable.kind], H = T ? (+$('trussH').value || 0) : 0;
-  for (const pc of pieces) { const c = T ? makeProp(T.corner, DEFAULT[T.corner]) : makeProp('defender_c', [0.3, 0.3, 0.05, pc.side]); c.userData.grp = cable.grp; c.position.copy(pc.pos).setY(y + H); c.rotation.y = pc.rot; }
-  if (T) { const o = makeProp(cable.kind, [n * 0.5, T.S, T.S]); o.userData.grp = cable.grp; o.position.copy(start).addScaledVector(dir, n * 0.25).setY(y + H); o.rotation.y = a; }
+  let joinEnd = null;
+  if (T) { const j = trussJoin(p, cable.kind, trussY(), { o:start, d:dir }); // arrivée sur un pont / cube : longueur exacte au 0,5 m près (15 cm de tolérance)
+    if (j && j.cube !== cable.joinCube) { const v = j.c.clone().sub(start), along = v.x * dir.x + v.z * dir.z, L = along - T.S / 2, Ls = Math.round(L * 2) / 2;
+      if (Math.abs(v.x * dir.z - v.z * dir.x) < 0.3 && Ls >= 0.5 && Math.abs(L - Ls) < 0.15) { n = Ls * 2; joinEnd = j; } } }
+  const TY = T ? trussY() : 0;
+  for (const pc of pieces) { const c = T ? makeProp(T.corner, DEFAULT[T.corner]) : makeProp('defender_c', [0.3, 0.3, 0.05, pc.side]); c.userData.grp = cable.grp; c.position.copy(pc.pos).setY(T ? TY : y); c.rotation.y = pc.rot; }
+  if (T) { const o = makeProp(cable.kind, [n * 0.5, T.S, T.S]); o.userData.grp = cable.grp; o.position.copy(start).addScaledVector(dir, n * 0.25).setY(TY); o.rotation.y = a;
+    if (cable.joinCube) { bumpCube(cable.joinCube); cable.joinCube = null; select(null); } // le cube de départ gagne une direction
+    if (joinEnd) { const c = joinEnd.cube ? joinEnd.cube : splitTruss(joinEnd); mergeGrp(c.userData.grp, cable.grp); c.userData.grp = cable.grp; bumpCube(c); select(null); setCable(false); return; } }
   else if (cable.kind === 'vauban') for (let i = 0; i < n; i++) { // une barrière par pas de 2,20 m
     const o = makeProp('vauban', DEFAULT.vauban); o.userData.grp = cable.grp; o.position.copy(start).addScaledVector(dir, (i + 0.5) * VAUBAN_PITCH).setY(y); o.rotation.y = a; }
   else { const o = makeProp('defender', [n * MOD, 0.29, 0.05]); o.userData.grp = cable.grp;
     o.position.copy(start).addScaledVector(dir, n * MOD / 2).setY(y); o.rotation.y = a; }
-  cable.start = end.setY(y); cable.heading = a; ghosts.forEach(g => g.visible = false); ghostCube.visible = false;
+  cable.start = end.setY(y); cable.heading = a; cable.fromRot = null; ghosts.forEach(g => g.visible = false); ghostCube.visible = false;
 }
 ['sW', 'sD', 'sH'].forEach(id => $(id).onchange = resizeSelected);
 $('unlink').onclick = () => { if (!selected) return; pushUndo(); delete selected.userData.grp; select(selected); };
@@ -1574,7 +1617,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
 const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
