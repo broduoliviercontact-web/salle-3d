@@ -6,7 +6,19 @@
 "x": -74.0,
 "z": 3.22,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV-PMS-1",
+"loc": "",
+"lvl": "",
+"prises": {},
+"data": {
+"XLR audio": 4,
+"DMX": 4,
+"FO multimode": 5,
+"Art-Net": 4
+}
+}
 },
 {
 "id": "BAV-01",
@@ -15,7 +27,22 @@
 "x": -66.81,
 "z": 9.76,
 "y": 8.24,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T10",
+"loc": "",
+"lvl": "R2",
+"prises": {
+"PC 32A mono": 1,
+"PC 16A mono": 2
+},
+"data": {
+"XLR audio": 2,
+"FO multimode": 3,
+"RJ45": 6,
+"SDI": 3
+}
+}
 },
 {
 "id": "BAV-PMS-02",
@@ -24,7 +51,18 @@
 "x": -74.0,
 "z": 2.67,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV-PMS-2",
+"loc": "",
+"lvl": "",
+"prises": {},
+"data": {
+"RJ45": 10,
+"SDI": 5,
+"Synchro": 1
+}
+}
 },
 {
 "id": "BAV-02",
@@ -33,7 +71,21 @@
 "x": -66.13,
 "z": 1.45,
 "y": 8.24,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T5",
+"loc": "",
+"lvl": "R2",
+"prises": {
+"PC 16A mono": 6
+},
+"data": {
+"XLR audio": 4,
+"FO multimode": 6,
+"RJ45": 6,
+"SDI": 2
+}
+}
 },
 {
 "id": "BAV-03",
@@ -42,7 +94,21 @@
 "x": -64.54,
 "z": 3.76,
 "y": 8.24,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T4",
+"loc": "",
+"lvl": "R2",
+"prises": {
+"PC 16A mono": 6
+},
+"data": {
+"XLR audio": 4,
+"SDI": 6,
+"FO multimode": 6,
+"RJ45": 8
+}
+}
 },
 {
 "id": "BAV-04",
@@ -51,7 +117,22 @@
 "x": -66.8,
 "z": -3.9,
 "y": 8.24,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T10",
+"loc": "",
+"lvl": "R2",
+"prises": {
+"PC 32A mono": 1,
+"PC 16A mono": 2
+},
+"data": {
+"XLR audio": 2,
+"FO multimode": 3,
+"RJ45": 6,
+"SDI": 3
+}
+}
 },
 {
 "id": "BAV-05",
@@ -60,7 +141,22 @@
 "x": -69.98,
 "z": 3.17,
 "y": 8.24,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T9",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 32A mono": 1,
+"PC 16A mono": 2
+},
+"data": {
+"XLR audio": 2,
+"FO multimode": 3,
+"RJ45": 4,
+"SDI": 3
+}
+}
 },
 {
 "id": "BAV-06",
@@ -70,7 +166,19 @@
 "z": 2.73,
 "y": null,
 "lead": true,
-"bar": "F1"
+"bar": "F1",
+"detail": {
+"type": "BAV T14",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"XLR audio": 4,
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-07",
@@ -79,7 +187,18 @@
 "x": -79.3,
 "z": 14.78,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T13",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-08",
@@ -88,7 +207,20 @@
 "x": -80.57,
 "z": 10.99,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T8-4/6/8",
+"loc": "",
+"lvl": "R1",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2,
+"Synchro": 1,
+"SDI": 1
+}
+}
 },
 {
 "id": "BAV-09",
@@ -97,7 +229,20 @@
 "x": -80.54,
 "z": -5.15,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T8-4/6/8",
+"loc": "",
+"lvl": "R1",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2,
+"Synchro": 1,
+"SDI": 1
+}
+}
 },
 {
 "id": "BAV-10",
@@ -106,7 +251,18 @@
 "x": -82.73,
 "z": 13.83,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T13",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-11",
@@ -115,7 +271,18 @@
 "x": -83.68,
 "z": 10.37,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T13",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-12",
@@ -124,7 +291,18 @@
 "x": -88.19,
 "z": 15.01,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T13",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-13",
@@ -133,7 +311,18 @@
 "x": -88.21,
 "z": 10.37,
 "y": 4.81,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T13",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-14",
@@ -142,7 +331,18 @@
 "x": -71.79,
 "z": -4.92,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T13",
+"loc": "RDC LOGE SALLE DE MUSIQUE",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-15",
@@ -151,7 +351,21 @@
 "x": -70.44,
 "z": -8.67,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T12",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A mono": 2
+},
+"data": {
+"XLR audio": 4,
+"RJ45": 4,
+"SDI": 2,
+"FO multimode": 3
+}
+}
 },
 {
 "id": "BAV-16",
@@ -160,7 +374,20 @@
 "x": -80.0,
 "z": 10.12,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T8-3/5",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2,
+"Synchro": 1,
+"SDI": 1
+}
+}
 },
 {
 "id": "BAV-17",
@@ -169,7 +396,20 @@
 "x": -78.49,
 "z": 3.06,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T8-4/6/8",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2,
+"Synchro": 1,
+"SDI": 1
+}
+}
 },
 {
 "id": "BAV-18",
@@ -178,7 +418,20 @@
 "x": -79.99,
 "z": -4.25,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T8-3/5",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2,
+"Synchro": 1,
+"SDI": 1
+}
+}
 },
 {
 "id": "BAV-19",
@@ -187,7 +440,18 @@
 "x": -79.07,
 "z": -7.65,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T13",
+"loc": "RDC LOGE PMR",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-20",
@@ -196,7 +460,24 @@
 "x": -82.83,
 "z": 9.24,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T1",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 32A tri": 1,
+"PC 32A mono": 1,
+"PC 16A mono": 2
+},
+"data": {
+"XLR audio": 4,
+"SDI": 2,
+"FO multimode": 6,
+"RJ45": 8,
+"FO monomode": 3
+}
+}
 },
 {
 "id": "BAV-21",
@@ -205,7 +486,20 @@
 "x": -82.82,
 "z": 8.23,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T8-1/2",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 5
+},
+"data": {
+"XLR audio": 2,
+"Synchro": 1,
+"FO multimode": 2
+}
+}
 },
 {
 "id": "BAV-22",
@@ -214,7 +508,20 @@
 "x": -83.74,
 "z": -2.42,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T8-1/2",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 5
+},
+"data": {
+"XLR audio": 2,
+"Synchro": 1,
+"FO multimode": 2
+}
+}
 },
 {
 "id": "BAV-23",
@@ -223,7 +530,24 @@
 "x": -82.81,
 "z": -3.61,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T1",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 32A tri": 1,
+"PC 32A mono": 1,
+"PC 16A mono": 2
+},
+"data": {
+"XLR audio": 4,
+"SDI": 2,
+"FO multimode": 6,
+"RJ45": 8,
+"FO monomode": 3
+}
+}
 },
 {
 "id": "BAV-24",
@@ -232,7 +556,18 @@
 "x": -86.89,
 "z": 9.96,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T2",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 2
+},
+"data": {
+"RJ45": 4
+}
+}
 },
 {
 "id": "BAV-25",
@@ -241,7 +576,18 @@
 "x": -87.14,
 "z": -4.99,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T13",
+"loc": "RDC LOGE RAPIDE",
+"lvl": "",
+"prises": {
+"PC 16A mono": 1
+},
+"data": {
+"RJ45": 2
+}
+}
 },
 {
 "id": "BAV-26",
@@ -250,7 +596,20 @@
 "x": -88.64,
 "z": 9.76,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T3",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 2,
+"PC 32A mono": 1
+},
+"data": {
+"XLR audio": 4,
+"FO multimode": 3
+}
+}
 },
 {
 "id": "BAV-27",
@@ -259,7 +618,18 @@
 "x": -89.38,
 "z": -3.93,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T2",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 2
+},
+"data": {
+"RJ45": 4
+}
+}
 },
 {
 "id": "BAV-28",
@@ -268,7 +638,20 @@
 "x": -89.19,
 "z": -3.58,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BAV T3",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 2,
+"PC 32A mono": 1
+},
+"data": {
+"XLR audio": 4,
+"FO multimode": 3
+}
+}
 },
 {
 "id": "BECL-01",
@@ -277,7 +660,16 @@
 "x": -66.23,
 "z": 2.68,
 "y": 8.24,
-"lead": true
+"lead": true,
+"detail": {
+"type": "ECL T9 & T13",
+"loc": "",
+"lvl": "R2",
+"prises": {
+"PC 16A mono": 6
+},
+"data": {}
+}
 },
 {
 "id": "BECL-02",
@@ -287,7 +679,19 @@
 "z": 7.44,
 "y": null,
 "lead": true,
-"bar": "S1"
+"bar": "S1",
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "LISSE SALLE MILIEU",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-03",
@@ -297,7 +701,16 @@
 "z": 5.7,
 "y": null,
 "lead": true,
-"bar": "S1"
+"bar": "S1",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE SALLE MILIEU",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-04",
@@ -307,7 +720,16 @@
 "z": 4.1,
 "y": null,
 "lead": true,
-"bar": "S1"
+"bar": "S1",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE SALLE MILIEU",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-05",
@@ -317,7 +739,16 @@
 "z": 1.86,
 "y": null,
 "lead": true,
-"bar": "S1"
+"bar": "S1",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE SALLE MILIEU",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-06",
@@ -327,7 +758,16 @@
 "z": 0.28,
 "y": null,
 "lead": true,
-"bar": "S1"
+"bar": "S1",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE SALLE MILIEU",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-07",
@@ -337,7 +777,18 @@
 "z": -1.62,
 "y": null,
 "lead": true,
-"bar": "S1"
+"bar": "S1",
+"detail": {
+"type": "BECL T1 & T10",
+"loc": "LISSE SALLE MILIEU",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-08",
@@ -347,7 +798,19 @@
 "z": 7.44,
 "y": null,
 "lead": true,
-"bar": "F1"
+"bar": "F1",
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "LISSE FACE SCENE",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-09",
@@ -357,7 +820,16 @@
 "z": 5.01,
 "y": null,
 "lead": true,
-"bar": "F1"
+"bar": "F1",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE FACE SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-10",
@@ -367,7 +839,16 @@
 "z": 3.56,
 "y": null,
 "lead": true,
-"bar": "F1"
+"bar": "F1",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE FACE SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-11",
@@ -377,7 +858,16 @@
 "z": 2.3,
 "y": null,
 "lead": true,
-"bar": "F1"
+"bar": "F1",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE FACE SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-12",
@@ -387,7 +877,16 @@
 "z": 0.9,
 "y": null,
 "lead": true,
-"bar": "F1"
+"bar": "F1",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE FACE SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-13",
@@ -397,7 +896,18 @@
 "z": -1.62,
 "y": null,
 "lead": true,
-"bar": "F1"
+"bar": "F1",
+"detail": {
+"type": "BECL T1 & T10",
+"loc": "LISSE FACE SCENE",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-14",
@@ -407,7 +917,19 @@
 "z": 9.85,
 "y": null,
 "lead": true,
-"bar": "F2"
+"bar": "F2",
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-15",
@@ -417,7 +939,19 @@
 "z": 7.44,
 "y": null,
 "lead": true,
-"bar": "F2"
+"bar": "F2",
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "LISSE MILIEU SCENE",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-16",
@@ -427,7 +961,16 @@
 "z": 5.01,
 "y": null,
 "lead": true,
-"bar": "F2"
+"bar": "F2",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE MILIEU SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-17",
@@ -437,7 +980,16 @@
 "z": 3.56,
 "y": null,
 "lead": true,
-"bar": "F2"
+"bar": "F2",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE MILIEU SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-18",
@@ -447,7 +999,16 @@
 "z": 2.3,
 "y": null,
 "lead": true,
-"bar": "F2"
+"bar": "F2",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE MILIEU SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-19",
@@ -457,7 +1018,16 @@
 "z": 0.9,
 "y": null,
 "lead": true,
-"bar": "F2"
+"bar": "F2",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE MILIEU SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-20",
@@ -467,7 +1037,18 @@
 "z": -1.62,
 "y": null,
 "lead": true,
-"bar": "F2"
+"bar": "F2",
+"detail": {
+"type": "BECL T1 & T10",
+"loc": "LISSE MILIEU SCENE",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-21",
@@ -477,7 +1058,19 @@
 "z": -3.94,
 "y": null,
 "lead": true,
-"bar": "F2"
+"bar": "F2",
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-22",
@@ -487,7 +1080,19 @@
 "z": 9.85,
 "y": null,
 "lead": true,
-"bar": "F3"
+"bar": "F3",
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-23",
@@ -497,7 +1102,19 @@
 "z": 7.44,
 "y": null,
 "lead": true,
-"bar": "F3"
+"bar": "F3",
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "LISSE LOINTAIN SCENE",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-24",
@@ -507,7 +1124,16 @@
 "z": 5.01,
 "y": null,
 "lead": true,
-"bar": "F3"
+"bar": "F3",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE LOINTAIN SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-25",
@@ -517,7 +1143,16 @@
 "z": 3.56,
 "y": null,
 "lead": true,
-"bar": "F3"
+"bar": "F3",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE LOINTAIN SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-26",
@@ -527,7 +1162,16 @@
 "z": 2.3,
 "y": null,
 "lead": true,
-"bar": "F3"
+"bar": "F3",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE LOINTAIN SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-27",
@@ -537,7 +1181,16 @@
 "z": 0.9,
 "y": null,
 "lead": true,
-"bar": "F3"
+"bar": "F3",
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE LOINTAIN SCENE",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-28",
@@ -547,7 +1200,18 @@
 "z": -1.62,
 "y": null,
 "lead": true,
-"bar": "F3"
+"bar": "F3",
+"detail": {
+"type": "BECL T1 & T10",
+"loc": "LISSE LOINTAIN SCENE",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-29",
@@ -557,7 +1221,19 @@
 "z": -3.94,
 "y": null,
 "lead": true,
-"bar": "F3"
+"bar": "F3",
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-30",
@@ -566,7 +1242,16 @@
 "x": -82.28,
 "z": 9.04,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE VERTICALE JARDIN",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-31",
@@ -575,7 +1260,16 @@
 "x": -81.56,
 "z": -4.23,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T1",
+"loc": "LISSE VERTICALE COUR",
+"lvl": "R2",
+"prises": {
+"PC 16A direct commandée": 4
+},
+"data": {}
+}
 },
 {
 "id": "BECL-32",
@@ -584,7 +1278,19 @@
 "x": -81.23,
 "z": 9.76,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "LISSE VERTICALE JARDIN",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-33",
@@ -593,7 +1299,19 @@
 "x": -82.26,
 "z": -3.34,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T1 & T11",
+"loc": "LISSE VERTICALE COUR",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"Art-Net": 1,
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-34",
@@ -620,7 +1338,14 @@
 "x": -83.54,
 "z": 9.96,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T4",
+"loc": "",
+"lvl": "",
+"prises": {},
+"data": {}
+}
 },
 {
 "id": "BECL-37",
@@ -629,7 +1354,14 @@
 "x": -83.01,
 "z": 9.73,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T5",
+"loc": "PLATEAU FACE JARDIN",
+"lvl": "",
+"prises": {},
+"data": {}
+}
 },
 {
 "id": "BECL-38",
@@ -638,7 +1370,19 @@
 "x": -83.25,
 "z": 9.15,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T8 &T11",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 4
+},
+"data": {
+"DMX": 1,
+"Art-Net": 2
+}
+}
 },
 {
 "id": "BECL-39",
@@ -647,7 +1391,22 @@
 "x": -83.05,
 "z": 8.74,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T3 & T6 & T12",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 32A tri": 1,
+"PC 32A mono": 1,
+"PC 16A mono": 2,
+"PC 16A direct commandée": 12
+},
+"data": {
+"DMX": 2,
+"Art-Net": 2
+}
+}
 },
 {
 "id": "BECL-40",
@@ -656,7 +1415,22 @@
 "x": -83.27,
 "z": -2.9,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T3 & T6 & T12",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 32A tri": 1,
+"PC 32A mono": 1,
+"PC 16A mono": 2,
+"PC 16A direct commandée": 12
+},
+"data": {
+"DMX": 2,
+"Art-Net": 2
+}
+}
 },
 {
 "id": "BECL-41",
@@ -665,7 +1439,19 @@
 "x": -83.27,
 "z": -3.32,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T8 &T11",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 16A mono": 4
+},
+"data": {
+"DMX": 1,
+"Art-Net": 2
+}
+}
 },
 {
 "id": "BECL-42",
@@ -674,7 +1460,14 @@
 "x": -83.0,
 "z": -3.9,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T5",
+"loc": "PLATEAU FACE  COUR",
+"lvl": "",
+"prises": {},
+"data": {}
+}
 },
 {
 "id": "BECL-43",
@@ -683,7 +1476,18 @@
 "x": -87.39,
 "z": 9.75,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T1 & T10",
+"loc": "PLATEAU MILIEU JARDIN",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-44",
@@ -692,7 +1496,22 @@
 "x": -89.16,
 "z": 9.76,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T3 & T6 & T12",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 32A tri": 1,
+"PC 32A mono": 1,
+"PC 16A mono": 2,
+"PC 16A direct commandée": 12
+},
+"data": {
+"DMX": 2,
+"Art-Net": 2
+}
+}
 },
 {
 "id": "BECL-45",
@@ -701,7 +1520,18 @@
 "x": -88.53,
 "z": -3.93,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T1 & T10",
+"loc": "PLATEAU LOINTAIN COUR",
+"lvl": "",
+"prises": {
+"PC 16A direct commandée": 8
+},
+"data": {
+"DMX": 1
+}
+}
 },
 {
 "id": "BECL-46",
@@ -710,7 +1540,22 @@
 "x": -88.72,
 "z": -3.58,
 "y": 1.86,
-"lead": true
+"lead": true,
+"detail": {
+"type": "BECL T3 & T6 & T12",
+"loc": "",
+"lvl": "R0",
+"prises": {
+"PC 32A tri": 1,
+"PC 32A mono": 1,
+"PC 16A mono": 2,
+"PC 16A direct commandée": 12
+},
+"data": {
+"DMX": 2,
+"Art-Net": 2
+}
+}
 },
 {
 "id": "HP-01",

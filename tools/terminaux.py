@@ -1,6 +1,8 @@
 # 10. Boîtiers AV / éclairage scénique / enceintes de l'auditorium, relevés sur les plans des terminaux audiovisuels (lot 22, INE)
 #     LGS2_INE_EXE_22_TER_AU_R0_0600, R1_0601, R2_0602 (PDF vectoriels, 1:50) -> ../terminaux_au.json
-#     usage : python tools/terminaux.py <dossier contenant les 3 PDF>   (nécessite pymupdf)
+#     usage : python tools/terminaux.py <dossier contenant les 3 PDF et le carnet 0606>   (nécessite pymupdf)
+#     Contenu des boîtiers : carnet de détails des boîtiers AV (DET_AU_TN_0606) ; le texte des plaques (prises, connecteurs) est vectoriel,
+#     les tableaux de circuits (ADC-02-P1…) sont des images : on garde par boîtier son type, sa localisation, son niveau et la plaque de son type.
 #     Calage par les axes du plan : a05 -> a04 = 7,05 m (échelle), axe a04 = mur du cadre de scène (IFC : linteau x −82,84…−82,64),
 #     axe de scène (milieu de ae / ad) = z 2,9 (milieu des murs de cage dans l'IFC) ; le haut du plan est le côté −z (mur ext. dissymétrique).
 #     Chaque étiquette (BAV-xx…) est reliée à son symbole par une ligne de rappel : on la suit jusqu'au bout, puis on prend le symbole le plus proche.
@@ -64,6 +66,39 @@ for lvl, num in (("R0", "0600"), ("R1", "0601"), ("R2", "0602")):
     f = glob.glob(os.path.join(src, f"*TER_AU_{lvl}_{num}*.pdf"))[0]
     for o in plan(f, lvl):
         if not any(r["id"] == o["id"] for r in res): res.append(o)  # une étiquette répétée dans une vue de détail : on garde le plan
+# --- carnet de détails : une page par type de boîtier (texte vertical, repères en colonnes)
+def carnet(path):
+    out, d = {}, fitz.open(path)
+    for pg in list(d)[2:]:
+        L = [(l["bbox"], " ".join(x["text"] for x in l["spans"]).strip()) for b in pg.get_text("dict")["blocks"] for l in b.get("lines", [])]
+        L = [(b, t) for b, t in L if t]
+        title = next((t for b, t in L if re.fullmatch(r"B?ECL T.*|BAV T.*|BECL-PMS|BAV-PMS-\d", t)), "")
+        near = lambda b, t2, dx=12: min((abs(c[0] - b[0]) + abs(c[1] - b[1]) / 10, u) for c, u in L if u == t2) if any(u == t2 for c, u in L) else None
+        # plaque du type : prises (texte sur les symboles) et connecteurs data
+        txt = [t for b, t in L]; pr = {}
+        for b, t in L:
+            if t in ("2P+T", "3P+N+T"):
+                amp = min(((abs(c[0] - b[0]) + abs(c[1] - b[1]), u) for c, u in L if u in ("16A", "32A")), default=(0, "?"))[1]
+                k = f"PC {amp} " + ("tri" if t == "3P+N+T" else "mono"); pr[k] = pr.get(k, 0) + 1
+        adc = sum(1 for t in txt if re.fullmatch(r"ADC\s*-\s*xx\s*-\s*xx", t))
+        if adc: pr["PC 16A direct commandée"] = pr.get("PC 16A direct commandée", 0) + 2 * adc  # bloc orange : prise double
+        data = {}
+        for t in set(txt):
+            m = re.fullmatch(r"(DMX|ART|ETH|AUD|MMO|SMO|VID|SYNCH?)[-\w]*", t)
+            if m: k = {"DMX":"DMX", "ART":"Art-Net", "ETH":"RJ45", "AUD":"XLR audio", "MMO":"FO multimode", "SMO":"FO monomode", "VID":"SDI", "SYN":"Synchro", "SYNCH":"Synchro"}[m.group(1)]; data[k] = data.get(k, 0) + 1
+        for b, t in L:
+            if not re.fullmatch(r"(BECL|BAV|HP)-(PMS(-\d+)?|\d+)", t): continue
+            locs = [(c[0] - b[0], u) for c, u in L if 3 < c[0] - b[0] < 30 and 0 < b[1] - c[1] < 140 and re.fullmatch(r"[A-ZÉÈ' ]{4,}", u) and re.search(r"LISSE|PLATEAU|R[ÉE]GIE|LOGE|GRADIN|FOYER|SALLE|CADRE|COULISSE|LOGGIA|PASSERELLE|SC[ÈE]NE", u)]
+            lv = [u for c, u in L if abs(c[0] - b[0]) < 12 and c[1] < b[1] and re.fullmatch(r"R[0-3]", u)]
+            out[t] = dict(type=title, loc=min(locs)[1] if locs else "", lvl=lv[0] if lv else "", prises=pr, data=data)
+    return out
+bk = glob.glob(os.path.join(src, "*0606*.pdf"))
+if bk:
+    det = carnet(bk[0])
+    for o in res:
+        k = o["id"].replace("BAV-PMS-0", "BAV-PMS-")
+        if k in det and o["kind"] != "HP": o["detail"] = det[k]  # dans le carnet, HP-01… sont des sorties enceintes d'un boîtier, pas des boîtiers
+    print(sum("detail" in o for o in res), "boîtiers décrits par le carnet")
 res.sort(key=lambda o: (o["kind"], int(re.findall(r"\d+", o["id"])[-1])))
 json.dump(res, open(os.path.join(ROOT, "terminaux_au.json"), "w"), indent=0, ensure_ascii=False)
 for o in res: print(o["lvl"], o["id"], o["x"], o["z"], o.get("bar", ""), "" if o["lead"] else "(sans ligne de rappel)")

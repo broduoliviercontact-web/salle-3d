@@ -22,7 +22,7 @@
   .row input[type=number] { width:58px; }
   .grow { flex:1; }
   label.cb { display:flex; gap:6px; align-items:center; }
-  #sel { color:var(--acc); min-height:1.4em; }
+  #sel { color:var(--acc); min-height:1.4em; white-space:pre-line; }
   #catalog { width:min(920px, 94vw); max-height:84vh; padding:0; background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:10px; }
   #catalog::backdrop { background:rgba(0,0,0,.55); }
   .cat-head { position:sticky; top:0; display:flex; gap:10px; align-items:center; padding:12px 14px; background:var(--panel); border-bottom:1px solid var(--line); z-index:1; }
@@ -65,6 +65,7 @@
   <div class="row" data-salle="agora"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
   <div class="row"><button id="gsBtn" class="grow" title="4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour ; se pose au centre de la vue">Gril ground support</button><select id="gsSeries"><option value="truss30">290</option><option value="truss40">390</option></select></div>
   <div class="row">Ponts <input type="number" id="gsW" value="10" step="0.5" style="width:48px"> × <input type="number" id="gsD" value="8" step="0.5" style="width:48px"> m, cadre à <input type="number" id="gsH" value="6" step="0.5" style="width:48px"> m</div>
+  <div class="row" data-salle="audi" hidden><button id="conqueBtn" class="grow" title="Les 6 décors d'orchestre mobiles en configuration concert (rangés sinon sur le mur du lointain)">Conques d'orchestre</button><button id="gcBtn" class="grow" title="Proposition d'implantation de la liste lumière Gaspar Claus (24 projecteurs + brouillard) sur F1, F2, F3, S1 et au plateau, reliée aux boîtiers BECL ; pose aussi les cintres s'ils manquent">Plan de feu Gaspar Claus</button></div>
   <div class="row" data-salle="audi" hidden><button id="audiCintres" class="grow" title="Les 8 équipes motorisées des plans TAMBE (F1–F3, C1–C2, S1, LJ, LC) avec leur CMU et leur course ; remplace celles déjà posées">Cintres motorisés de l'auditorium</button></div>
   <div class="row"><button id="percheBtn" class="grow" title="Perches parallèles au nez de la dernière scène posée (sinon au centre de la vue), numérotées du nez vers le lointain">Perches en série</button></div>
   <div class="row"><input type="number" id="percheN" value="8" min="1" max="60" style="width:44px"> perches de <input type="number" id="percheL" value="12" step="0.5" style="width:48px"> m, tous les <input type="number" id="percheE" value="0.5" step="0.05" min="0.15" style="width:50px"> m</div>
@@ -295,9 +296,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { truss30t:0xc9ced6, truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { truss30t:'Pont alu triangulaire 290', truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { truss30t:[3, 0.29, 0.29], tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29, 2], tcorner40:[0.39, 0.39, 0.39, 2], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { truss30t:0xc9ced6, truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a, patience:0x7a1420, conque:0xb08a5a };
+const LABELS = { truss30t:'Pont alu triangulaire 290', truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne', patience:'Patience motorisée (rideau d\'avant-scène)', conque:'Décor d\'orchestre mobile (conque)' };
+const DEFAULT = { truss30t:[3, 0.29, 0.29], tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29, 2], tcorner40:[0.39, 0.39, 0.39, 2], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8], patience:[13.8, 0.3, 9.5], conque:[1.46, 0.6, 4.52] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -418,7 +419,9 @@ const WEIGHT = { tower:115, hoist:24, tcorner30:6, tcorner40:9, pc1k:5, sx713:13
 // écran LED : dalles de 50 × 50 cm, ~8 kg et ~150 W en moyenne chacune (ordre de grandeur, selon le modèle loué)
 const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData.dims[2] / 0.5);
 const MOD = 1.005, modules = o => Math.max(1, Math.round(o.userData.dims[0] / MOD)); // passe-câbles Defender Mini : modules de 1 005 mm, 6 kg
-const weightOf = o => TRUSS[o.userData.kind] ? o.userData.dims[0] * TRUSS[o.userData.kind].kgm : o.userData.kind === 'perche' ? o.userData.dims[0] * 3.6 : o.userData.kind === 'led' ? dalles(o) * 8 : o.userData.kind === 'defender' ? modules(o) * 6 : o.userData.kind === 'defender_c' ? 3 : WEIGHT[o.userData.kind] || 0; // angle C : ≈ 3 kg (non précisé)
+const flipped = q => Math.abs(q.rotation.z) > 1.5 || Math.abs(q.rotation.x) > 1.5; // projecteur accroché tête en bas : la platine (origine) est en haut
+const topOf = q => flipped(q) ? q.position.y : q.position.y + (q.userData.dims[2] || 0), bottomOf = q => flipped(q) ? q.position.y - (q.userData.dims[2] || 0) : q.position.y;
+const weightOf = o => TRUSS[o.userData.kind] ? o.userData.dims[0] * TRUSS[o.userData.kind].kgm : o.userData.kind === 'perche' ? o.userData.dims[0] * 3.6 + (+o.userData.dims[7] || 0) : o.userData.kind === 'led' ? dalles(o) * 8 : o.userData.kind === 'defender' ? modules(o) * 6 : o.userData.kind === 'defender_c' ? 3 : WEIGHT[o.userData.kind] || 0; // angle C : ≈ 3 kg (non précisé)
 const isFlown = o => o.position.y - floorAt(o.position) > 2.5; // ponytail: accroché = à plus de 2,5 m du sol (Agora ≈ 0, plateau de l'auditorium 1,86 m)
 function charges() {
   let up = 0, down = 0;
@@ -599,6 +602,12 @@ function buildPerche(dims) { // tube + élingues tous les ≈ 3 m vers le gril (
   return [m, c];
 }
 // la chaîne monte jusqu'au point d'accroche (userData.top, en m monde, fixé à la pose) : elle s'allonge quand on descend le pont
+// contenu d'un boîtier (carnet de détails 0606) : localisation, type, plaque
+function termInfo(o) {
+  const d = o.userData.term?.detail; if (!d) return '';
+  const list = m => Object.entries(m).map(([k, n]) => `${n}× ${k}`).join(', ');
+  return [d.loc && ` · ${d.loc.replace(/\s+/g, ' ').toLowerCase()}`, d.type && ` · type ${d.type}`, Object.keys(d.prises).length && `\nPrises : ${list(d.prises)}`, Object.keys(d.data).length && `\nConnecteurs : ${list(d.data)}`].filter(Boolean).join('');
+}
 function syncTerm() { // boîtiers des porteuses : sous leur équipe si elle est posée, sinon au point haut (9,20 m du plateau)
   const g = termGroup(); if (!g || !g.visible) return; const bars = {};
   for (const o of props.children) if (o.userData.kind === 'perche' && typeof o.userData.dims[3] === 'string') bars[o.userData.dims[3]] = o.position.y;
@@ -611,7 +620,23 @@ function syncChains() { syncTerm();
     const a = c.geometry.attributes.position; for (let i = k === 'hoist' ? 3 : 1; i < a.count; i += k === 'hoist' ? 99 : 2) a.setY(i, len); // haut de la chaîne / des élingues
     a.needsUpdate = true; c.geometry.computeBoundingSphere(); c.userData.len = len; }
 }
-const BUILD = { truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+// patience motorisée d'avant-scène (plan TAMBE 0615) : rail Trumpf + 2 rideaux de velours massés de chaque côté (ouverte)
+function buildPatience([L, d, H]) {
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(L, 0.08, 0.1), dark(0x222222)); rail.position.y = H + 0.04;
+  const vel = new THREE.MeshStandardMaterial({ color:0x7a1420, roughness:0.95 }), out = [rail];
+  for (const sx of [-1, 1]) for (let i = 0; i < 7; i++) { // plis : demi-cylindres serrés sur 1,43 m (massé)
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, H, 8, 1, false, 0, Math.PI), vel); p.position.set(sx * (L / 2 - 0.1 - i * 0.2), H / 2, 0); out.push(p); }
+  return out;
+}
+// décor d'orchestre mobile (plans TAMBE 0614 / 1614) : panneau frêne 1,46 × 4,52 m sur structure alu + bracons
+function buildConque([w, d, h]) {
+  const pan = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), new THREE.MeshStandardMaterial({ color:0xb08a5a, roughness:0.7 })); pan.position.set(0, h / 2, 0.1);
+  const out = [pan], alu = dark(0x111111);
+  for (const x of [-w / 2 + 0.1, w / 2 - 0.1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.04, h * 0.95, 0.04), alu); b.position.set(x, h * 0.47, 0.05);
+    const br = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, Math.hypot(d, h * 0.4)), alu); br.position.set(x, h * 0.2, -d / 2 + 0.1); br.rotation.x = -Math.atan2(h * 0.4, d); out.push(b, br); }
+  return out;
+}
+const BUILD = { patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -834,7 +859,7 @@ function percheRig() {
   for (const o of props.children) { if (!o.visible || o.userData.kind !== 'perche') continue;
     const { a, d, L } = segEnds(o), loads = [];
     for (const q of props.children) { if (!q.visible || RIG_SELF.has(q.userData.kind) || !weightOf(q) || fromTruss.has(q) || loads.includes(q)) continue;
-      if (q.position.y + (q.userData.dims[2] || 0) < o.position.y - 0.5 || q.position.y - floorAt(q.position) < 0.2) continue; // accroché sous la perche (haut de l'élément à ≤ 0,5 m), pas posé au sol : reste compté au point bas
+      if (topOf(q) < o.position.y - 0.5 || bottomOf(q) - floorAt(q.position) < 0.2) continue; // accroché sous la perche (haut de l'élément à ≤ 0,5 m), pas posé au sol : reste compté au point bas
       const v = q.position.clone().sub(a), t = v.x * d.x + v.z * d.z;
       if (t > -0.3 && t < L + 0.3 && Math.abs(v.x * d.z - v.z * d.x) < 0.5 && q.position.y < o.position.y + 0.2) { loads.push(q); trussAssigned.add(q); } }
     out.push({ o, loads, cap:+o.userData.dims[4] || cap, kg:weightOf(o) + loads.reduce((s, q) => s + weightOf(q), 0) }); }
@@ -854,7 +879,7 @@ function syncLift(o = selected) { const t = liftTarget(o); $('liftRow').hidden =
 // monte / descend tout le pont : ponts, cubes, moteurs (crochets), charges accrochées dessous ; en ground support, les manchons glissent sur les tours
 function liftBy(dy) {
   const t = liftTarget(selected); if (!t) return;
-  if (t.perche) { const [,,,, , lo = 0.3, hi = Infinity] = t.perche.userData.dims; const ld = percheRig().find(r => r.o === t.perche)?.loads || [], room = Math.min(Infinity, ...ld.map(q => q.position.y - floorAt(q.position) - 0.3)); // la charge la plus basse s'arrête à 0,3 m du sol
+  if (t.perche) { const [,,,, , lo = 0.3, hi = Infinity] = t.perche.userData.dims; const ld = percheRig().find(r => r.o === t.perche)?.loads || [], room = Math.min(Infinity, ...ld.map(q => bottomOf(q) - floorAt(q.position) - 0.3)); // la charge la plus basse s'arrête à 0,3 m du sol
     dy = Math.max(THREE.MathUtils.clamp(t.y + dy, lo, hi) - t.y, Math.min(0, -room)); /* course de l'équipe */ for (const o of [t.perche, ...ld]) o.position.y += dy; syncLift(); return; }
   const towers = props.children.filter(o => o.userData.grp === t.g && o.userData.kind === 'tower');
   const maxY = towers.length ? Math.min(...towers.map(o => o.userData.dims[2] - 1)) : Infinity; // le cadre reste sous la tête des tours
@@ -888,16 +913,70 @@ $('percheBtn').onclick = () => {
 // --- cintres motorisés de l'auditorium (plans TAMBE 0003, 0004, 0680, 0691-0693) : cotes depuis le cadre de scène a04 vers le lointain a05 (7,05 m),
 // gril (niv. 64,05) à 10,48 m au-dessus du plateau. Axe a04 = mur du cadre de scène (linteau IFC x −82,84…−82,64, recoupé sur les plans des terminaux 1:50), axe de scène au milieu de la cage (z 2,9)
 const A04 = -82.74, AXE_AU = 2.9, GRIL_AU = 10.48;
-// [nom, distance au cadre vers le lointain (m ; négatif = en salle), longueur, CMU (kg ≈ daN), point bas, point haut (m / plateau), décalage cour/jardin, le long de la profondeur]
-const EQUIPES_AU = [['F1', 0.77, 12, 350, 1, 9.2], ['F2', 3.32, 12, 350, 1, 9.2], ['C2', 3.9, 10.4, 1500, 0.2, 9.2], ['C1', 5.29, 10.4, 1500, 0.2, 9.2], ['F3', 6.38, 12, 350, 1, 9.2],
+// [nom, distance au cadre vers le lointain (m ; négatif = en salle), longueur, CMU (kg ≈ daN), point bas, point haut (m / plateau), décalage cour/jardin, le long de la profondeur, charge fixe]
+// C1 + C2 portent la conque de scène 1 (plan 0611 : 1 290 kg, 9,2 × 2,2 m) : 645 kg chacune ; la conque 2 et les 3 réflecteurs de salle pendent sur câbles fixes (déjà dans l'IFC)
+const EQUIPES_AU = [['F1', 0.77, 12, 350, 1, 9.2], ['F2', 3.32, 12, 350, 1, 9.2], ['C2', 3.9, 10.4, 1500, 0.2, 9.2, 0, false, 645], ['C1', 5.29, 10.4, 1500, 0.2, 9.2, 0, false, 645], ['F3', 6.38, 12, 350, 1, 9.2],
   ['S1', -3.5, 10.4, 350, 1.8, 9.2], ['LC', 3.6, 5.5, 350, 1, 9.2, -6.45, true], ['LJ', 3.6, 5.5, 350, 1, 9.2, 6.45, true]]; // cour = −z (à droite vu de la salle)
 function percheName(d) { return typeof d[3] === 'string' ? `Équipe ${d[3]}` : `Perche${d[3] ? ' ' + d[3] : ''}`; }
-$('audiCintres').onclick = () => {
-  pushUndo(); select(null); for (const o of props.children.filter(o => o.userData.grp === 'Cintres auditorium')) props.remove(o);
-  const fy = floorAt(new THREE.Vector3(A04 - 3, 0, AXE_AU)); // plateau
-  for (const [n, d, L, cap, lo, hi, dz = 0, alongX] of EQUIPES_AU) { const p = makeProp('perche', [L, 0.05, 0.05, n, cap, lo, hi]); p.userData.grp = 'Cintres auditorium';
+const plateauAU = () => floorAt(new THREE.Vector3(A04 - 3, 0, AXE_AU));
+function placeCintres() { // équipes + équipement fixe de cage : écran polichinelle (0610 : image 9,6 × 6 m, de 2 à 8 m, à 5,87 m du cadre) et patience (0615 : rail à 9,57 m, à 0,43 m)
+  select(null);
+  for (const o of props.children.filter(o => o.userData.grp === 'Cintres auditorium' || o.userData.kind === 'patience' || (o.userData.kind === 'ecran' && Math.abs(o.position.x - (A04 - 5.87)) < 0.3))) props.remove(o);
+  const fy = plateauAU();
+  for (const [n, d, L, cap, lo, hi, dz = 0, alongX, fix = 0] of EQUIPES_AU) { const p = makeProp('perche', [L, 0.05, 0.05, n, cap, lo, hi, fix]); p.userData.grp = 'Cintres auditorium';
     p.position.set(A04 - d, fy + hi, AXE_AU + dz); p.rotation.y = alongX ? 0 : Math.PI / 2; p.userData.top = fy + GRIL_AU; } // rangées au point haut
+  const e = makeProp('ecran', [9.6, 0.1, 6]); e.position.set(A04 - 5.87, fy + 0.5, AXE_AU); e.rotation.y = Math.PI / 2; // bas d'écran à 1,5 m au-dessus de l'origine
+  const pa = makeProp('patience', [13.8, 0.3, 9.57]); pa.position.set(A04 - 0.43, fy, AXE_AU); pa.rotation.y = Math.PI / 2;
+}
+$('audiCintres').onclick = () => { pushUndo(); placeCintres(); };
+// décors d'orchestre mobiles (×6) en configuration concert, relevés sur le plan des terminaux R0 (rangés sinon sur le mur du lointain)
+const CONQUES = [[5.39, -4.05], [3.54, -4.53], [1.7, -5.0]]; // [distance au cadre, décalage vers cour] ; symétriques côté jardin
+$('conqueBtn').onclick = () => {
+  pushUndo(); select(null); for (const o of props.children.filter(o => o.userData.kind === 'conque')) props.remove(o);
+  const fy = plateauAU(), a = Math.atan2(0.81, 1.36); // panneaux ouverts à ≈ 31° vers la salle
+  for (const [d, dz] of CONQUES) for (const sd of [1, -1]) { const c = makeProp('conque', DEFAULT.conque); c.position.set(A04 - d, fy, AXE_AU + sd * dz); c.rotation.y = sd > 0 ? a : Math.PI - a; }
 };
+// --- plan de feu Gaspar Claus (liste de location V.2) : proposition d'implantation sur les équipes et au plateau, chaque appareil relié au boîtier le plus proche
+// [kind, équipe ou null (sol), distance au cadre (sol), décalages vers jardin (+z), orientation (rad, face avant +z locale)]
+const FACE = -Math.PI / 2, CONTRE = Math.PI / 2;
+const GC_PLAN = [
+  ['sx713', 'S1', 0, [-1.8, -0.6, 0.6, 1.8], FACE],      // faces depuis la salle (713 SX, longue portée)
+  ['pc1k', 'F1', 0, [-3, -1, 1, 3], FACE],               // face proche / douches
+  ['sx654', 'F2', 0, [-2.5, 0, 2.5], FACE],              // découpes sur grill
+  ['lyreprof', 'F3', 0, [-3, 0, 3], CONTRE],             // lyres découpe en contre
+  ['sx654', null, 2, [6.2, -6.2], null],                 // latéraux au sol (jardin / cour), face au milieu
+  ['sx654', null, 4.5, [6.2, -6.2], null],
+  ['sx654', null, 6.6, [-0.7], CONTRE],                  // contre au sol
+  ['lyreprof', null, 6.3, [-3.6, -1.2, 1.2, 3.6], CONTRE], // lyres au sol, ligne de lointain
+  ['atomic', null, 6.6, [0.7], CONTRE],
+  ['fog', null, 6.3, [6.2], Math.PI],                    // brouillard en coulisse jardin
+];
+$('gcBtn').onclick = () => {
+  pushUndo(); select(null);
+  if (!props.children.some(o => o.userData.grp === 'Cintres auditorium')) placeCintres();
+  for (const o of props.children.filter(o => o.userData.gc)) props.remove(o);
+  const fy = plateauAU(), bar = n => props.children.find(o => o.userData.kind === 'perche' && o.userData.dims[3] === n);
+  for (const [kind, b, d, zs, rot] of GC_PLAN) for (const dz of zs) {
+    const o = makeProp(kind, DEFAULT[kind]); o.userData.gc = true;
+    if (b) { const p = bar(b); o.position.set(p.position.x, p.position.y - 0.06, AXE_AU + dz); o.rotation.set(0, rot, Math.PI); } // tête en bas sous la porteuse
+    else { o.position.set(A04 - d, fy, AXE_AU + dz); o.rotation.y = rot ?? (dz > 0 ? Math.PI : 0); }
+  }
+};
+// boîtier d'éclairage le plus proche : sur sa porteuse pour un appareil accroché (BECL de la même équipe), sinon le plus proche au plateau
+const LIGHTS = new Set(['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']);
+function boxFor(o) {
+  const g = termGroup(); if (!g || !LIGHTS.has(o.userData.kind)) return null;
+  const pr = percheRig().find(r => r.loads.includes(o)), b = pr && typeof pr.o.userData.dims[3] === 'string' ? pr.o.userData.dims[3] : null;
+  const cand = g.children.filter(c => c.userData.term.kind === 'BECL' && (b ? c.userData.term.bar === b : !c.userData.term.bar && c.userData.term.lvl === 'R0'));
+  return cand.length ? cand.reduce((a, c) => c.position.distanceTo(o.position) < a.position.distanceTo(o.position) ? c : a) : null;
+}
+function boxUsage() { // appareils, puissance et prises par boîtier (prises 16 A : direct commandée + 230 V)
+  const m = new Map();
+  for (const o of props.children) { if (!o.visible || salle !== 'audi') continue; const b = boxFor(o); if (!b) continue;
+    const e = m.get(b) || { b, n:0, W:0 }; e.n++; e.W += powerOf(o); m.set(b, e); }
+  return [...m.values()].map(e => { const pr = e.b.userData.term.detail?.prises || {}; return { ...e, pc:(pr['PC 16A direct commandée'] || 0) + (pr['PC 16A mono'] || 0) }; })
+    .sort((a, b) => a.b.userData.term.id.localeCompare(b.b.userData.term.id, 'fr', { numeric:true }));
+}
 // --- gril ground support : 4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour
 $('gsBtn').onclick = () => {
   pushUndo();
@@ -949,6 +1028,8 @@ function updateDossier() {
   const c = cabling();
   $('elecInfo').innerHTML = c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind], kw = e.W / 1000;
     return `<b>T${t.n}</b> ${t.kind.replace('A', ' A')} : ${e.items.length} élt · <span class="${kw > cap ? 'warn' : ''}">${fr(kw)} / ${fr(cap)} kW</span> · câble max ${Math.ceil(Math.max(...e.items.map(i => i.len)))} m`; }).join('<br>');
+  if (salle === 'audi') $('elecInfo').innerHTML = boxUsage().map(e => { const t = e.b.userData.term, over = e.pc && e.n > e.pc; // ponytail: une prise 16 A par appareil, sans gradateur partagé
+    return `<b>${esc(t.id)}</b>${t.bar ? ` (${esc(t.bar)})` : ''} : ${e.n} app. · ${fr(e.W / 1000)} kW · <span class="${over ? 'warn' : ''}">${e.n} / ${e.pc || '?'} prises 16 A</span>`; }).join('<br>');
   // câbles en 3D : trajet en L au sol depuis la trappe
   cables.children.forEach(l => l.geometry.dispose()); cables.clear();
   for (const e of c) for (const { a, b } of e.items) {
@@ -1011,7 +1092,7 @@ function pratLines(W, D, h) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
+    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -1029,7 +1110,7 @@ const LIFT = { truss30t:6, truss30:6, truss40:6, tcorner30:6, tcorner40:6, hoist
 function addKind(k) { pushUndo(); const g = makeProp(k, DEFAULT[k]); g.position.copy(orbit.target); g.position.y = floorAt(g.position) + (LIFT[k] || 0); select(g); }
 // --- catalogue : pour ajouter un objet, écrire son modèle (BUILD) + ses LABELS / DEFAULT, puis une ligne ici ; la vignette se fabrique seule ---
 const CATALOG = [
-  ['Scène et praticables', ['scene', 'prat', 'regie']],
+  ['Scène et praticables', ['scene', 'prat', 'regie', 'conque', 'patience']],
   ['Son', ['l2d', 'kara2', 'ks28', 'ks28x2', 'x15', 'x15p', 'syva', 'vch30', 'vch30x2', 'vtl218', 'enceinte']],
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran']],
@@ -1090,7 +1171,7 @@ tc.addEventListener('dragging-changed', e => orbit.enabled = !e.value);
 let selected = null;
 function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
-  $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) : '—';
+  $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) + termInfo(o) + (salle === 'audi' && boxFor(o) ? ` → ${boxFor(o).userData.term.id}` : '') : '—';
   const isProp = !!o && props.children.includes(o); syncLift(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
   if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.slice(0, 3).map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40', 'truss30t'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
@@ -1750,7 +1831,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', conque:'SETUP_SCENE' };
 const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');

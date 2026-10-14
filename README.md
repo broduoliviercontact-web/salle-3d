@@ -99,6 +99,19 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   - ceux montés sur les porteuses (BECL-02 à 29, BAV-06) suivent leur équipe S1, F1, F2 ou F3 quand on la lève ou la descend ;
   - ils sortent sur le plan 2D de l'auditorium avec leur repère et la légende.
   Relevé automatique (tools/terminaux.py) : chaque étiquette du PDF est suivie le long de sa ligne de rappel jusqu'au symbole, puis calée sur les axes a05 / a04 et ae / ad (précision ≈ 10–20 cm).
+  Un clic sur un boîtier donne son contenu d'après le carnet de détails (0606) : localisation (« lisse face scène », « plateau face jardin »…), type, prises (32 A tri / mono, 16 A, 16 A direct commandée) et connecteurs (DMX, Art-Net, RJ45, XLR, fibre, SDI). Les numéros de circuit (ADC-02-P1…) sont des images dans le PDF : non repris.
+- **Équipement de cage** (avec les cintres) : écran polichinelle (image 9,6 × 6 m, de 2 à 8 m, à 5,87 m du cadre) et patience motorisée d'avant-scène (rail à 9,57 m, à 0,43 m, rideaux massés). La conque de scène 1 (1 290 kg) est comptée pour moitié sur C1 et sur C2 ; la conque 2 et les 3 réflecteurs de salle pendent sur câbles fixes (déjà dans la maquette IFC).
+- **Conques d'orchestre** : les 6 décors d'orchestre mobiles (1,46 × 4,52 m) en configuration concert, 3 de chaque côté, ouverts à ≈ 31° vers la salle.
+- **Plan de feu Gaspar Claus** : proposition d'implantation de la liste de location (V.2) :
+  | Où | Appareils |
+  |---|---|
+  | S1 (salle) | 4 × 713 SX en face |
+  | F1 | 4 × PC 1 kW |
+  | F2 | 3 × 654 SX |
+  | F3 | 3 × lyres découpe en contre |
+  | Plateau | 4 × 654 SX en latéraux, 1 × 654 SX en contre, 4 × lyres découpe au lointain, Atomic 3000, brouillard en coulisse jardin |
+
+  Les appareils des porteuses sont accrochés tête en bas et suivent leur équipe. Chacun est relié au boîtier BECL le plus proche (de sa porteuse, sinon au plateau) : la sélection affiche « → BECL-05 », et le dossier technique liste par boîtier le nombre d'appareils, la puissance et les prises 16 A utilisées / disponibles.
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
 - Liste **Maquettes et calques** (repliée par défaut) : chaque niveau et chaque calque se masque.
