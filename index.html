@@ -970,8 +970,8 @@ async function planSvg(whole = false) {
   // cadre calé sur le mètre : règles et grille tombent juste
   const x0 = Math.floor(Math.min(...pts.map(p => p[0])) - M), W = Math.ceil(Math.max(...pts.map(p => p[0])) + M - x0);
   // bandeau titre / légende en haut, agrandi d'un facteur k sur un grand cadre pour rester lisible une fois réduit sur la page
-  const k = Math.max(1, W / 60), HU = 6, H0 = HU * k;
-  const y0 = Math.floor(Math.min(...pts.map(p => p[1])) - M) - H0, H = Math.ceil(Math.max(...pts.map(p => p[1])) + M - y0 - H0) + H0;
+  const k = Math.max(1, W / 60), HU = 6; let H0 = HU * k;
+  let y0 = Math.floor(Math.min(...pts.map(p => p[1])) - M) - H0, H = Math.ceil(Math.max(...pts.map(p => p[1])) + M - y0 - H0) + H0;
   const f = v => +v.toFixed(2), out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${f(W * 10)}mm" height="${f(H * 10)}mm" viewBox="${f(x0)} ${f(y0)} ${f(W)} ${f(H)}" font-family="Helvetica, Arial, sans-serif">`);
   out.push(`<defs><clipPath id="cadre"><rect x="${f(x0)}" y="${f(y0 + H0)}" width="${f(W)}" height="${f(H - H0)}"/></clipPath></defs>`);
@@ -1042,6 +1042,13 @@ async function planSvg(whole = false) {
   for (let i = 0; i <= H - H0; i++) { const L = i % 5 ? 0.15 : 0.35; tk += `M${f(x0)} ${f(py0 + i)}h${L}`; if (!(i % 5) && i) lb += `<text transform="translate(${f(x0 + 0.5)} ${f(py0 + i)}) rotate(-90)" font-size="0.22" text-anchor="middle">${i} m</text>`; }
   out.push(`<path d="${tk}" stroke="#000" stroke-width="0.02"/>${lb}`);
   // bandeau : titre, infos, échelle, légende (en unités de bandeau, mises à l'échelle k)
+  // légende trop longue : on agrandit le bandeau vers le haut (le plan, les règles et le cadre ne bougent pas)
+  { const lx0 = 1 + Math.max((W > 40 ? 10 : 5) / k + 3, 20); let lx = lx0, ly = 0.8;
+    for (const [kind] of legend) { const wi = 1.4 + (kind.length + 3) * 0.22; if (lx + wi > W / k - 0.5 && lx > lx0) { lx = lx0; ly += 0.8; } lx += wi; }
+    const extra = Math.max(0, Math.ceil((ly + 1.2 - HU) * k));
+    if (extra) { y0 -= extra; H += extra; H0 += extra;
+      out[0] = out[0].replace(/height="[^"]+mm" viewBox="[^"]+"/, `height="${f(H * 10)}mm" viewBox="${f(x0)} ${f(y0)} ${f(W)} ${f(H)}"`);
+      out[2] = `<rect x="${f(x0)}" y="${f(y0)}" width="${f(W)}" height="${f(H)}" fill="#fff"/>`; } }
   out.push(`<line x1="${f(x0)}" y1="${f(y0 + H0)}" x2="${f(x0 + W)}" y2="${f(y0 + H0)}" stroke="#000" stroke-width="${f(0.04 * k)}"/><g transform="translate(${f(x0)} ${f(y0)}) scale(${f(k)})">`);
   const tx = 1, ty = 1.3, sb = W > 40 ? 10 : 5, WU = W / k; // échelle graphique : longueur réelle sb m -> sb / k unités de bandeau
   out.push(`<text x="${f(tx)}" y="${f(ty)}" font-size="0.9" font-weight="bold">${esc(setupName || 'Plan de scène')}</text>`);
@@ -1061,7 +1068,7 @@ async function planSvg(whole = false) {
 }
 async function exportPlan2D() {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([await planSvg()], { type:'image/svg+xml' }));
+  a.href = URL.createObjectURL(new Blob([await planSvg(true)], { type:'image/svg+xml' }));
   a.download = `plan-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}.svg`; a.click();
 }
 $('plan2d').onclick = exportPlan2D;

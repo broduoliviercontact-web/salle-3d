@@ -89,7 +89,7 @@ On coche **deux setups** puis **Comparer** : une page montre les deux plans de l
 On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre le setup courant sur n'importe quel ordinateur (le setup est compressé dans l'adresse, environ 700 caractères, sans serveur). C'est une copie : les modifications de l'autre personne ne reviennent pas, il faut qu'elle renvoie un lien. Les setups sont stockés **dans le navigateur** : utilise **Exporter JSON** / **Importer** pour les sauvegarder ou les partager. **⌘Z / ⌘⇧Z** annule ou rétablit chaque modification.
 
 ### Exports
-- **Aperçu 2D (SVG)** : vue de dessus du setup sur le plan DXF complet en gris (murs, portes, axes, noms des locaux). Il contient :
+- **Aperçu 2D (SVG)** : vue de dessus de toute l'Agora avec le setup, sur le plan DXF complet en gris (murs, portes, axes, noms des locaux). Il contient :
   - les éléments en couleur avec leurs cotes et la flèche ▲ de face avant des enceintes ;
   - les trappes, une légende, des règles graduées et une grille de 1 m / 5 m.
 
