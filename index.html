@@ -700,8 +700,9 @@ function pratLayout(W, D) {
   const a = fill(W, D), b = fill(D, W).map(([x, z, w, d]) => [z, x, d, w]);
   return a.length <= b.length ? a : b;
 }
+const PRAT_KINDS = new Set(['scene', 'scene_m', 'scene_fip', 'regie']); // éléments montés sur praticables 2 × 1
 function pratInfo(o) {
-  if (!/^scene/.test(o?.userData.kind)) return '';
+  if (!PRAT_KINDS.has(o?.userData.kind)) return '';
   const [w, d] = o.userData.dims, n = pratLayout(w, d).length, extra = n * 2 - w * d;
   return ` · ${n} praticables 2×1` + (extra > 0.01 ? ` (${fr(extra)} m² en trop : à recouper ou compléter en 1×1)` : '');
 }
@@ -723,7 +724,7 @@ function makeProp(kind, dims) {
   mesh.position.y = h / 2;
   mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color:0x000000 })));
   const g = new THREE.Group(); g.add(mesh);
-  if (kind === 'scene' || kind === 'scene_fip') g.add(pratLines(w, d, h));
+  if (kind === 'scene' || kind === 'scene_fip' || kind === 'regie') g.add(pratLines(w, d, h));
   if (kind === 'ecran') mesh.position.y += 1.5; // bas d'écran à 1,5 m
   g.userData = { kind, dims:[w, d, h] }; g.name = `${LABELS[kind]} ${w}×${d}×${h} m`;
   props.add(g); return g;
@@ -1236,7 +1237,7 @@ $('plan2d').onclick = exportPlan2D;
 // matériel du setup courant : désignation -> quantité, poids unitaire, puissance totale
 function materiel() {
   const mat = new Map();
-  for (const o of props.children) if (o.visible && /^scene/.test(o.userData.kind)) mat.set(`Praticables 2×1 pour ${o.name}`, { n:pratLayout(...o.userData.dims).length, kg:WEIGHT.prat, W:0 });
+  for (const o of props.children) if (o.visible && PRAT_KINDS.has(o.userData.kind)) mat.set(`Praticables 2×1 pour ${o.name}`, { n:pratLayout(...o.userData.dims).length, kg:WEIGHT.prat, W:0 });
   for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
   return mat;
 }
