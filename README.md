@@ -72,6 +72,8 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
 
 **Mode moteurs** : quand un pont (ou un de ses moteurs) est sélectionné, la ligne **Hauteur sous pont** apparaît. On y tape une hauteur, ou on monte / descend avec **▲ / ▼** (clic : 10 cm ; maintenu : en continu). Tout le pont bouge avec ses moteurs (crochets) et ce qui est accroché dessous ; les chaînes s'allongent ou se raccourcissent jusqu'à leur point d'accroche, qui reste fixe.
 
+**Perches en série** (Installations) : N perches (porteuses Ø 48, ≈ 3,6 kg/m) de longueur et d'espacement réglables, à la hauteur voulue, avec leurs élingues jusqu'au gril (hauteur réglable). Elles se posent parallèles au nez de la dernière scène, du nez vers le lointain (sinon au centre de la vue), numérotées 1…N. Chaque perche affiche sa charge (tube + ce qui est accroché dessous), en rouge au-delà de la charge maximale réglée (250 kg par défaut). En **mode moteurs**, une perche sélectionnée se lève ou se descend **seule** (perche motorisée), avec ses projecteurs ; ses élingues s'allongent. L'ensemble se déplace d'un bloc.
+
 **Gril ground support** (Installations) : 4 tours (type Prolyte MPT, 1 000 kg par tour) aux angles d'un cadre de ponts 290 ou 390 (portées réglables, arrondies au 0,5 m) posé entre leurs manchons, à la hauteur voulue, avec un moteur en tête de chaque tour. Le tout est lié et se pose au centre de la vue. Le mode moteurs fait glisser le cadre le long des tours (jusqu'à 1 m sous leur tête) ; la charge est calculée par tour (T1…T4). Ponts, moteurs et perches comptent dans les charges accrochées mais pas sur les palans du grill du machiniste (ils ont leurs propres points d'accroche).
 
 ### Vue

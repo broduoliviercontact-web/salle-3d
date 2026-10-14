@@ -65,12 +65,15 @@
   <div class="row"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
   <div class="row"><button id="gsBtn" class="grow" title="4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour ; se pose au centre de la vue">Gril ground support</button><select id="gsSeries"><option value="truss30">290</option><option value="truss40">390</option></select></div>
   <div class="row">Ponts <input type="number" id="gsW" value="10" step="0.5" style="width:48px"> × <input type="number" id="gsD" value="8" step="0.5" style="width:48px"> m, cadre à <input type="number" id="gsH" value="6" step="0.5" style="width:48px"> m</div>
+  <div class="row"><button id="percheBtn" class="grow" title="Perches parallèles au nez de la dernière scène posée (sinon au centre de la vue), numérotées du nez vers le lointain">Perches en série</button></div>
+  <div class="row"><input type="number" id="percheN" value="8" min="1" max="60" style="width:44px"> perches de <input type="number" id="percheL" value="12" step="0.5" style="width:48px"> m, tous les <input type="number" id="percheE" value="0.5" step="0.05" min="0.15" style="width:50px"> m</div>
+  <div class="row">à <input type="number" id="percheH" value="6" step="0.5" style="width:48px"> m · gril à <input type="number" id="percheG" value="12" step="0.5" style="width:48px"> m · max <input type="number" id="percheCap" value="250" step="50" style="width:56px"> kg</div>
   <div class="row"><button id="fipBtn" class="grow" title="Cercle de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4">FIP 360</button>Ø <input type="number" id="fipD" value="20" step="1" min="12" max="25"> m</div>
   <div id="charges" style="font-size:11px;opacity:.8"></div>
 
   <h2>Sélection</h2>
   <div id="sel">—</div>
-  <div class="row" id="liftRow" hidden>Hauteur sous pont <input type="number" id="liftH" step="0.1" style="width:60px"> m <button id="liftDown" title="Descendre (clic : 10 cm, maintenir : continu)">▼</button><button id="liftUp" title="Monter (clic : 10 cm, maintenir : continu)">▲</button></div>
+  <div class="row" id="liftRow" hidden><span id="liftLab">Hauteur sous pont</span> <input type="number" id="liftH" step="0.1" style="width:60px"> m <button id="liftDown" title="Descendre (clic : 10 cm, maintenir : continu)">▼</button><button id="liftUp" title="Monter (clic : 10 cm, maintenir : continu)">▲</button></div>
   <div class="row" id="sizeRow" hidden>L <input type="number" id="sW" step="0.5" min="0.5"> P <input type="number" id="sD" step="0.5" min="0.5"> H <input type="number" id="sH" step="0.1" min="0.1"> m</div>
   <div class="row" id="grpRow" hidden><span id="grpInfo" class="grow info"></span><button id="unlink" title="Retire cet élément du groupe : il se déplacera seul">Délier</button></div>
   <div class="row" id="linkRow" hidden>Trappe <select id="trapSel"></select><input type="number" id="powerW" step="100" min="0" style="width:72px" title="Puissance électrique de l'élément"> W</div>
@@ -97,6 +100,7 @@
   <div class="row">Limite / point <input type="number" id="pointMax" value="500" step="50"> kg · <input type="number" id="m2pp" value="3" step="0.5"> m²/pers.</div>
   <div id="rigInfo" class="info"></div>
   <div id="trussInfo" class="info"></div>
+  <div id="percheInfo" class="info"></div>
   <div id="jaugeInfo" class="info"></div>
   <div id="elecInfo" class="info"></div>
   <div class="row"><button id="fiche" class="grow">Fiche setup (PDF)</button></div>
@@ -568,13 +572,19 @@ function buildHoist() {
   return [body, hook, chain];
 }
 // perche / porteuse : tube acier Ø 48,3 le long de x (≈ 3,6 kg/m)
-const buildPerche = dims => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, dims[0], 10).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({ color:0x8a9099, metalness:0.6 })); m.position.y = 0.024; return [m]; };
+function buildPerche(dims) { // tube + élingues tous les ≈ 3 m vers le gril (longueur mise à jour par syncChains)
+  const L = dims[0], m = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, L, 10).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({ color:0x8a9099, metalness:0.6 })); m.position.y = 0.024;
+  const k = Math.max(2, Math.round(L / 3) + 1), p = []; for (let i = 0; i < k; i++) { const x = -L / 2 + 0.3 + i * (L - 0.6) / (k - 1); p.push(x, 0.05, 0, x, 3, 0); }
+  const c = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(p, 3)), new THREE.LineBasicMaterial({ color:0x333333 })); c.userData.chain = true;
+  return [m, c];
+}
 // la chaîne monte jusqu'au point d'accroche (userData.top, en m monde, fixé à la pose) : elle s'allonge quand on descend le pont
 function syncChains() {
-  for (const o of props.children) { if (o.userData.kind !== 'hoist') continue;
-    o.userData.top ??= o.position.y + 3.4; const len = Math.max(0.5, o.userData.top - o.position.y);
+  for (const o of props.children) { const k = o.userData.kind; if (k !== 'hoist' && k !== 'perche') continue;
+    o.userData.top ??= o.position.y + (k === 'perche' ? 5 : 3.4); const len = Math.max(0.5, o.userData.top - o.position.y);
     const c = o.children.find(m => m.userData.chain); if (!c || c.userData.len === len) continue;
-    const a = c.geometry.attributes.position; a.setY(3, len); a.needsUpdate = true; c.geometry.computeBoundingSphere(); c.userData.len = len; }
+    const a = c.geometry.attributes.position; for (let i = k === 'hoist' ? 3 : 1; i < a.count; i += k === 'hoist' ? 99 : 2) a.setY(i, len); // haut de la chaîne / des élingues
+    a.needsUpdate = true; c.geometry.computeBoundingSphere(); c.userData.len = len; }
 }
 const BUILD = { truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
@@ -792,18 +802,32 @@ function trussRig() {
   }
   return out;
 }
+// charge par perche : poids du tube + ce qui est accroché dessous (à moins de 0,5 m de l'axe), comparée à la charge maximale réglée
+function percheRig() {
+  const out = [], cap = +$('percheCap').value || 250, fromTruss = new Set(trussRig().flatMap(r => r.loads)); // ce que portent déjà les ponts (trussRig remet aussi la liste à zéro)
+  for (const o of props.children) { if (!o.visible || o.userData.kind !== 'perche') continue;
+    const { a, d, L } = segEnds(o), loads = [];
+    for (const q of props.children) { if (!q.visible || RIG_SELF.has(q.userData.kind) || !isFlown(q) || !weightOf(q) || fromTruss.has(q) || loads.includes(q)) continue;
+      const v = q.position.clone().sub(a), t = v.x * d.x + v.z * d.z;
+      if (t > -0.3 && t < L + 0.3 && Math.abs(v.x * d.z - v.z * d.x) < 0.5 && q.position.y < o.position.y + 0.2) { loads.push(q); trussAssigned.add(q); } }
+    out.push({ o, loads, cap, kg:weightOf(o) + loads.reduce((s, q) => s + weightOf(q), 0) }); }
+  return out;
+}
+const percheLabels = new THREE.Group(); scene.add(percheLabels);
 const hoistLabels = new THREE.Group(); scene.add(hoistLabels);
 // pont (tracé) contenant l'élément sélectionné, et sa hauteur sous pont
 function liftTarget(o) {
+  if (o?.userData.kind === 'perche' && props.children.includes(o)) return { perche:o, y:o.position.y - floorAt(o.position) }; // perche motorisée : seule
   const g = o?.userData.grp; if (!g) return null;
   const run = [...trussRuns().values()].find(r => r.segs[0].userData.grp === g); if (!run) return null;
   const s0 = run.segs[0], tw = props.children.find(o => o.userData.grp === g && o.userData.kind === 'tower');
   return { g, run, y:s0.position.y - (tw ? tw.position.y : floorAt(s0.position)) }; // ground support : depuis le pied des tours
 }
-function syncLift(o = selected) { const t = liftTarget(o); $('liftRow').hidden = !t; if (t && document.activeElement !== $('liftH')) $('liftH').value = t.y.toFixed(2); }
+function syncLift(o = selected) { const t = liftTarget(o); $('liftRow').hidden = !t; if (t) $('liftLab').textContent = t.perche ? 'Hauteur de la perche' : 'Hauteur sous pont'; if (t && document.activeElement !== $('liftH')) $('liftH').value = t.y.toFixed(2); }
 // monte / descend tout le pont : ponts, cubes, moteurs (crochets), charges accrochées dessous ; en ground support, les manchons glissent sur les tours
 function liftBy(dy) {
   const t = liftTarget(selected); if (!t) return;
+  if (t.perche) { dy = Math.max(0.3, t.y + dy) - t.y; for (const o of [t.perche, ...(percheRig().find(r => r.o === t.perche)?.loads || [])]) o.position.y += dy; syncLift(); return; }
   const towers = props.children.filter(o => o.userData.grp === t.g && o.userData.kind === 'tower');
   const maxY = towers.length ? Math.min(...towers.map(o => o.userData.dims[2] - 1)) : Infinity; // le cadre reste sous la tête des tours
   dy = THREE.MathUtils.clamp(t.y + dy, 0.3, maxY) - t.y; if (Math.abs(dy) < 1e-4) return;
@@ -819,6 +843,20 @@ for (const [id, dir] of [['liftUp', 1], ['liftDown', -1]]) {
 }
 addEventListener('pointerup', () => { clearInterval(liftTimer); liftTimer = null; });
 $('liftH').onchange = () => { const t = liftTarget(selected); if (!t) return; pushUndo(); liftBy((+$('liftH').value || 0) - t.y); };
+// --- perches de théâtre en série : parallèles au nez de scène, du nez vers le lointain, numérotées 1…N, élingues jusqu'au gril
+$('percheBtn').onclick = () => {
+  pushUndo();
+  const N = THREE.MathUtils.clamp(Math.round(+$('percheN').value || 8), 1, 60), L = Math.max(1, +$('percheL').value || 12), e = Math.max(0.15, +$('percheE').value || 0.5);
+  const H = +$('percheH').value || 6, G = Math.max(H + 1, +$('percheG').value || 12), grp = 'Cintres #' + Date.now().toString(36);
+  const s = props.children.filter(o => o.visible && /^scene/.test(o.userData.kind)).pop(); // plateau de référence
+  let o0, back, rot;
+  if (s) { s.updateMatrixWorld(); o0 = s.localToWorld(new THREE.Vector3(s.userData.dims[0] / 2 - 0.5, 0, 0)); back = new THREE.Vector3(-Math.cos(s.rotation.y), 0, Math.sin(s.rotation.y)); rot = s.rotation.y + Math.PI / 2; }
+  else { o0 = orbit.target.clone(); back = new THREE.Vector3(-1, 0, 0); rot = Math.PI / 2; } // sans scène : vers -x, perches le long de z
+  const fy = floorAt(o0);
+  for (let i = 0; i < N; i++) { const p = makeProp('perche', [L, 0.05, 0.05, i + 1]); p.userData.grp = grp;
+    p.position.copy(o0).addScaledVector(back, i * e).setY(fy + H); p.rotation.y = rot; p.userData.top = fy + G; }
+  select(null);
+};
 // --- gril ground support : 4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour
 $('gsBtn').onclick = () => {
   pushUndo();
@@ -831,7 +869,16 @@ $('gsBtn').onclick = () => {
   select(props.children[props.children.length - 1]); frame(selected);
 };
 function updateDossier() {
-  const tr = trussRig(), hp = tr.flatMap(t => t.pts), cap = +$('hoistCap').value || 500;
+  const tr = trussRig(), hp = tr.flatMap(t => t.pts), cap = +$('hoistCap').value || 500, pr = percheRig();
+  const pkey = pr.map(r => `${r.o.userData.dims[3]}:${Math.round(r.kg)}:${r.cap}`).join('|');
+  if (percheLabels.userData.key !== pkey) {
+    percheLabels.children.forEach(sp => { sp.material.map.dispose(); sp.material.dispose(); }); percheLabels.clear();
+    pr.forEach(r => { const sp = label3d(`Perche ${r.o.userData.dims[3] || ''} · ${kg(r.kg)}`, r.kg > r.cap ? '#d0021b' : '#7a4fb0', 320); sp.userData.o = r.o; percheLabels.add(sp); }); percheLabels.userData.key = pkey;
+  }
+  percheLabels.children.forEach(sp => { const o = sp.userData.o, { a, b } = segEnds(o); sp.position.copy((o.userData.dims[3] || 0) % 2 ? b : a).add(new THREE.Vector3(0, 0.5, 0)); }); // une perche sur deux à chaque bout (cour / jardin) : étiquettes lisibles
+  if (pr.length) { const top = pr.reduce((a, b) => b.kg > a.kg ? b : a), over = pr.filter(r => r.kg > r.cap);
+    $('percheInfo').innerHTML = `<b>Perches</b> : ${pr.length} · max perche ${top.o.userData.dims[3] || ''} ${kg(top.kg)} / ${kg(top.cap)}` + (over.length ? `<br><span class="warn">⚠ surchargées : ${over.map(r => r.o.userData.dims[3] || '?').join(', ')}</span>` : '');
+  } else $('percheInfo').textContent = '';
   const hkey = hp.map(p => `${p.n}:${Math.round(p.kg)}`).join('|') + cap;
   if (hoistLabels.userData.key !== hkey) {
     hoistLabels.children.forEach(sp => { sp.material.map.dispose(); sp.material.dispose(); }); hoistLabels.clear();
@@ -923,7 +970,7 @@ function pratLines(W, D, h) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `Perche / porteuse Ø 48 · ${fr(dims[0], 1)} m` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
+    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `Perche ${dims[3] ? dims[3] + ' ' : ''}· ${fr(dims[0], 1)} m` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -1019,7 +1066,7 @@ function resizeSelected() {
   if (o.userData.kind === 'led') dims = [half(dims[0]), 0.1, half(dims[2])];
   if (o.userData.kind === 'defender') dims = [Math.max(1, Math.round(dims[0] / MOD)) * MOD, 0.29, 0.05]; // longueur arrondie au module
   if (TRUSS[o.userData.kind]) { const S = TRUSS[o.userData.kind].S; dims = [Math.max(0.5, Math.round(dims[0] * 2) / 2), S, S]; } // ponts : longueurs au 0,5 m
-  if (o.userData.kind === 'perche') dims = [dims[0], 0.05, 0.05];
+  if (o.userData.kind === 'perche') dims = [dims[0], 0.05, 0.05, o.userData.dims[3] || 0];
   if (o.userData.kind === 'tower') dims = [1.6, 1.6, Math.max(2, dims[2]), Math.min(o.userData.dims[3] ?? dims[2] - 1.2, dims[2] - 1)];
   if (dims.every((x, i) => x === o.userData.dims[i])) return;
   pushUndo(); rebuildProp(o, dims, o.userData.kind === 'scene_m' ? 'scene' : o.userData.kind); // l'ancienne scène 11 × 9 du DWG devient une scène classique
