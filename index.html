@@ -256,9 +256,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { defender:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { defender:'Passe-câbles Defender Mini', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -379,7 +379,7 @@ const WEIGHT = { syva:50, ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:2
 // écran LED : dalles de 50 × 50 cm, ~8 kg et ~150 W en moyenne chacune (ordre de grandeur, selon le modèle loué)
 const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData.dims[2] / 0.5);
 const MOD = 1.005, modules = o => Math.max(1, Math.round(o.userData.dims[0] / MOD)); // passe-câbles Defender Mini : modules de 1 005 mm, 6 kg
-const weightOf = o => o.userData.kind === 'led' ? dalles(o) * 8 : o.userData.kind === 'defender' ? modules(o) * 6 : WEIGHT[o.userData.kind] || 0;
+const weightOf = o => o.userData.kind === 'led' ? dalles(o) * 8 : o.userData.kind === 'defender' ? modules(o) * 6 : o.userData.kind === 'defender_c' ? 3 : WEIGHT[o.userData.kind] || 0; // angle C : ≈ 3 kg (non précisé)
 const isFlown = o => o.position.y > 2.5; // ponytail: accroché = posé à plus de 2,5 m (sol de la halle ≈ 0)
 function charges() {
   let up = 0, down = 0;
@@ -436,7 +436,17 @@ function buildDefender(dims) {
   g.add(ramp, lid, new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(p, 3)), new THREE.LineBasicMaterial({ color:0x000000 })));
   return [g];
 }
-const BUILD = { defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+// pièce d'angle Defender Mini C (gauche / droite) : secteur de 30°, 290 mm de large, rayon intérieur ≈ 0,20 m (estimés d'après la photo du manuel)
+// origine au milieu de la pièce sur l'axe de la ligne, rayon de virage dirigé vers +x local
+const C_DEG = 30, C_RI = 0.2, C_RO = 0.49, C_RM = (C_RI + C_RO) / 2;
+function sector(r0, r1, h, color, y = 0) {
+  const t = THREE.MathUtils.degToRad(C_DEG / 2), sh = new THREE.Shape();
+  sh.absarc(0, 0, r1, -t, t, false); sh.lineTo(r0 * Math.cos(t), r0 * Math.sin(t)); sh.absarc(0, 0, r0, t, -t, true);
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth:h, bevelEnabled:false, curveSegments:6 }).rotateX(-Math.PI / 2).translate(-C_RM, y, 0), new THREE.MeshStandardMaterial({ color }));
+  return m;
+}
+const buildDefenderC = () => [sector(C_RI, C_RO, 0.045, 0x161616), sector(C_RM - 0.075, C_RM + 0.075, 0.006, 0xf2c200, 0.045)];
+const BUILD = { defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -686,7 +696,7 @@ function pratLines(W, D, h) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : LABELS[kind];
+    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -770,13 +780,14 @@ addEventListener('pointermove', e => {
 });
 addEventListener('pointerup', () => { if (hDrag) { hDrag = null; orbit.enabled = true; } });
 // --- tracé façon « route » : clic = départ, chaque clic pose un tronçon (longueur au module, angle tous les 45° avec le magnétisme), Échap = fin ---
-let cable = null; // { start, grp } pendant le tracé
+let cable = null; // { start, grp, heading } pendant le tracé
+const ghosts = []; // aperçu des pièces d'angle
 const preview = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 0.29), new THREE.MeshBasicMaterial({ color:0xf2c200, transparent:true, opacity:0.55, depthTest:false }));
 preview.renderOrder = 4; preview.visible = false; scene.add(preview);
 let previewLab = null;
 function setCable(on) {
-  cable = on ? { start:null, grp:'Passe-câbles #' + Date.now().toString(36) } : null;
-  $('cableDraw').classList.toggle('on', on); renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false;
+  cable = on ? { start:null, heading:null, grp:'Passe-câbles #' + Date.now().toString(36) } : null;
+  $('cableDraw').classList.toggle('on', on); renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false; ghosts.forEach(g => g.visible = false);
   if (previewLab) { scene.remove(previewLab); previewLab = null; }
   if (on) { setMeasure(false); select(null); }
 }
@@ -785,29 +796,48 @@ function floorPoint(e) { // point du sol sous la souris
   setPtr(e); const h = ray.intersectObjects(FLOORS, false).find(h => h.object.visible && h.face && Math.abs(h.face.normal.y) > 0.9);
   return h ? h.point : ray.ray.intersectPlane(floorPlane(0), new THREE.Vector3());
 }
-function segTo(p) { // tronçon du départ vers p : direction (accrochée), nombre de modules
-  const s = cable.start, d = new THREE.Vector3(p.x - s.x, 0, p.z - s.z);
-  let a = Math.atan2(-d.z, d.x); if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4);
-  const n = Math.max(1, Math.round(d.length() / MOD)), dir = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a));
-  return { a, n, dir, end:s.clone().addScaledVector(dir, n * MOD) };
+const heading = a => new THREE.Vector3(Math.cos(a), 0, -Math.sin(a));
+// prochain bout de ligne vers p : 1er tronçon libre (45° avec le magnétisme) ; ensuite le virage se fait par pièces d'angle de 30°
+// (k pièces, arc de rayon C_RM autour d'un centre placé à gauche ou à droite), puis un tronçon droit au module
+function segTo(p) {
+  const s = cable.start, up = new THREE.Vector3(0, 1, 0), step = THREE.MathUtils.degToRad(C_DEG);
+  let a = Math.atan2(-(p.z - s.z), p.x - s.x), k = 0, start = s.clone();
+  const pieces = [];
+  if (cable.heading === null) { if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); }
+  else {
+    let d = a - cable.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); // écart ramené dans ]-180°, 180°]
+    k = THREE.MathUtils.clamp(Math.round(d / step), -5, 5); a = cable.heading + k * step;
+    if (k) { const side = Math.sign(k), c = s.clone().addScaledVector(heading(cable.heading + side * Math.PI / 2), C_RM); // centre du virage
+      let r = s.clone().sub(c);
+      for (let i = 0; i < Math.abs(k); i++) {
+        const mid = r.clone().applyAxisAngle(up, side * step / 2); pieces.push({ pos:c.clone().add(mid), rot:Math.atan2(-mid.z, mid.x), side });
+        r.applyAxisAngle(up, side * step);
+      }
+      start = c.clone().add(r); }
+  }
+  const dir = heading(a), n = Math.max(1, Math.round(new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir) / MOD));
+  return { a, n, dir, start, pieces, end:start.clone().addScaledVector(dir, n * MOD) };
 }
 renderer.domElement.addEventListener('pointermove', e => {
   if (!cable?.start) return;
   const p = floorPoint(e); if (!p) return;
-  const { a, n, dir } = segTo(p), L = n * MOD;
-  preview.scale.set(L, 1, 1); preview.rotation.y = a; preview.position.copy(cable.start).addScaledVector(dir, L / 2).setY(cable.start.y + 0.03); preview.visible = true;
-  const txt = `${n} module${n > 1 ? 's' : ''} · ${fr(L, 2)} m`;
+  const { a, n, dir, start, pieces } = segTo(p), L = n * MOD;
+  preview.scale.set(L, 1, 1); preview.rotation.y = a; preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + 0.03); preview.visible = true;
+  while (ghosts.length < pieces.length) { const g = new THREE.Group(); buildDefenderC().forEach(m => { m.material = preview.material; g.add(m); }); g.renderOrder = 4; scene.add(g); ghosts.push(g); }
+  ghosts.forEach((g, i) => { const pc = pieces[i]; g.visible = !!pc; if (pc) { g.position.copy(pc.pos).setY(cable.start.y + 0.02); g.rotation.y = pc.rot; } });
+  const txt = (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + `${n} module${n > 1 ? 's' : ''} · ${fr(L, 2)} m`;
   if (previewLab?.userData.txt !== txt) { if (previewLab) scene.remove(previewLab); previewLab = label3d(txt, '#8a6d00', 320); previewLab.userData.txt = txt; scene.add(previewLab); }
   previewLab.position.copy(preview.position).setY(cable.start.y + 0.6);
 });
 function cableClick(e) {
   const p = floorPoint(e); if (!p) return;
   if (!cable.start) { cable.start = p; return; }
-  const { a, n, dir, end } = segTo(p);
+  const { a, n, dir, start, pieces, end } = segTo(p), y = cable.start.y;
   if (!cable.placed) { pushUndo(); cable.placed = true; } // un seul ⌘Z annule tout le tracé en cours
+  for (const pc of pieces) { const c = makeProp('defender_c', [0.3, 0.3, 0.05, pc.side]); c.userData.grp = cable.grp; c.position.copy(pc.pos).setY(y); c.rotation.y = pc.rot; }
   const o = makeProp('defender', [n * MOD, 0.29, 0.05]); o.userData.grp = cable.grp;
-  o.position.copy(cable.start).addScaledVector(dir, n * MOD / 2).setY(cable.start.y); o.rotation.y = a;
-  cable.start = end.setY(cable.start.y);
+  o.position.copy(start).addScaledVector(dir, n * MOD / 2).setY(y); o.rotation.y = a;
+  cable.start = end.setY(y); cable.heading = a; ghosts.forEach(g => g.visible = false);
 }
 ['sW', 'sD', 'sH'].forEach(id => $(id).onchange = resizeSelected);
 $('unlink').onclick = () => { if (!selected) return; pushUndo(); delete selected.userData.grp; select(selected); };
@@ -1242,7 +1272,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { defender:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_LAYER = { defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
 const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
