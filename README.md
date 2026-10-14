@@ -85,6 +85,15 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   - les setups, l'aperçu 2D, la fiche PDF et la vue **Face** sont propres à l'auditorium ;
   - les presets et repères de l'Agora (machiniste, concert, FIP 360, trappes, axe et piliers) sont masqués.
   Chaque setup garde sa salle : le charger (ou ouvrir son lien) bascule dans la bonne vue.
+- **Cintres motorisés de l'auditorium** (mode auditorium, Installations) : les 8 équipes des plans TAMBE (EXE lot 23 : 0003, 0004, 0680, 0691 à 0693), cotées depuis le cadre de scène a04 :
+  | Équipe | Position | Longueur | CMU | Course (m / plateau) |
+  |---|---|---|---|---|
+  | F1, F2, F3 (frontales) | 0,77 · 3,32 · 6,38 m du cadre vers le lointain | 12 m | 350 daN | 1,00 → 9,20 |
+  | C1, C2 (lourdes) | 5,29 · 3,90 m | 10,4 m | 1,5 t | 0,20 → 9,20 |
+  | S1 (salle) | 3,50 m en salle | 10,4 m | 350 daN | 1,80 → 9,20 |
+  | LC, LJ (latérales) | à 6,45 m de l'axe, côté cour et jardin | 5,5 m | 350 daN | 1,00 → 9,20 |
+
+  Le gril est à 10,48 m du plateau (niv. 64,05). Les équipes se posent au point haut, et chacune se lève seule en mode moteurs, bloquée à sa course et arrêtée quand sa charge la plus basse arrive à 0,3 m du sol. La charge (tube + appareils accrochés) est comparée à sa CMU. Repérage : a05 pris sur le mur du lointain de l'IFC (x −89,4), a04 = a05 + 7,05 m, axe de scène z = 2,9.
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
 - Liste **Maquettes et calques** (repliée par défaut) : chaque niveau et chaque calque se masque.

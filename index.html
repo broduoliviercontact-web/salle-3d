@@ -65,6 +65,7 @@
   <div class="row" data-salle="agora"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
   <div class="row"><button id="gsBtn" class="grow" title="4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour ; se pose au centre de la vue">Gril ground support</button><select id="gsSeries"><option value="truss30">290</option><option value="truss40">390</option></select></div>
   <div class="row">Ponts <input type="number" id="gsW" value="10" step="0.5" style="width:48px"> × <input type="number" id="gsD" value="8" step="0.5" style="width:48px"> m, cadre à <input type="number" id="gsH" value="6" step="0.5" style="width:48px"> m</div>
+  <div class="row" data-salle="audi" hidden><button id="audiCintres" class="grow" title="Les 8 équipes motorisées des plans TAMBE (F1–F3, C1–C2, S1, LJ, LC) avec leur CMU et leur course ; remplace celles déjà posées">Cintres motorisés de l'auditorium</button></div>
   <div class="row"><button id="percheBtn" class="grow" title="Perches parallèles au nez de la dernière scène posée (sinon au centre de la vue), numérotées du nez vers le lointain">Perches en série</button></div>
   <div class="row"><input type="number" id="percheN" value="8" min="1" max="60" style="width:44px"> perches de <input type="number" id="percheL" value="12" step="0.5" style="width:48px"> m, tous les <input type="number" id="percheE" value="0.5" step="0.05" min="0.15" style="width:50px"> m</div>
   <div class="row">à <input type="number" id="percheH" value="6" step="0.5" style="width:48px"> m · gril à <input type="number" id="percheG" value="12" step="0.5" style="width:48px"> m · max <input type="number" id="percheCap" value="250" step="50" style="width:56px"> kg</div>
@@ -401,7 +402,7 @@ const WEIGHT = { tower:115, hoist:24, tcorner30:6, tcorner40:9, pc1k:5, sx713:13
 const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData.dims[2] / 0.5);
 const MOD = 1.005, modules = o => Math.max(1, Math.round(o.userData.dims[0] / MOD)); // passe-câbles Defender Mini : modules de 1 005 mm, 6 kg
 const weightOf = o => TRUSS[o.userData.kind] ? o.userData.dims[0] * TRUSS[o.userData.kind].kgm : o.userData.kind === 'perche' ? o.userData.dims[0] * 3.6 : o.userData.kind === 'led' ? dalles(o) * 8 : o.userData.kind === 'defender' ? modules(o) * 6 : o.userData.kind === 'defender_c' ? 3 : WEIGHT[o.userData.kind] || 0; // angle C : ≈ 3 kg (non précisé)
-const isFlown = o => o.position.y > 2.5; // ponytail: accroché = posé à plus de 2,5 m (sol de la halle ≈ 0)
+const isFlown = o => o.position.y - floorAt(o.position) > 2.5; // ponytail: accroché = à plus de 2,5 m du sol (Agora ≈ 0, plateau de l'auditorium 1,86 m)
 function charges() {
   let up = 0, down = 0;
   for (const g of props.children) if (g.visible) { const w = weightOf(g); isFlown(g) ? up += w : down += w; }
@@ -810,10 +811,11 @@ function percheRig() {
   const out = [], cap = +$('percheCap').value || 250, fromTruss = new Set(trussRig().flatMap(r => r.loads)); // ce que portent déjà les ponts (trussRig remet aussi la liste à zéro)
   for (const o of props.children) { if (!o.visible || o.userData.kind !== 'perche') continue;
     const { a, d, L } = segEnds(o), loads = [];
-    for (const q of props.children) { if (!q.visible || RIG_SELF.has(q.userData.kind) || !isFlown(q) || !weightOf(q) || fromTruss.has(q) || loads.includes(q)) continue;
+    for (const q of props.children) { if (!q.visible || RIG_SELF.has(q.userData.kind) || !weightOf(q) || fromTruss.has(q) || loads.includes(q)) continue;
+      if (q.position.y + (q.userData.dims[2] || 0) < o.position.y - 0.5 || q.position.y - floorAt(q.position) < 0.2) continue; // accroché sous la perche (haut de l'élément à ≤ 0,5 m), pas posé au sol : reste compté au point bas
       const v = q.position.clone().sub(a), t = v.x * d.x + v.z * d.z;
       if (t > -0.3 && t < L + 0.3 && Math.abs(v.x * d.z - v.z * d.x) < 0.5 && q.position.y < o.position.y + 0.2) { loads.push(q); trussAssigned.add(q); } }
-    out.push({ o, loads, cap, kg:weightOf(o) + loads.reduce((s, q) => s + weightOf(q), 0) }); }
+    out.push({ o, loads, cap:+o.userData.dims[4] || cap, kg:weightOf(o) + loads.reduce((s, q) => s + weightOf(q), 0) }); }
   return out;
 }
 const percheLabels = new THREE.Group(); scene.add(percheLabels);
@@ -830,7 +832,8 @@ function syncLift(o = selected) { const t = liftTarget(o); $('liftRow').hidden =
 // monte / descend tout le pont : ponts, cubes, moteurs (crochets), charges accrochées dessous ; en ground support, les manchons glissent sur les tours
 function liftBy(dy) {
   const t = liftTarget(selected); if (!t) return;
-  if (t.perche) { dy = Math.max(0.3, t.y + dy) - t.y; for (const o of [t.perche, ...(percheRig().find(r => r.o === t.perche)?.loads || [])]) o.position.y += dy; syncLift(); return; }
+  if (t.perche) { const [,,,, , lo = 0.3, hi = Infinity] = t.perche.userData.dims; const ld = percheRig().find(r => r.o === t.perche)?.loads || [], room = Math.min(Infinity, ...ld.map(q => q.position.y - floorAt(q.position) - 0.3)); // la charge la plus basse s'arrête à 0,3 m du sol
+    dy = Math.max(THREE.MathUtils.clamp(t.y + dy, lo, hi) - t.y, Math.min(0, -room)); /* course de l'équipe */ for (const o of [t.perche, ...ld]) o.position.y += dy; syncLift(); return; }
   const towers = props.children.filter(o => o.userData.grp === t.g && o.userData.kind === 'tower');
   const maxY = towers.length ? Math.min(...towers.map(o => o.userData.dims[2] - 1)) : Infinity; // le cadre reste sous la tête des tours
   dy = THREE.MathUtils.clamp(t.y + dy, 0.3, maxY) - t.y; if (Math.abs(dy) < 1e-4) return;
@@ -860,6 +863,19 @@ $('percheBtn').onclick = () => {
     p.position.copy(o0).addScaledVector(back, i * e).setY(fy + H); p.rotation.y = rot; p.userData.top = fy + G; }
   select(null);
 };
+// --- cintres motorisés de l'auditorium (plans TAMBE 0003, 0004, 0680, 0691-0693) : cotes depuis le cadre de scène a04 vers le lointain a05 (7,05 m),
+// gril (niv. 64,05) à 10,48 m au-dessus du plateau. ponytail: a05 pris sur la face intérieure du mur du lointain dans l'IFC (x −89,4), axe de scène au milieu de la cage (z 2,9)
+const A04 = -89.4 + 7.05, AXE_AU = 2.9, GRIL_AU = 10.48;
+// [nom, distance au cadre vers le lointain (m ; négatif = en salle), longueur, CMU (kg ≈ daN), point bas, point haut (m / plateau), décalage cour/jardin, le long de la profondeur]
+const EQUIPES_AU = [['F1', 0.77, 12, 350, 1, 9.2], ['F2', 3.32, 12, 350, 1, 9.2], ['C2', 3.9, 10.4, 1500, 0.2, 9.2], ['C1', 5.29, 10.4, 1500, 0.2, 9.2], ['F3', 6.38, 12, 350, 1, 9.2],
+  ['S1', -3.5, 10.4, 350, 1.8, 9.2], ['LC', 3.6, 5.5, 350, 1, 9.2, -6.45, true], ['LJ', 3.6, 5.5, 350, 1, 9.2, 6.45, true]]; // cour = −z (à droite vu de la salle)
+function percheName(d) { return typeof d[3] === 'string' ? `Équipe ${d[3]}` : `Perche${d[3] ? ' ' + d[3] : ''}`; }
+$('audiCintres').onclick = () => {
+  pushUndo(); select(null); for (const o of props.children.filter(o => o.userData.grp === 'Cintres auditorium')) props.remove(o);
+  const fy = floorAt(new THREE.Vector3(A04 - 3, 0, AXE_AU)); // plateau
+  for (const [n, d, L, cap, lo, hi, dz = 0, alongX] of EQUIPES_AU) { const p = makeProp('perche', [L, 0.05, 0.05, n, cap, lo, hi]); p.userData.grp = 'Cintres auditorium';
+    p.position.set(A04 - d, fy + hi, AXE_AU + dz); p.rotation.y = alongX ? 0 : Math.PI / 2; p.userData.top = fy + GRIL_AU; } // rangées au point haut
+};
 // --- gril ground support : 4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour
 $('gsBtn').onclick = () => {
   pushUndo();
@@ -876,11 +892,11 @@ function updateDossier() {
   const pkey = pr.map(r => `${r.o.userData.dims[3]}:${Math.round(r.kg)}:${r.cap}`).join('|');
   if (percheLabels.userData.key !== pkey) {
     percheLabels.children.forEach(sp => { sp.material.map.dispose(); sp.material.dispose(); }); percheLabels.clear();
-    pr.forEach(r => { const sp = label3d(`Perche ${r.o.userData.dims[3] || ''} · ${kg(r.kg)}`, r.kg > r.cap ? '#d0021b' : '#7a4fb0', 320); sp.userData.o = r.o; percheLabels.add(sp); }); percheLabels.userData.key = pkey;
+    pr.forEach(r => { const sp = label3d(`${percheName(r.o.userData.dims)} · ${kg(r.kg)}`, r.kg > r.cap ? '#d0021b' : '#7a4fb0', 320); sp.userData.o = r.o; percheLabels.add(sp); }); percheLabels.userData.key = pkey;
   }
-  percheLabels.children.forEach(sp => { const o = sp.userData.o, { a, b } = segEnds(o); sp.position.copy((o.userData.dims[3] || 0) % 2 ? b : a).add(new THREE.Vector3(0, 0.5, 0)); }); // une perche sur deux à chaque bout (cour / jardin) : étiquettes lisibles
+  percheLabels.children.forEach(sp => { const o = sp.userData.o, { a, b } = segEnds(o); sp.position.copy((parseInt(String(o.userData.dims[3]).replace(/\D/g, '')) || 0) % 2 ? b : a).add(new THREE.Vector3(0, 0.5, 0)); }); // une perche sur deux à chaque bout (cour / jardin) : étiquettes lisibles
   if (pr.length) { const top = pr.reduce((a, b) => b.kg > a.kg ? b : a), over = pr.filter(r => r.kg > r.cap);
-    $('percheInfo').innerHTML = `<b>Perches</b> : ${pr.length} · max perche ${top.o.userData.dims[3] || ''} ${kg(top.kg)} / ${kg(top.cap)}` + (over.length ? `<br><span class="warn">⚠ surchargées : ${over.map(r => r.o.userData.dims[3] || '?').join(', ')}</span>` : '');
+    $('percheInfo').innerHTML = `<b>Perches</b> : ${pr.length} · max ${esc(percheName(top.o.userData.dims))} ${kg(top.kg)} / ${kg(top.cap)}` + (over.length ? `<br><span class="warn">⚠ surchargées : ${over.map(r => esc(r.o.userData.dims[3] || '?')).join(', ')}</span>` : '');
   } else $('percheInfo').textContent = '';
   const hkey = hp.map(p => `${p.n}:${Math.round(p.kg)}`).join('|') + cap;
   if (hoistLabels.userData.key !== hkey) {
@@ -973,7 +989,7 @@ function pratLines(W, D, h) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `Perche ${dims[3] ? dims[3] + ' ' : ''}· ${fr(dims[0], 1)} m` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
+    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -1054,7 +1070,7 @@ function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) : '—';
   const isProp = !!o && props.children.includes(o); syncLift(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
-  if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40', 'truss30t'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
+  if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.slice(0, 3).map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40', 'truss30t'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
     + trapList().map(t => `<option value="${t.userData.trap.n}">T${t.userData.trap.n} · ${t.userData.trap.label}</option>`).join('');
@@ -1069,7 +1085,7 @@ function resizeSelected() {
   if (o.userData.kind === 'led') dims = [half(dims[0]), 0.1, half(dims[2])];
   if (o.userData.kind === 'defender') dims = [Math.max(1, Math.round(dims[0] / MOD)) * MOD, 0.29, 0.05]; // longueur arrondie au module
   if (TRUSS[o.userData.kind]) { const S = TRUSS[o.userData.kind].S; dims = [Math.max(0.5, Math.round(dims[0] * 2) / 2), S, S]; } // ponts : longueurs au 0,5 m
-  if (o.userData.kind === 'perche') dims = [dims[0], 0.05, 0.05, o.userData.dims[3] || 0];
+  if (o.userData.kind === 'perche') dims = [dims[0], 0.05, 0.05, ...o.userData.dims.slice(3)];
   if (o.userData.kind === 'tower') dims = [1.6, 1.6, Math.max(2, dims[2]), Math.min(o.userData.dims[3] ?? dims[2] - 1.2, dims[2] - 1)];
   if (dims.every((x, i) => x === o.userData.dims[i])) return;
   pushUndo(); rebuildProp(o, dims, o.userData.kind === 'scene_m' ? 'scene' : o.userData.kind); // l'ancienne scène 11 × 9 du DWG devient une scène classique
