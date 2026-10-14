@@ -23,6 +23,14 @@
   .grow { flex:1; }
   label.cb { display:flex; gap:6px; align-items:center; }
   #sel { color:var(--acc); min-height:1.4em; }
+  #catalog { width:min(920px, 94vw); max-height:84vh; padding:0; background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:10px; }
+  #catalog::backdrop { background:rgba(0,0,0,.55); }
+  .cat-head { position:sticky; top:0; display:flex; gap:10px; align-items:center; padding:12px 14px; background:var(--panel); border-bottom:1px solid var(--line); z-index:1; }
+  #catBody { padding:4px 14px 10px; } #catBody h3 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); margin:14px 0 8px; }
+  .cat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
+  .card { display:flex; flex-direction:column; gap:4px; padding:8px; text-align:left; background:#262b34; border:1px solid var(--line); border-radius:8px; cursor:pointer; }
+  .card:hover, .card:focus-visible { border-color:var(--acc); outline:none; } .card img { width:100%; aspect-ratio:4/3; object-fit:contain; background:radial-gradient(circle at 50% 40%, #6b7380, #3a404a); border-radius:5px; }
+  .card b { font-size:12px; } .card small { color:var(--mute); font-size:11px; } .cat-foot { padding:8px 14px 12px; color:var(--mute); font-size:11px; border-top:1px solid var(--line); }
   #uiToggle { position:fixed; top:8px; left:268px; z-index:3; } body.noui #ui { display:none; } body.noui #uiToggle { left:8px; }
   @media (pointer:coarse) { #hint { display:none; } button, select, input { padding:8px 10px; } }
   .info { font-size:11px; color:var(--mute); margin-bottom:6px; } .info b { color:var(--fg); font-weight:600; } .warn { color:#ff6b5b; }
@@ -47,18 +55,12 @@
   </details>
 
   <h2>Ajouter</h2>
-  <div class="row">L <input type="number" id="w" value="12" step="0.5"> P <input type="number" id="d" value="8" step="0.5"> H <input type="number" id="h" value="1" step="0.1"></div>
-  <div class="row"><button data-add="scene">Scène</button><button data-add="prat" title="Hauteur = champ H">Samia 2×1</button><button data-add="regie">Régie</button></div>
-  <div class="row"><button data-add="enceinte">Enceinte</button><button data-add="ecran">Écran</button><button data-add="perso">Personne</button></div>
-  <div class="row"><button data-add="vch30">VCH30 ×1</button><button data-add="vch30x2">VCH30 ×2</button><button data-add="vtl218">Sub VTL218</button></div>
-  <div class="row"><button data-add="lyre">Lyre</button><button data-add="par">PAR LED</button><button data-add="led" title="Largeur = L, hauteur = H, en dalles de 50 cm">Écran LED L×H</button><button data-add="crash">Barrière crash</button><button data-add="vauban">Vauban</button><button data-add="defender" title="Defender Mini : modules de 1,005 m ; longueur modifiable ensuite (champ L)">Passe-câbles</button></div>
+  <div class="row"><button id="addBtn" class="grow on" title="Catalogue des éléments 3D">＋ Ajouter un élément…</button></div>
   <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Échap = fin">Tracer Vauban</button></div>
+  <h2>Installations</h2>
   <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
-  <div class="row"><button data-add="ks28">KS28</button><button data-add="ks28x2">KS28 ×2</button><button data-add="l2d">L2D accroché</button></div>
-  <div class="row"><button data-add="kara2">Kara II</button><button data-add="x15">X15 sol</button><button data-add="x15p">X15 sur pied</button></div>
   <div class="row"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
   <div class="row"><button id="fipBtn" class="grow" title="Cercle de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4">FIP 360</button>Ø <input type="number" id="fipD" value="20" step="1" min="12" max="25"> m</div>
-  <div class="row"><button data-add="syva">Syva + Low sur estrade</button></div>
   <div id="charges" style="font-size:11px;opacity:.8"></div>
 
   <h2>Sélection</h2>
@@ -102,6 +104,11 @@
   <div class="row"><button id="dxf" class="grow">Export AutoCAD (DXF)</button><button id="plan2d">Aperçu 2D (SVG)</button></div>
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
+<dialog id="catalog">
+  <div class="cat-head"><b>Ajouter un élément</b><input id="catSearch" class="grow" placeholder="Rechercher (ex : sub, barrière, LED…)"><button id="catClose" title="Fermer (Échap)">✕</button></div>
+  <div id="catBody"></div>
+  <div class="cat-foot">Clic sur un élément pour le poser au centre de la vue. Ses dimensions se règlent ensuite avec L / P / H dans « Sélection ».</div>
+</dialog>
 <div id="drop">Dépose un fichier .glb</div>
 <div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD : avancer · A/E : tourner la vue · ↑↓ : incliner · G/B ou → ← : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · P : tracer des passe-câbles · V : vue public · C : centrer · Suppr · Échap</div>
 
@@ -259,7 +266,7 @@ const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
 const COLORS = { vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
 const LABELS = { vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const DEFAULT = { scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -729,12 +736,55 @@ function makeProp(kind, dims) {
   g.userData = { kind, dims:[w, d, h] }; g.name = `${LABELS[kind]} ${w}×${d}×${h} m`;
   props.add(g); return g;
 }
-document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
-  pushUndo(); const k = b.dataset.add;
-  const L = +$('w').value || 1, H = +$('h').value || 1, half = v => Math.max(0.5, Math.round(v * 2) / 2);
-  const dims = k === 'scene' ? [L, +$('d').value, H] : k === 'prat' ? [2, 1, H] : k === 'led' ? [half(L), 0.1, half(H)] : DEFAULT[k];
-  const g = makeProp(k, dims); g.position.copy(orbit.target); g.position.y = floorAt(g.position); select(g);
-});
+// pose un élément du catalogue au centre de la vue, avec ses dimensions par défaut (réglables ensuite : L / P / H)
+function addKind(k) { pushUndo(); const g = makeProp(k, DEFAULT[k]); g.position.copy(orbit.target); g.position.y = floorAt(g.position); select(g); }
+// --- catalogue : pour ajouter un objet, écrire son modèle (BUILD) + ses LABELS / DEFAULT, puis une ligne ici ; la vignette se fabrique seule ---
+const CATALOG = [
+  ['Scène et praticables', ['scene', 'prat', 'regie']],
+  ['Son', ['l2d', 'kara2', 'ks28', 'ks28x2', 'x15', 'x15p', 'syva', 'vch30', 'vch30x2', 'vtl218', 'enceinte']],
+  ['Lumière', ['lyre', 'par']],
+  ['Vidéo', ['led', 'ecran']],
+  ['Sécurité et circulation', ['vauban', 'crash', 'defender']],
+  ['Divers', ['perso']],
+];
+const NAMES = { scene:'Scène', prat:'Praticable Samia 2 × 1', regie:'Régie', enceinte:'Enceinte (générique)', ecran:'Écran (projection)', perso:'Personne (échelle)', led:'Écran LED', defender:'Passe-câbles Defender Mini' };
+const catName = k => NAMES[k] || (LABELS[k] || k).replace(/ \(\d+ kg\)$/, '');
+function catDesc(k) {
+  const [w, d, h] = DEFAULT[k], m = v => fr(v, v < 1 ? 2 : 1).replace(/,0$/, ''), g = makeProp(k, DEFAULT[k]), kgs = weightOf(g); props.remove(g);
+  return `${m(w)} × ${m(d)} × ${m(h)} m${kgs ? ` · ${kgs} kg` : ''}`;
+}
+// vignette : rendu 3D du vrai modèle dans un petit moteur à part (créé une seule fois), gardée en cache
+let thumbR = null; const thumbs = {};
+function thumb(k) {
+  if (thumbs[k]) return thumbs[k];
+  if (!thumbR) { thumbR = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true }); thumbR.setSize(240, 180); }
+  const sc = new THREE.Scene(), dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(3, 5, 4);
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x556070, 2), dl);
+  const g = makeProp(k, DEFAULT[k]); props.remove(g); g.rotation.y = -0.55; sc.add(g);
+  const b = new THREE.Box3().setFromObject(g), c = b.getCenter(new THREE.Vector3()), r = b.getSize(new THREE.Vector3()).length();
+  const cam = new THREE.PerspectiveCamera(30, 4 / 3, 0.01, 200); cam.position.copy(c).add(new THREE.Vector3(0, 0.45, 1).normalize().multiplyScalar(r * 2.2)); cam.lookAt(c); // assez de recul pour que l'objet entier tienne dans la vignette
+  thumbR.render(sc, cam); g.traverse(o => o.geometry?.dispose());
+  return thumbs[k] = thumbR.domElement.toDataURL();
+}
+function buildCatalog() {
+  $('catBody').innerHTML = CATALOG.map(([cat, kinds]) => `<section><h3>${esc(cat)}</h3><div class="cat-grid">${kinds.map(k =>
+    `<button class="card" data-kind="${k}"><img alt=""><b>${esc(catName(k))}</b><small>${esc(catDesc(k))}</small></button>`).join('')}</div></section>`).join('');
+  const cards = [...document.querySelectorAll('#catBody .card')];
+  cards.forEach(c => c.onclick = () => { $('catalog').close(); addKind(c.dataset.kind); });
+  (function next(i) { if (i < cards.length) { cards[i].querySelector('img').src = thumb(cards[i].dataset.kind); requestAnimationFrame(() => next(i + 1)); } })(0); // vignettes une à une, sans figer
+}
+$('addBtn').onclick = () => { if (!$('catBody').children.length) buildCatalog(); $('catSearch').value = ''; $('catSearch').oninput(); $('catalog').showModal(); $('catSearch').focus(); };
+$('catClose').onclick = () => $('catalog').close();
+$('catalog').onclick = e => { if (e.target === $('catalog')) $('catalog').close(); }; // clic sur le fond = fermer
+$('catSearch').oninput = () => {
+  const q = $('catSearch').value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  document.querySelectorAll('#catBody section').forEach(sec => {
+    let any = false;
+    sec.querySelectorAll('.card').forEach(c => { const hit = !q || c.innerText.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q) || c.dataset.kind.includes(q); c.hidden = !hit; any ||= hit; });
+    sec.hidden = !any;
+  });
+};
+$('catSearch').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const c = document.querySelector('#catBody .card:not([hidden])'); if (c) c.click(); } };
 // hauteur du sol de la maquette sous un point (le sol n'est pas forcément à 0)
 function floorAt(p) {
   // ponytail: on part de 3 m (niveau RDC) vers le bas : 1ʳᵉ surface horizontale = sol ; pour un étage, déplacer l'élément à la main

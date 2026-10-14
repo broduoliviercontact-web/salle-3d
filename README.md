@@ -19,6 +19,13 @@ Aucune installation : tout tient dans `index.html`, avec Three.js chargé depuis
 - **Éléments mobiles de la maquette** sélectionnables et déplaçables : sièges de l'auditorium, mobilier, panneaux acoustiques, bar.
 
 ### Ajouter des éléments
+Le bouton **＋ Ajouter un élément…** ouvre le **catalogue** : les éléments sont rangés par catégorie (Scène et praticables, Son, Lumière, Vidéo, Sécurité et circulation, Divers), chacun avec une **vignette 3D générée à partir de son modèle**, ses dimensions et son poids. Une recherche filtre la liste (sans tenir compte des accents ; Entrée ajoute le premier résultat). Un clic pose l'élément au centre de la vue ; ses dimensions se règlent ensuite avec L / P / H. Les **tracés** (passe-câbles, Vauban) et les **installations** (setup du machiniste, concert 05/12, FIP 360) restent dans le panneau.
+
+**Ajouter un nouvel objet au catalogue** (dans `index.html`) :
+1. écrire sa fonction de modèle 3D `buildXxx(dims)` (origine au sol, face avant vers +z) et l'ajouter à `BUILD` ;
+2. renseigner `LABELS`, `DEFAULT` (L × P × H en m), et si besoin `COLORS`, `WEIGHT`, `POWER`, `DXF_LAYER`, `COVER` ;
+3. ajouter son identifiant dans `CATALOG`, dans la bonne catégorie. La vignette se génère toute seule.
+
 Une **scène** (ou un praticable, une régie, un écran, un écran LED, la scène FIP 360) se **redimensionne après coup** : quand elle est sélectionnée, des champs L / P / H apparaissent sous son nom ; elle garde sa place, son orientation, sa trappe et son groupe.
 
 Chaque **scène** et chaque **régie** est calepinée en **praticables 2 × 1 m** : leur nombre s'affiche quand on la sélectionne, leur disposition est dessinée sur le plateau, et le décompte apparaît dans la fiche setup. Si une cote n'est pas paire (11 × 9 par exemple), le site indique la surface en trop, à recouper ou à compléter en 1 × 1.
