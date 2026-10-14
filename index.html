@@ -61,6 +61,7 @@
 
   <h2>Sélection</h2>
   <div id="sel">—</div>
+  <div class="row" id="sizeRow" hidden>L <input type="number" id="sW" step="0.5" min="0.5"> P <input type="number" id="sD" step="0.5" min="0.5"> H <input type="number" id="sH" step="0.1" min="0.1"> m</div>
   <div class="row" id="grpRow" hidden><span id="grpInfo" class="grow info"></span><button id="unlink" title="Retire cet élément du groupe : il se déplacera seul">Délier</button></div>
   <div class="row" id="linkRow" hidden>Trappe <select id="trapSel"></select><input type="number" id="powerW" step="100" min="0" style="width:72px" title="Puissance électrique de l'élément"> W</div>
   <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (R)</button></div>
@@ -704,12 +705,28 @@ let selected = null;
 function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) : '—';
-  const isProp = !!o && props.children.includes(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); if (!isProp) return;
+  const isProp = !!o && props.children.includes(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
+  if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims; $('sW').value = w; $('sD').value = d; $('sH').value = h; $('sD').disabled = o.userData.kind === 'led'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
     + trapList().map(t => `<option value="${t.userData.trap.n}">T${t.userData.trap.n} · ${t.userData.trap.label}</option>`).join('');
   $('trapSel').value = o.userData.trap || ''; $('powerW').value = powerOf(o);
 }
+// redimensionner l'élément sélectionné : on le reconstruit à la même place, en gardant trappe, puissance et groupe
+const RESIZABLE = new Set(['scene', 'scene_fip', 'prat', 'regie', 'ecran', 'led']);
+function resizeSelected() {
+  const o = selected; if (!o || !RESIZABLE.has(o.userData.kind)) return;
+  const v = (id, min, max) => THREE.MathUtils.clamp(+$(id).value || min, min, max), half = x => Math.max(0.5, Math.round(x * 2) / 2);
+  let dims = [v('sW', 0.5, 60), v('sD', 0.5, 60), v('sH', 0.1, 10), ...o.userData.dims.slice(3)]; // dims[3] : rayon du cercle FIP 360
+  if (o.userData.kind === 'led') dims = [half(dims[0]), 0.1, half(dims[2])];
+  if (dims.every((x, i) => x === o.userData.dims[i])) return;
+  pushUndo();
+  const n = makeProp(o.userData.kind, dims), keep = { ...o.userData }; delete keep.kind; delete keep.dims;
+  Object.assign(n.userData, keep); n.position.copy(o.position); n.rotation.copy(o.rotation);
+  const arr = props.children, i = arr.indexOf(o); props.remove(o); arr.splice(arr.indexOf(n), 1); arr.splice(i, 0, n); // même rang dans la liste
+  select(n);
+}
+['sW', 'sD', 'sH'].forEach(id => $(id).onchange = resizeSelected);
 $('unlink').onclick = () => { if (!selected) return; pushUndo(); delete selected.userData.grp; select(selected); };
 $('trapSel').onchange = () => {
   if (!selected) return; pushUndo(); let v = $('trapSel').value;
