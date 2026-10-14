@@ -61,14 +61,14 @@
   <div class="row"><label class="cb"><input type="checkbox" id="hoistAuto" checked> Moteurs auto</label> tous les ≤ <input type="number" id="hoistSpan" value="6" step="0.5" min="2" style="width:48px"> m</div>
   <div class="row">Capacité moteur <input type="number" id="hoistCap" value="500" step="250" min="250" style="width:62px"> kg <button id="hoistBtn" title="Replace les moteurs du pont sélectionné (après l'avoir modifié)">Replacer</button></div>
   <h2>Installations</h2>
-  <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
-  <div class="row"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
+  <div class="row" data-salle="agora"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
+  <div class="row" data-salle="agora"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
   <div class="row"><button id="gsBtn" class="grow" title="4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour ; se pose au centre de la vue">Gril ground support</button><select id="gsSeries"><option value="truss30">290</option><option value="truss40">390</option></select></div>
   <div class="row">Ponts <input type="number" id="gsW" value="10" step="0.5" style="width:48px"> × <input type="number" id="gsD" value="8" step="0.5" style="width:48px"> m, cadre à <input type="number" id="gsH" value="6" step="0.5" style="width:48px"> m</div>
   <div class="row"><button id="percheBtn" class="grow" title="Perches parallèles au nez de la dernière scène posée (sinon au centre de la vue), numérotées du nez vers le lointain">Perches en série</button></div>
   <div class="row"><input type="number" id="percheN" value="8" min="1" max="60" style="width:44px"> perches de <input type="number" id="percheL" value="12" step="0.5" style="width:48px"> m, tous les <input type="number" id="percheE" value="0.5" step="0.05" min="0.15" style="width:50px"> m</div>
   <div class="row">à <input type="number" id="percheH" value="6" step="0.5" style="width:48px"> m · gril à <input type="number" id="percheG" value="12" step="0.5" style="width:48px"> m · max <input type="number" id="percheCap" value="250" step="50" style="width:56px"> kg</div>
-  <div class="row"><button id="fipBtn" class="grow" title="Cercle de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4">FIP 360</button>Ø <input type="number" id="fipD" value="20" step="1" min="12" max="25"> m</div>
+  <div class="row" data-salle="agora"><button id="fipBtn" class="grow" title="Cercle de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4">FIP 360</button>Ø <input type="number" id="fipD" value="20" step="1" min="12" max="25"> m</div>
   <div id="charges" style="font-size:11px;opacity:.8"></div>
 
   <h2>Sélection</h2>
@@ -85,9 +85,11 @@
   <div class="row"><label class="cb"><input type="checkbox" id="carry" checked> La scène et les groupes liés emportent leur matériel</label></div>
 
   <h2>Vue</h2>
+  <div class="row"><button id="salleAgora" class="on" title="Tout le bâtiment, setups de l'Agora">Bâtiment / Agora</button><button id="salleAudi" title="Uniquement l'auditorium, sièges transparents, setups de l'auditorium">Auditorium seul</button></div>
+  <div class="row" id="audiRow" hidden>Sièges <input type="range" id="seatOp" min="0" max="100" value="25" class="grow" title="Opacité des sièges"><label class="cb"><input type="checkbox" id="seatMov" checked> Sièges amovibles</label></div>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button><button id="vPublic" title="Clique ensuite un point de la salle : vue à hauteur d'yeux vers la scène">Vue public (V)</button></div>
-  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn">Trappes de sol</button><button class="on" id="agoraBtn">Axe &amp; piliers</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button></div>
-  <div class="row">Enceintes piliers à <input type="number" id="delayH" value="4" step="0.5" style="width:52px"> m <span style="opacity:.7">(délai / L2D)</span></div>
+  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button></div>
+  <div class="row" data-salle="agora">Enceintes piliers à <input type="number" id="delayH" value="4" step="0.5" style="width:52px"> m <span style="opacity:.7">(délai / L2D)</span></div>
   <div class="row"><button id="measure">Mesurer (M)</button><button id="clearMeasure">Effacer mesures</button></div>
 
   <h2>Coupe</h2>
@@ -163,7 +165,7 @@ const FLOORS = []; // dalles de la maquette : seules surfaces testées pour trou
 function addModel(name, gltf) {
   const root = gltf.scene; root.name = name; venue.add(root);
   const meshes = []; root.traverse(o => { if (o.isMesh) meshes.push(o); });
-  const isSlab = o => { for (let n = o; n && n !== root; n = n.parent) if (/^Dalles/.test(n.name)) return true; return false; };
+  const isSlab = o => { for (let n = o; n && n !== root; n = n.parent) if (/^(Dalles|AMR_parquetSc)/.test(n.name)) return true; return false; };
   for (const o of meshes) if (isSlab(o)) { o.geometry.computeBoundsTree(); FLOORS.push(o); } // tout de suite : le placement au sol en a besoin
   const rest = meshes.filter(o => !o.geometry.boundsTree); // le reste (clics) en tâche de fond, par tranches de 20 ms
   (function step() { const t = performance.now(); while (rest.length && performance.now() - t < 20) rest.pop().geometry.computeBoundsTree(); if (rest.length) setTimeout(step, 0); })();
@@ -729,6 +731,7 @@ function rigging() {
 const AGORA_PUBLIC = 3184.9, JAUGE_KINDS = new Set(['scene_fip', 'scene', 'scene_m', 'prat', 'regie']), DACAM_RDC = 2164;
 // ponytail: deux éléments superposés (praticable sur la scène) sont déduits deux fois
 function jauge() {
+  if (salle === 'audi') { const v = seatList().filter(shown); return { audi:true, n:v.length, mov:v.filter(o => /amovible/i.test(o.name)).length }; }
   let occ = 0;
   for (const o of props.children) if (o.visible && JAUGE_KINDS.has(o.userData.kind) && o.position.x > 5.95 + DWG_SHIFT[0]) occ += o.userData.dims[0] * o.userData.dims[1]; // Agora : à l'est de la cloison CTA (x DXF 5,95)
   const r = +$('m2pp').value || 3, pub = AGORA_PUBLIC - occ;
@@ -903,7 +906,7 @@ function updateDossier() {
       + (r.off.length ? `<br><span class="warn">⚠ hors grill (non compté) : ${r.off.map(esc).join(', ')}</span>` : '');
   } else $('rigInfo').textContent = '';
   const j = jauge();
-  $('jaugeInfo').innerHTML = `<b>Jauge Agora</b> : ${fr(AGORA_PUBLIC)} − ${fr(j.occ)} m² occupés = ${fr(j.pub)} m² → <b>${j.n.toLocaleString('fr')} pers.</b> (${fr(j.r)} m²/pers.)`
+  $('jaugeInfo').innerHTML = j.audi ? `<b>Jauge Auditorium</b> : <b>${j.n} places assises</b> (dont ${j.mov} amovibles)` : `<b>Jauge Agora</b> : ${fr(AGORA_PUBLIC)} − ${fr(j.occ)} m² occupés = ${fr(j.pub)} m² → <b>${j.n.toLocaleString('fr')} pers.</b> (${fr(j.r)} m²/pers.)`
     + (j.n > DACAM_RDC ? `<br><span class="warn">⚠ plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : '');
   const c = cabling();
   $('elecInfo').innerHTML = c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind], kw = e.W / 1000;
@@ -1287,11 +1290,11 @@ addEventListener('keydown', e => {
 });
 
 // --- vues ---
-function view(dir) { const b = new THREE.Box3().setFromObject(venue), s = Math.max(20, b.getSize(new THREE.Vector3()).length()), c = b.isEmpty() ? new THREE.Vector3() : b.getCenter(new THREE.Vector3());
+function view(dir) { const b = salle === 'audi' ? AUDI.clone() : new THREE.Box3().setFromObject(venue), s = Math.max(20, b.getSize(new THREE.Vector3()).length()), c = b.isEmpty() ? new THREE.Vector3() : b.getCenter(new THREE.Vector3());
   orbit.target.copy(c); camera.position.copy(c).add(dir.clone().multiplyScalar(s)); }
 $('vTop').onclick = () => view(new THREE.Vector3(0, 1, 0.001));
 $('vPersp').onclick = () => view(new THREE.Vector3(0.6, 0.45, 0.7));
-$('vFront').onclick = () => view(new THREE.Vector3(0, 0.15, 1));
+$('vFront').onclick = () => view(salle === 'audi' ? new THREE.Vector3(1, 0.15, 0) : new THREE.Vector3(0, 0.15, 1)); // auditorium : depuis le public, scène à l'ouest
 
 // --- enveloppe : murs extérieurs (IsExternal Revit) et toit, marqués « env » dans l'IFC converti ---
 document.querySelectorAll('[data-env]').forEach(b => b.onclick = () => {
@@ -1322,7 +1325,41 @@ $('cutAxis').onchange = () => {
   applyCut();
 };
 $('cut').oninput = $('cutFlip').onchange = applyCut;
-const visibleHit = h => !$('cutAxis').value || cutPlane.distanceToPoint(h.point) >= 0; // on ne clique pas sur la partie coupée
+const visibleHit = h => (!$('cutAxis').value || cutPlane.distanceToPoint(h.point) >= 0) // on ne clique pas sur la partie coupée
+  && (salle !== 'audi' || (AUDI.containsPoint(h.point) && !(h.object.userData.seat && +$('seatOp').value < 50))); // ni hors de l'auditorium, ni sur un siège transparent
+
+// --- salles : Agora (bâtiment entier) ou Auditorium seul (boîte de coupe sur tout le rendu, sièges transparents) ---
+// emprise relevée dans l'IFC : scène (parquet x −89…−83, plateau 1,86 m), gradins, loges (z −5,6…11,4), régie (x −66) ; plafond coupé pour voir dedans
+const AUDI = new THREE.Box3(new THREE.Vector3(-90.4, 0.5, -5.7), new THREE.Vector3(-63, 12.2, 11.5));
+const AUDI_BOX = [[AUDI.min.x, AUDI.min.z], [AUDI.max.x, AUDI.max.z]];
+const audiPlanes = [[1, 0, 0, -AUDI.min.x], [-1, 0, 0, AUDI.max.x], [0, 1, 0, -AUDI.min.y], [0, -1, 0, AUDI.max.y], [0, 0, 1, -AUDI.min.z], [0, 0, -1, AUDI.max.z]]
+  .map(([a, b, c, d]) => new THREE.Plane(new THREE.Vector3(a, b, c), d));
+const SEAT = /si.ge.?(auditorium|amovible)/i;
+let salle = 'agora', seats = null;
+function seatList() { // sièges de l'IFC (287) ; matériaux dupliqués une fois car partagés avec le reste de la maquette
+  if (seats) return seats; seats = [];
+  venue.traverse(o => { if (SEAT.test(o.name) && !SEAT.test(o.parent?.name || '')) seats.push(o); });
+  for (const s of seats) s.traverse(o => { if (!o.isMesh) return; o.userData.seat = true;
+    const ms = [].concat(o.material).map(m => m.clone()); o.material = Array.isArray(o.material) ? ms : ms[0]; });
+  return seats;
+}
+function seatOpacity(a) {
+  for (const s of seatList()) s.traverse(o => { if (o.isMesh) [].concat(o.material).forEach(m => { m.transparent = a < 1; m.opacity = a; m.depthWrite = a >= 1; }); });
+}
+function setSalle(s, reframe = true) {
+  salle = s; const audi = s === 'audi';
+  renderer.clippingPlanes = audi ? audiPlanes : [];
+  $('salleAgora').classList.toggle('on', !audi); $('salleAudi').classList.toggle('on', audi); $('audiRow').hidden = !audi;
+  document.querySelectorAll('[data-salle]').forEach(e => e.hidden = e.dataset.salle !== s);
+  seatOpacity(audi ? +$('seatOp').value / 100 : 1);
+  $('seatMov').checked = seatList().some(o => /amovible/i.test(o.name) && o.visible);
+  if (reframe) { goal = null; if (audi) { orbit.target.set(-80, 3, 3); camera.position.set(-56, 24, 9); } /* depuis le fond de salle, plafond coupé */ else view(new THREE.Vector3(0.6, 0.45, 0.7)); }
+  refreshCfgs();
+}
+$('salleAgora').onclick = () => setSalle('agora');
+$('salleAudi').onclick = () => setSalle('audi');
+$('seatOp').oninput = () => seatOpacity(+$('seatOp').value / 100);
+$('seatMov').onchange = () => { pushUndo(); for (const o of seatList()) if (/amovible/i.test(o.name)) o.visible = $('seatMov').checked; };
 
 // --- configurations ---
 // Sauve les éléments ajoutés + les objets de maquette déplacés (repérés par leur chemin d'index)
@@ -1336,20 +1373,20 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top })), moved, view };
+  return { salle, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
   cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
-  const v = cfg.view; if (!v) return; // anciens setups : pas de vue enregistrée
+  const v = cfg.view; setSalle(cfg.salle || 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
   venue.traverse(o => o.visible = true);
   v.hidden.forEach(p => { const o = byPath(p); if (o) o.visible = false; });
   document.querySelectorAll('[data-env]').forEach(b => b.classList.toggle('on', !v.env.includes(b.dataset.env)));
   $('cutAxis').value = v.cut.axis; $('cutFlip').checked = v.cut.flip; $('cutAxis').onchange(); $('cut').value = v.cut.value; applyCut();
-  refreshModels(); syncTrapBtn();
+  refreshModels(); syncTrapBtn(); setSalle(salle, false); // sièges amovibles, opacité
 }
 // --- annuler / rétablir : pile d'instantanés de la salle ; la caméra reste où elle est ---
 const undoStack = [], redoStack = [];
@@ -1392,7 +1429,7 @@ const fmtDate = d => d ? new Date(d + 'T12:00').toLocaleDateString('fr', { weekd
 function refreshCfgs() {
   const ul = $('cfgs'); ul.innerHTML = '';
   const groups = new Map();
-  for (const [n, c] of Object.entries(cfgs)) { const k = c.event || NO_EVENT; if (!groups.has(k)) groups.set(k, []); groups.get(k).push([n, c]); }
+  for (const [n, c] of Object.entries(cfgs)) { if ((c.salle || 'agora') !== salle) continue; const k = c.event || NO_EVENT; if (!groups.has(k)) groups.set(k, []); groups.get(k).push([n, c]); }
   const first = list => list.map(([, c]) => c.date || '9999').sort()[0];
   for (const [ev, list] of [...groups].sort((a, b) => first(a[1]).localeCompare(first(b[1])) || a[0].localeCompare(b[0]))) {
     const h = document.createElement('li'); h.className = 'ev'; h.innerHTML = '<span></span>'; ul.appendChild(h);
@@ -1477,15 +1514,16 @@ let fondSrc = null; // fond de plan complet (plan_fond.svg), chargé au premier 
 const AGORA_BOX = [[-12, -36], [92, 17]]; // emprise de l'Agora (x, z), de la cloison CTA à la façade est
 async function planSvg(whole = false) {
   const grill = $('svgGrill').checked; // grill, cotes et palans masqués par défaut : ils chargent le plan
-  const items = props.children.filter(g => shown(g) && (grill || g.userData.kind !== 'grill')).map(g => {
+  const items = props.children.filter(g => shown(g) && (salle !== 'audi' || AUDI.containsPoint(new THREE.Vector3(g.position.x, 1, g.position.z))) && (grill || g.userData.kind !== 'grill')).map(g => {
     const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
     return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
   });
   const bar = venue.children.find(o => o.userData.src?.pieces);
   if (fondSrc === null) fondSrc = await fetch('plan_fond.svg').then(r => r.ok ? r.text() : '').catch(() => '');
   // cadrage : éléments ajoutés + 8 m ; sinon tout le bâtiment
-  let pts = [...items.flatMap(i => i.poly), ...(whole ? AGORA_BOX : [])], M = whole ? 2 : 8;
-  if (!pts.length) { pts = [[-95, -45], [95, 45]]; M = 0; }
+  const BOX = salle === 'audi' ? AUDI_BOX : AGORA_BOX;
+  let pts = [...items.flatMap(i => i.poly), ...(whole ? BOX : [])], M = whole ? 2 : 8;
+  if (!pts.length) { pts = salle === 'audi' ? BOX : [[-95, -45], [95, 45]]; M = 2; }
   // cadre calé sur le mètre : règles et grille tombent juste
   const x0 = Math.floor(Math.min(...pts.map(p => p[0])) - M), W = Math.ceil(Math.max(...pts.map(p => p[0])) + M - x0);
   // bandeau titre / légende en haut, agrandi d'un facteur k sur un grand cadre pour rester lisible une fois réduit sur la page
@@ -1517,7 +1555,7 @@ async function planSvg(whole = false) {
   const legend = new Map();
   // trappes de sol
   const traps = venue.children.find(o => o.name === 'Trappes de sol (PDF)');
-  if (traps && shown(traps)) for (const g of traps.children) {
+  if (traps && shown(traps) && salle !== 'audi') for (const g of traps.children) { // trappes de l'Agora
     if (!g.visible) continue;
     const t = g.userData.trap, [cx, cy] = toPlan(g, 0, 0), col = TRAP[t.kind].css, key = `Trappe de sol ${t.label}`;
     legend.set(key, { col, n:(legend.get(key)?.n || 0) + 1 });
@@ -1525,7 +1563,7 @@ async function planSvg(whole = false) {
     out.push(`<text x="${f(cx + 0.75)}" y="${f(cy + 0.12)}" font-size="0.35" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.07" paint-order="stroke">T${t.n}</text></g>`);
   }
   // axe de l'Agora et piliers (délai)
-  if (agora.visible && agora.children.length) {
+  if (agora.visible && agora.children.length && salle !== 'audi') {
     out.push(`<line x1="${AXE_X[0]}" y1="${f(AXE_AGORA)}" x2="${AXE_X[1]}" y2="${f(AXE_AGORA)}" stroke="#d6008f" stroke-width="0.05" stroke-dasharray="1 0.5" clip-path="url(#cadre)"/>`);
     legend.set("Axe de l'Agora / piliers (délai)", { col:'#d6008f', n:1 });
     for (const g of agora.children) { const p = g.userData.pilier; if (!p) continue;
@@ -1643,12 +1681,12 @@ $('fiche').onclick = async () => {
     table { border-collapse:collapse; width:100%; margin-bottom:6px } th, td { border:1px solid #bbb; padding:2px 5px; text-align:left } th { background:#eee } td.n { text-align:right }
     .warn { color:#c00; font-weight:bold } .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px }</style></head><body>
     <div class="plan">${svg.replace(/^<svg [^>]*?width="[^"]+" height="[^"]+"/, m => m.replace(/ width="[^"]+" height="[^"]+"/, ''))}</div>
-    <h1>${esc(title)} — dossier technique</h1>
+    <h1>${esc(title)} — ${salle === 'audi' ? 'Auditorium' : 'Agora'} — dossier technique</h1>
     <div class="cols"><div>
     <h2>Matériel</h2><table><tr><th>Désignation</th><th>Qté</th><th>Poids unit.</th><th>Poids total</th><th>Puissance</th></tr>
     ${[...mat].map(([k, e]) => `<tr>${td(esc(k))}${num(e.n)}${num(e.kg ? e.kg + ' kg' : '—')}${num(e.kg ? e.kg * e.n + ' kg' : '—')}${num(e.W ? fr(e.W / 1000) + ' kW' : '—')}</tr>`).join('')}</table>
     <div>${esc(charges())}</div>
-    <h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}</div>
+    ${j.audi ? `<h2>Jauge</h2><div>Auditorium : <b>${j.n} places assises</b> (dont ${j.mov} sièges amovibles sur marches)</div>` : `<h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}</div>`}
     </div><div>
     ${r ? `<h2>Rigging — grill</h2><table><tr><th>Point</th><th>Charge</th><th></th></tr>${r.pts.map(p => `<tr>${td('P' + p.n)}${num(kg(p.kg))}${td(p.kg > r.max ? '<span class="warn">> ' + kg(r.max) + '</span>' : 'ok')}</tr>`).join('')}
       <tr>${td('<b>Total</b>')}${num('<b>' + kg(r.total) + '</b>')}${td('')}</tr></table><div>Hypothèses : poutres ${esc($('trussKg').value)} kg/m, palans ${esc($('hoistKg').value)} kg, limite ${kg(r.max)} par point, poids des poutres réparti par demi-travée.${r.off.length ? ` <span class="warn">Hors grill : ${r.off.map(esc).join(', ')}</span>` : ''}</div>` : ''}

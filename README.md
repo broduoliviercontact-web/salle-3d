@@ -77,6 +77,14 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
 **Gril ground support** (Installations) : 4 tours (type Prolyte MPT, 1 000 kg par tour) aux angles d'un cadre de ponts 290 ou 390 (portées réglables, arrondies au 0,5 m) posé entre leurs manchons, à la hauteur voulue, avec un moteur en tête de chaque tour. Le tout est lié et se pose au centre de la vue. Le mode moteurs fait glisser le cadre le long des tours (jusqu'à 1 m sous leur tête) ; la charge est calculée par tour (T1…T4). Ponts, moteurs et perches comptent dans les charges accrochées mais pas sur les palans du grill du machiniste (ils ont leurs propres points d'accroche).
 
 ### Vue
+- **Deux salles** : **Bâtiment / Agora** (tout le bâtiment) ou **Auditorium seul**. En mode auditorium :
+  - la vue n'affiche que l'auditorium (scène, gradins, loges, régie), plafond coupé pour voir dedans ;
+  - les **sièges** sont transparents, avec un curseur d'opacité (sous 50 %, un clic les traverse) ;
+  - une case masque les **9 sièges amovibles** sur marches ;
+  - la jauge compte les places assises visibles (287 avec les amovibles) ;
+  - les setups, l'aperçu 2D, la fiche PDF et la vue **Face** sont propres à l'auditorium ;
+  - les presets et repères de l'Agora (machiniste, concert, FIP 360, trappes, axe et piliers) sont masqués.
+  Chaque setup garde sa salle : le charger (ou ouvrir son lien) bascule dans la bonne vue.
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
 - Liste **Maquettes et calques** (repliée par défaut) : chaque niveau et chaque calque se masque.
