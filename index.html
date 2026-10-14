@@ -50,8 +50,8 @@
   <div class="row"><button data-add="scene">Scène</button><button data-add="prat" title="Hauteur = champ H">Samia 2×1</button><button data-add="regie">Régie</button></div>
   <div class="row"><button data-add="enceinte">Enceinte</button><button data-add="ecran">Écran</button><button data-add="perso">Personne</button></div>
   <div class="row"><button data-add="vch30">VCH30 ×1</button><button data-add="vch30x2">VCH30 ×2</button><button data-add="vtl218">Sub VTL218</button></div>
-  <div class="row"><button data-add="lyre">Lyre</button><button data-add="par">PAR LED</button><button data-add="led" title="Largeur = L, hauteur = H, en dalles de 50 cm">Écran LED L×H</button><button data-add="crash">Barrière crash</button><button data-add="defender" title="Defender Mini : modules de 1,005 m ; longueur modifiable ensuite (champ L)">Passe-câbles</button></div>
-  <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Échap = fin">Tracer un passage de câbles (P)</button></div>
+  <div class="row"><button data-add="lyre">Lyre</button><button data-add="par">PAR LED</button><button data-add="led" title="Largeur = L, hauteur = H, en dalles de 50 cm">Écran LED L×H</button><button data-add="crash">Barrière crash</button><button data-add="vauban">Vauban</button><button data-add="defender" title="Defender Mini : modules de 1,005 m ; longueur modifiable ensuite (champ L)">Passe-câbles</button></div>
+  <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Échap = fin">Tracer Vauban</button></div>
   <div class="row"><button id="machBtn" class="grow">Setup du machiniste (DWG)</button>grill à <input type="number" id="grillH" value="7" step="0.5" style="width:52px"> m</div>
   <div class="row"><button data-add="ks28">KS28</button><button data-add="ks28x2">KS28 ×2</button><button data-add="l2d">L2D accroché</button></div>
   <div class="row"><button data-add="kara2">Kara II</button><button data-add="x15">X15 sol</button><button data-add="x15p">X15 sur pied</button></div>
@@ -256,9 +256,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -375,7 +375,7 @@ function buildX15p() {
     leg.position.set(Math.sin(a) * 0.25, 0.22, Math.cos(a) * 0.25); leg.rotation.set(Math.cos(a) * 0.9, 0, -Math.sin(a) * 0.9); out.push(leg); }
   return out;
 }
-const WEIGHT = { syva:50, ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
+const WEIGHT = { vauban:16, syva:50, ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
 // écran LED : dalles de 50 × 50 cm, ~8 kg et ~150 W en moyenne chacune (ordre de grandeur, selon le modèle loué)
 const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData.dims[2] / 0.5);
 const MOD = 1.005, modules = o => Math.max(1, Math.round(o.userData.dims[0] / MOD)); // passe-câbles Defender Mini : modules de 1 005 mm, 6 kg
@@ -446,7 +446,25 @@ function sector(r0, r1, h, color, y = 0) {
   return m;
 }
 const buildDefenderC = () => [sector(C_RI, C_RO, 0.045, 0x161616), sector(C_RM - 0.075, C_RM + 0.075, 0.006, 0xf2c200, 0.045)];
-const BUILD = { defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+// barrière Vauban à pieds fixes (fiche HERMEQ MB0033) : cadre Ø 38,1 × 2 175 × 900 mm à 200 mm du sol (1,10 m en tout),
+// 14 barreaux Ø 12 × 820, 2 pieds en V (2 × 275 mm à 135°, empattement 437 mm), crochets mâles d'un côté ; pas d'accroche ≈ 2,20 m
+const VAUBAN_PITCH = 2.2;
+function buildVauban() {
+  const steel = new THREE.MeshStandardMaterial({ color:0xb8bcc2, metalness:0.6, roughness:0.4 }), W = 2.175, y0 = 0.2, H = 0.9, R = 0.12, out = [];
+  const path = new THREE.CurvePath(), v = (x, y) => new THREE.Vector3(x, y, 0), corner = (cx, cy, a0) => path.add(new THREE.CatmullRomCurve3(new THREE.EllipseCurve(cx, cy, R, R, a0, a0 + Math.PI / 2, false).getPoints(6).map(p => v(p.x, p.y)))); // coins arrondis
+  const x0 = -W / 2, x1 = W / 2, y1 = y0 + H;
+  path.add(new THREE.LineCurve3(v(x0 + R, y0), v(x1 - R, y0))); corner(x1 - R, y0 + R, -Math.PI / 2);
+  path.add(new THREE.LineCurve3(v(x1, y0 + R), v(x1, y1 - R))); corner(x1 - R, y1 - R, 0);
+  path.add(new THREE.LineCurve3(v(x1 - R, y1), v(x0 + R, y1))); corner(x0 + R, y1 - R, Math.PI / 2);
+  path.add(new THREE.LineCurve3(v(x0, y1 - R), v(x0, y0 + R))); corner(x0 + R, y0 + R, Math.PI);
+  out.push(new THREE.Mesh(new THREE.TubeGeometry(path, 120, 0.019, 8, true), steel));
+  for (let i = 0; i < 14; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.82, 6), steel); b.position.set(-0.86 + i * 1.72 / 13, y0 + H / 2, 0); out.push(b); }
+  for (const x of [-0.78, 0.78]) for (const s of [-1, 1]) { // pieds en V
+    const l = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.275, 8), steel); l.position.set(x, y0 - 0.097, s * 0.097); l.rotation.x = -s * Math.PI / 4; out.push(l); }
+  for (const y of [0.45, 0.95]) { const h = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.006, 6, 12, Math.PI), steel); h.position.set(W / 2 + 0.03, y, 0); h.rotation.z = -Math.PI / 2; out.push(h); } // crochets
+  return out;
+}
+const BUILD = { vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -785,13 +803,14 @@ const ghosts = []; // aperçu des pièces d'angle
 const preview = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 0.29), new THREE.MeshBasicMaterial({ color:0xf2c200, transparent:true, opacity:0.55, depthTest:false }));
 preview.renderOrder = 4; preview.visible = false; scene.add(preview);
 let previewLab = null;
-function setCable(on) {
-  cable = on ? { start:null, heading:null, grp:'Passe-câbles #' + Date.now().toString(36) } : null;
-  $('cableDraw').classList.toggle('on', on); renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false; ghosts.forEach(g => g.visible = false);
+function setCable(on, kind = 'defender') {
+  cable = on ? { start:null, heading:null, kind, grp:(kind === 'vauban' ? 'Ligne Vauban #' : 'Passe-câbles #') + Date.now().toString(36) } : null;
+  $('cableDraw').classList.toggle('on', on && kind === 'defender'); $('vaubanDraw').classList.toggle('on', on && kind === 'vauban'); renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false; ghosts.forEach(g => g.visible = false);
   if (previewLab) { scene.remove(previewLab); previewLab = null; }
   if (on) { setMeasure(false); select(null); }
 }
-$('cableDraw').onclick = () => setCable(!cable);
+$('cableDraw').onclick = () => setCable(cable?.kind !== 'defender');
+$('vaubanDraw').onclick = () => setCable(cable?.kind !== 'vauban', 'vauban');
 function floorPoint(e) { // point du sol sous la souris
   setPtr(e); const h = ray.intersectObjects(FLOORS, false).find(h => h.object.visible && h.face && Math.abs(h.face.normal.y) > 0.9);
   return h ? h.point : ray.ray.intersectPlane(floorPlane(0), new THREE.Vector3());
@@ -803,7 +822,7 @@ function segTo(p) {
   const s = cable.start, up = new THREE.Vector3(0, 1, 0), step = THREE.MathUtils.degToRad(C_DEG);
   let a = Math.atan2(-(p.z - s.z), p.x - s.x), k = 0, start = s.clone();
   const pieces = [];
-  if (cable.heading === null) { if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); }
+  if (cable.heading === null || cable.kind === 'vauban') { if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
   else {
     let d = a - cable.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); // écart ramené dans ]-180°, 180°]
     k = THREE.MathUtils.clamp(Math.round(d / step), -5, 5); a = cable.heading + k * step;
@@ -815,19 +834,19 @@ function segTo(p) {
       }
       start = c.clone().add(r); }
   }
-  const dir = heading(a), n = Math.max(1, Math.round(new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir) / MOD));
-  return { a, n, dir, start, pieces, end:start.clone().addScaledVector(dir, n * MOD) };
+  const P = cable.kind === 'vauban' ? VAUBAN_PITCH : MOD, dir = heading(a), n = Math.max(1, Math.round(new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir) / P));
+  return { a, n, dir, start, pieces, P, end:start.clone().addScaledVector(dir, n * P) };
 }
 renderer.domElement.addEventListener('pointermove', e => {
   if (!cable?.start) return;
   const p = floorPoint(e); if (!p) return;
-  const { a, n, dir, start, pieces } = segTo(p), L = n * MOD;
-  preview.scale.set(L, 1, 1); preview.rotation.y = a; preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + 0.03); preview.visible = true;
+  const { a, n, dir, start, pieces, P } = segTo(p), L = n * P, vb = cable.kind === 'vauban';
+  preview.scale.set(L, vb ? 22 : 1, vb ? 1.5 : 1); preview.rotation.y = a; preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + (vb ? 0.55 : 0.03)); preview.visible = true;
   while (ghosts.length < pieces.length) { const g = new THREE.Group(); buildDefenderC().forEach(m => { m.material = preview.material; g.add(m); }); g.renderOrder = 4; scene.add(g); ghosts.push(g); }
   ghosts.forEach((g, i) => { const pc = pieces[i]; g.visible = !!pc; if (pc) { g.position.copy(pc.pos).setY(cable.start.y + 0.02); g.rotation.y = pc.rot; } });
-  const txt = (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + `${n} module${n > 1 ? 's' : ''} · ${fr(L, 2)} m`;
+  const txt = (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + `${n} ${vb ? 'barrière' : 'module'}${n > 1 ? 's' : ''} · ${fr(L, 2)} m`;
   if (previewLab?.userData.txt !== txt) { if (previewLab) scene.remove(previewLab); previewLab = label3d(txt, '#8a6d00', 320); previewLab.userData.txt = txt; scene.add(previewLab); }
-  previewLab.position.copy(preview.position).setY(cable.start.y + 0.6);
+  previewLab.position.copy(preview.position).setY(cable.start.y + (vb ? 1.6 : 0.6));
 });
 function cableClick(e) {
   const p = floorPoint(e); if (!p) return;
@@ -835,8 +854,10 @@ function cableClick(e) {
   const { a, n, dir, start, pieces, end } = segTo(p), y = cable.start.y;
   if (!cable.placed) { pushUndo(); cable.placed = true; } // un seul ⌘Z annule tout le tracé en cours
   for (const pc of pieces) { const c = makeProp('defender_c', [0.3, 0.3, 0.05, pc.side]); c.userData.grp = cable.grp; c.position.copy(pc.pos).setY(y); c.rotation.y = pc.rot; }
-  const o = makeProp('defender', [n * MOD, 0.29, 0.05]); o.userData.grp = cable.grp;
-  o.position.copy(start).addScaledVector(dir, n * MOD / 2).setY(y); o.rotation.y = a;
+  if (cable.kind === 'vauban') for (let i = 0; i < n; i++) { // une barrière par pas de 2,20 m
+    const o = makeProp('vauban', DEFAULT.vauban); o.userData.grp = cable.grp; o.position.copy(start).addScaledVector(dir, (i + 0.5) * VAUBAN_PITCH).setY(y); o.rotation.y = a; }
+  else { const o = makeProp('defender', [n * MOD, 0.29, 0.05]); o.userData.grp = cable.grp;
+    o.position.copy(start).addScaledVector(dir, n * MOD / 2).setY(y); o.rotation.y = a; }
   cable.start = end.setY(y); cable.heading = a; ghosts.forEach(g => g.visible = false);
 }
 ['sW', 'sD', 'sH'].forEach(id => $(id).onchange = resizeSelected);
@@ -898,7 +919,7 @@ addEventListener('keydown', e => {
   if (e.key === 't') setMode('translate'); if (e.key === 'r') setMode('rotate');
   if (e.key === 'Delete' || e.key === 'Backspace') $('del').click();
   if (e.key === 'Escape') { select(null); setMeasure(false); if (cable) setCable(false); }
-  if (e.key === 'p') setCable(!cable);
+  if (e.key === 'p') setCable(cable?.kind !== 'defender');
   if (e.key === 'm') setMeasure(!measuring);
   if (e.key === 'v') setPickEye(!pickEye);
   if (e.key === 'h') $('hide').click();
@@ -1154,10 +1175,11 @@ async function planSvg(whole = false) {
       for (const [a, b] of grillLines()) { const [p, q] = [a, b].map(([x, z]) => toPlan(g, x, z)); out.push(`<line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" stroke="#2c3e50" stroke-width="0.12" stroke-opacity="0.8"/>`); }
     } else out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.04"/>`);
     if (front) out.push(`<polygon points="${front.map(q => q.map(f).join(',')).join(' ')}" fill="#d0021b"/>`);
-    if (!SPEAKERS.has(g.userData.kind) && Math.max(w, d) >= 1) { // cotes : largeur devant, profondeur à droite
+    if (!SPEAKERS.has(g.userData.kind) && Math.max(w, d) >= 1 && Math.min(w, d) >= 0.5) { // cotes : largeur devant, profondeur à droite (pas sur passe-câbles / barrières)
       cote(out, g, [-w / 2, d / 2], [w / 2, d / 2], [0, 1], w);
       cote(out, g, [w / 2, d / 2], [w / 2, -d / 2], [1, 0], d);
     }
+    if (g.userData.kind === 'vauban' || g.userData.kind === 'defender_c') continue; // une étiquette par barrière / angle surchargerait le plan : la légende les compte
     const [cx, cy] = toPlan(g, 0, 0), fs = f(Math.min(0.4, Math.max(0.18, Math.min(w, d) / 3)));
     out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${fs}" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="${f(fs / 5)}" paint-order="stroke"><tspan x="${f(cx)}" dy="0" font-weight="bold">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w} × ${d} m</tspan></text>`);
   }
@@ -1272,7 +1294,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_LAYER = { vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
 const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
