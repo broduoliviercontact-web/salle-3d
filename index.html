@@ -264,9 +264,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
-const LABELS = { vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
-const DEFAULT = { scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
+const COLORS = { pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a };
+const LABELS = { pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne' };
+const DEFAULT = { pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -383,7 +383,7 @@ function buildX15p() {
     leg.position.set(Math.sin(a) * 0.25, 0.22, Math.cos(a) * 0.25); leg.rotation.set(Math.cos(a) * 0.9, 0, -Math.sin(a) * 0.9); out.push(leg); }
   return out;
 }
-const WEIGHT = { vauban:16, syva:50, ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
+const WEIGHT = { pc1k:5, sx713:13, sx654:10, lyreprof:28, atomic:6, fog:18, vauban:16, syva:50, ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
 // écran LED : dalles de 50 × 50 cm, ~8 kg et ~150 W en moyenne chacune (ordre de grandeur, selon le modèle loué)
 const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData.dims[2] / 0.5);
 const MOD = 1.005, modules = o => Math.max(1, Math.round(o.userData.dims[0] / MOD)); // passe-câbles Defender Mini : modules de 1 005 mm, 6 kg
@@ -472,7 +472,49 @@ function buildVauban() {
   for (const y of [0.45, 0.95]) { const h = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.006, 6, 12, Math.PI), steel); h.position.set(W / 2 + 0.03, y, 0); h.rotation.z = -Math.PI / 2; out.push(h); } // crochets
   return out;
 }
-const BUILD = { vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+// --- liste lumière Gaspar Claus (Auditorium) : volumes indicatifs d'après les proportions habituelles des appareils (face avant = +z) ---
+// poids / puissances : ordres de grandeur à confirmer avec le loueur
+const lens = (r, z, y) => { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 24), new THREE.MeshBasicMaterial({ color:0xfff3c4 })); m.position.set(0, y, z); return m; };
+const tube = (r0, r1, len, y, z, c = 0x2a2d33) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, len, 24).rotateX(Math.PI / 2), dark(c)); m.position.set(0, y, z); return m; };
+function yoke(w, y, base = 0.03) { // lyre en U + platine au sol
+  const out = [], plate = new THREE.Mesh(new THREE.BoxGeometry(w * 0.6, base, 0.12), dark(0x111111)); plate.position.y = base / 2; out.push(plate);
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(w + 0.04, 0.025, 0.04), dark(0x111111)); bar.position.y = base + 0.03; out.push(bar);
+  for (const x of [-w / 2 - 0.01, w / 2 + 0.01]) { const a = new THREE.Mesh(new THREE.BoxGeometry(0.02, y - base - 0.03, 0.04), dark(0x111111)); a.position.set(x, (y + base + 0.03) / 2, 0); out.push(a); }
+  return out;
+}
+// PC 1 kW : corps cylindrique, lentille, volets coupe-flux
+function buildPC() {
+  const y = 0.27, out = [...yoke(0.26, y), tube(0.13, 0.13, 0.3, y, 0), lens(0.1, 0.152, y)];
+  for (const [x, yy, w, h] of [[0, y + 0.135, 0.26, 0.002], [0, y - 0.135, 0.26, 0.002], [0.135, y, 0.002, 0.26], [-0.135, y, 0.002, 0.26]]) {
+    const f = new THREE.Mesh(new THREE.BoxGeometry(w || 0.002, h || 0.002, 0.12), dark(0x111111)); f.position.set(x, yy, 0.21); out.push(f); }
+  return out;
+}
+// découpe Robert Juliat SX : boîte à lampe arrière + tube de zoom ; L = longueur totale
+function buildDecoupe(L, r) {
+  const y = 0.3, house = new THREE.Mesh(new THREE.BoxGeometry(r * 2.2, r * 2.4, L * 0.32), dark(0x30343c)); house.position.set(0, y, -L / 2 + L * 0.16);
+  return [...yoke(r * 2.2, y), house, tube(r, r * 0.9, L * 0.68, y, L * 0.16), lens(r * 0.8, L / 2 + 0.002, y)];
+}
+const buildSX713 = () => buildDecoupe(0.95, 0.15), buildSX654 = () => buildDecoupe(0.8, 0.13);
+// lyre à découpe LED (Rivale Profile / Esprite / Ghibli) : socle, lyre, tête longue
+function buildLyreProf() {
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 0.34), dark(0x30343c)); base.position.y = 0.09;
+  const out = [base];
+  for (const x of [-0.2, 0.2]) { const a = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.42, 0.16), dark(0x30343c)); a.position.set(x, 0.39, 0); out.push(a); }
+  return [...out, tube(0.15, 0.13, 0.5, 0.5, 0.03, 0x22252b), lens(0.11, 0.282, 0.5)];
+}
+// stroboscope Atomic 3000 : caisson large, fenêtre blanche, étrier
+function buildAtomic() {
+  const y = 0.18, b = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.26), dark(0x30343c)); b.position.y = y;
+  const win = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.15), new THREE.MeshBasicMaterial({ color:0xf4f6ff })); win.position.set(0, y, 0.131);
+  return [...yoke(0.5, y), b, win];
+}
+// machine à brouillard Unique 2.1 : caisson, buse en façade
+function buildFog() {
+  const b = cab(0.3, 0.3, 0.5, 0.0); b.children[1].material = dark(0x30343c);
+  const nozzle = tube(0.035, 0.035, 0.08, 0.2, 0.29, 0x111111);
+  return [b, nozzle];
+}
+const BUILD = { pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -622,7 +664,7 @@ function jauge() {
 }
 // --- câblage : élément relié à une trappe -> longueur de câble estimée et puissance par trappe ---
 const TRAP_KW = { '63A':63 * 400 * Math.sqrt(3) / 1000, '32A':32 * 400 * Math.sqrt(3) / 1000 }; // ponytail: triphasé 400 V supposé (≈ 43,6 / 22,2 kW)
-const POWER = { lyre:600, par:200, regie:3000, ecran:2500, enceinte:1000, vch30:1000, vch30x2:2000, vtl218:2000 }; // W par défaut, modifiable par élément
+const POWER = { pc1k:1000, sx713:2000, sx654:1200, lyreprof:800, atomic:3000, fog:1500, lyre:600, par:200, regie:3000, ecran:2500, enceinte:1000, vch30:1000, vch30x2:2000, vtl218:2000 }; // W par défaut, modifiable par élément
 const TOURETS = [5, 10, 15, 20, 25, 50];
 const trapList = () => venue.children.find(o => o.name === 'Trappes de sol (PDF)')?.children || [];
 const powerOf = o => o.userData.power ?? (o.userData.kind === 'led' ? dalles(o) * 150 : POWER[o.userData.kind] ?? 0);
@@ -742,7 +784,7 @@ function addKind(k) { pushUndo(); const g = makeProp(k, DEFAULT[k]); g.position.
 const CATALOG = [
   ['Scène et praticables', ['scene', 'prat', 'regie']],
   ['Son', ['l2d', 'kara2', 'ks28', 'ks28x2', 'x15', 'x15p', 'syva', 'vch30', 'vch30x2', 'vtl218', 'enceinte']],
-  ['Lumière', ['lyre', 'par']],
+  ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran']],
   ['Sécurité et circulation', ['vauban', 'crash', 'defender']],
   ['Divers', ['perso']],
@@ -760,7 +802,7 @@ function thumb(k) {
   if (!thumbR) { thumbR = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true }); thumbR.setSize(240, 180); }
   const sc = new THREE.Scene(), dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(3, 5, 4);
   sc.add(new THREE.HemisphereLight(0xffffff, 0x556070, 2), dl);
-  const g = makeProp(k, DEFAULT[k]); props.remove(g); g.rotation.y = -0.55; sc.add(g);
+  const g = makeProp(k, DEFAULT[k]); props.remove(g); g.rotation.y = -0.9; sc.add(g); // vue de trois-quarts : face avant et longueur visibles
   const b = new THREE.Box3().setFromObject(g), c = b.getCenter(new THREE.Vector3()), r = b.getSize(new THREE.Vector3()).length();
   const cam = new THREE.PerspectiveCamera(30, 4 / 3, 0.01, 200); cam.position.copy(c).add(new THREE.Vector3(0, 0.45, 1).normalize().multiplyScalar(r * 2.2)); cam.lookAt(c); // assez de recul pour que l'objet entier tienne dans la vignette
   thumbR.render(sc, cam); g.traverse(o => o.geometry?.dispose());
@@ -777,10 +819,10 @@ $('addBtn').onclick = () => { if (!$('catBody').children.length) buildCatalog();
 $('catClose').onclick = () => $('catalog').close();
 $('catalog').onclick = e => { if (e.target === $('catalog')) $('catalog').close(); }; // clic sur le fond = fermer
 $('catSearch').oninput = () => {
-  const q = $('catSearch').value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const norm = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''), q = norm($('catSearch').value.trim());
   document.querySelectorAll('#catBody section').forEach(sec => {
-    let any = false;
-    sec.querySelectorAll('.card').forEach(c => { const hit = !q || c.innerText.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q) || c.dataset.kind.includes(q); c.hidden = !hit; any ||= hit; });
+    const catHit = norm(sec.querySelector('h3').textContent).includes(q); let any = false; // « lumière » affiche toute la catégorie
+    sec.querySelectorAll('.card').forEach(c => { const hit = !q || catHit || norm(c.innerText).includes(q) || c.dataset.kind.includes(q); c.hidden = !hit; any ||= hit; });
     sec.hidden = !any;
   });
 };
@@ -1351,7 +1393,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
+const DXF_LAYER = { pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO' };
 const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
