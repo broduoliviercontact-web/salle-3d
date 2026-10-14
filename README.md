@@ -96,6 +96,7 @@ On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre 
   - les trappes, une légende, des règles graduées et une grille de 1 m / 5 m.
 
   Le plan est à l'échelle **1:100** si on l'imprime à 100 %.
+  Le grill, ses cotes et les palans n'y figurent que si la case **Grill et palans sur les plans 2D** est cochée (décochée par défaut) ; le tableau de rigging reste dans la fiche PDF.
 - **Export AutoCAD (DXF)** : les éléments du setup et les trappes, en DXF R12, **dans le repère du DWG d'origine**. Les calques sont `SETUP_SCENE`, `SETUP_SON`, `SETUP_REGIE`, `SETUP_VIDEO`, `SETUP_DIVERS`, `SETUP_TEXTE`, `SETUP_GRILL`, `AGORA_AXE` et `TRAPPES_SOL`. Dans AutoCAD :
   1. ouvrir le DXF exporté et tout copier (`COPYCLIP`) ;
   2. ouvrir le plan DWG ;

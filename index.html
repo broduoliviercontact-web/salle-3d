@@ -96,6 +96,7 @@
   <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: version A)"><button id="save">Sauver</button><button id="share" title="Copie un lien qui ouvre ce setup sur n'importe quel ordinateur">Lien</button></div>
   <ul id="cfgs"></ul>
   <div class="row"><button id="compare" class="grow" disabled title="Coche deux setups dans la liste">Comparer les 2 setups cochés</button></div>
+  <div class="row"><label class="cb"><input type="checkbox" id="svgGrill"> Grill et palans sur les plans 2D</label></div>
   <div class="row"><button id="dxf" class="grow">Export AutoCAD (DXF)</button><button id="plan2d">Aperçu 2D (SVG)</button></div>
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
@@ -978,7 +979,8 @@ let fondSrc = null; // fond de plan complet (plan_fond.svg), chargé au premier 
 // whole = true : cadre sur toute l'Agora (fiche setup) ; sinon sur les éléments ajoutés + 8 m
 const AGORA_BOX = [[-12, -36], [92, 17]]; // emprise de l'Agora (x, z), de la cloison CTA à la façade est
 async function planSvg(whole = false) {
-  const items = props.children.filter(shown).map(g => {
+  const grill = $('svgGrill').checked; // grill, cotes et palans masqués par défaut : ils chargent le plan
+  const items = props.children.filter(g => shown(g) && (grill || g.userData.kind !== 'grill')).map(g => {
     const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
     return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
   });
@@ -1049,7 +1051,7 @@ async function planSvg(whole = false) {
     out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${fs}" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="${f(fs / 5)}" paint-order="stroke"><tspan x="${f(cx)}" dy="0" font-weight="bold">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w} × ${d} m</tspan></text>`);
   }
   // palans du grill avec leur charge, câbles depuis les trappes
-  const rig = rigging();
+  const rig = grill ? rigging() : null;
   if (rig) { legend.set('Palan (charge au point)', { col:'#2c7a3f', n:rig.pts.length });
     for (const p of rig.pts) { const [x, y] = [p.world.x, p.world.z], col = p.kg > rig.max ? '#d0021b' : '#2c7a3f';
       out.push(`<polygon points="${f(x)},${f(y - 0.3)} ${f(x + 0.26)},${f(y + 0.15)} ${f(x - 0.26)},${f(y + 0.15)}" fill="${col}"/><text x="${f(x + 0.35)}" y="${f(y - 0.25)}" font-size="0.3" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">P${p.n} ${Math.round(p.kg)} kg</text>`); } }
