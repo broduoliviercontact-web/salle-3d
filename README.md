@@ -86,6 +86,8 @@ Un setup enregistre :
 
 Chaque setup appartient à un **événement** avec une **date** (ex. « FIP 360 », 14/11). La liste est rangée par événement, du plus proche au plus lointain ; les setups sans événement sont regroupés à la fin. Sur chaque setup :
 - **▶** le charge (les champs nom / événement / date se remplissent : **Sauver** met alors à jour ce setup) ;
+- **⟳** le met à jour : il est remplacé par l'état actuel de la salle (nom, événement et date conservés) ;
+- **🔗** copie le lien de partage de ce setup (un lien est une copie : après ⟳, recopier un nouveau lien) ;
 - **⧉** le duplique pour faire une variante ;
 - **✎** le renomme ou le change d'événement ;
 - **✕** le supprime.

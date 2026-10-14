@@ -30,7 +30,8 @@
   #drop { position:fixed; inset:0; background:rgba(240,165,58,.15); border:3px dashed var(--acc); display:none; place-items:center; font-size:20px; z-index:5; }
   ul { list-style:none; padding:0; margin:0; }
   li { display:flex; gap:6px; align-items:center; margin-bottom:4px; }
-  li.ev { margin-top:8px; color:var(--acc); font-weight:600; } li.ev small { color:var(--mute); font-weight:400; } li button { padding:3px 6px; }
+  li.ev { margin-top:8px; color:var(--acc); font-weight:600; } li.ev small { color:var(--mute); font-weight:400; } li button { padding:3px 5px; font-size:12px; }
+  li.cfg { flex-wrap:wrap; row-gap:2px; padding-bottom:4px; border-bottom:1px solid var(--line); } li.cfg span { flex:1 1 calc(100% - 26px); } li.cfg button { flex:1; } /* setup : nom en entier, actions dessous */
   li span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 </style>
 </head>
@@ -1039,9 +1040,12 @@ function refreshCfgs() {
     const dates = [...new Set(list.map(([, c]) => c.date).filter(Boolean))].sort();
     h.firstChild.innerHTML = `${esc(ev)} <small>${dates.map(fmtDate).join(' · ')}</small>`;
     for (const [n, c] of list.sort((a, b) => (a[1].saved || 0) - (b[1].saved || 0))) {
-      const li = document.createElement('li');
-      li.innerHTML = `<input type="checkbox" title="Cocher pour comparer"><span></span><button title="Charger ce setup">▶</button><button title="Dupliquer (variante)">⧉</button><button title="Renommer / changer d'événement">✎</button><button title="Supprimer">✕</button>`;
-      const [cb, label, load, dup, ren, del] = li.children;
+      const li = document.createElement('li'); li.className = 'cfg';
+      li.innerHTML = `<input type="checkbox" title="Cocher pour comparer"><span></span><button title="Charger ce setup">▶</button><button title="Mettre à jour : remplacer ce setup par la salle actuelle">⟳</button><button title="Copier le lien de partage de ce setup">🔗</button><button title="Dupliquer (variante)">⧉</button><button title="Renommer / changer d'événement">✎</button><button title="Supprimer">✕</button>`;
+      const [cb, label, load, upd, link, dup, ren, del] = li.children;
+      upd.onclick = () => { if (!confirm(`Remplacer « ${n} » par l'état actuel de la salle ?`)) return;
+        cfgs[n] = { ...snapshot(), event:c.event || '', date:c.date || '', saved:Date.now() }; setupName = n; fillMeta(n, cfgs[n]); store.set(cfgs); refreshCfgs(); };
+      link.onclick = () => copyLink(link, n, c);
       cb.dataset.n = n; cb.onchange = syncCompare; label.textContent = n; label.title = n + (c.saved ? ` — enregistré le ${new Date(c.saved).toLocaleString('fr')}` : '');
       load.onclick = () => { pushUndo(); restore(c); setupName = n; fillMeta(n, c); };
       dup.onclick = () => { const m = prompt('Nom de la variante :', n + ' (variante)')?.trim(); if (!m) return; if (cfgs[m] && !confirm(`« ${m} » existe déjà. Le remplacer ?`)) return; cfgs[m] = { ...structuredClone(c), saved:Date.now() }; store.set(cfgs); refreshCfgs(); };
@@ -1072,12 +1076,14 @@ refreshCfgs();
 const b64u = { enc:u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
                dec:s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)) };
 const pipe = async (data, stream) => new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());
-$('share').onclick = async () => {
-  const name = $('cfgName').value.trim() || setupName || 'Setup partagé';
-  const url = `${location.origin}${location.pathname}#s=${b64u.enc(await pipe(JSON.stringify({ name, cfg:{ ...snapshot(), ...meta() } }), new CompressionStream('deflate-raw')))}`;
-  try { await navigator.clipboard.writeText(url); $('share').textContent = 'Copié ✓'; setTimeout(() => $('share').textContent = 'Lien', 2000); }
+// lien de partage d'un setup (le setup est copié dans l'adresse : un lien ne se met pas à jour, on en recopie un nouveau après ⟳)
+async function copyLink(btn, name, cfg) {
+  const url = `${location.origin}${location.pathname}#s=${b64u.enc(await pipe(JSON.stringify({ name, cfg }), new CompressionStream('deflate-raw')))}`;
+  const txt = btn.textContent;
+  try { await navigator.clipboard.writeText(url); btn.textContent = '✓'; setTimeout(() => btn.textContent = txt, 2000); }
   catch { prompt('Lien de partage du setup :', url); }
-};
+}
+$('share').onclick = () => copyLink($('share'), $('cfgName').value.trim() || setupName || 'Setup partagé', { ...snapshot(), ...meta() });
 async function openShared() {
   const m = location.hash.match(/^#s=([\w-]+)$/); if (!m) return;
   try {
