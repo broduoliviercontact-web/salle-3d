@@ -90,7 +90,7 @@
   <div class="row" data-salle="agora"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
   <div class="row"><button id="gsBtn" class="grow" title="4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour ; se pose au centre de la vue">Gril ground support</button><select id="gsSeries"><option value="truss30">290</option><option value="truss40">390</option></select></div>
   <div class="row">Ponts <input type="number" id="gsW" value="10" step="0.5" style="width:48px"> × <input type="number" id="gsD" value="8" step="0.5" style="width:48px"> m, cadre à <input type="number" id="gsH" value="6" step="0.5" style="width:48px"> m</div>
-  <div class="row" data-salle="audi" hidden><button id="ficheAU" class="grow" title="Fiche technique de la salle (plateau, machinerie, son, lumière, vidéo, électricité, loges) d'après les plans EXE, avec le plan 2D actuel ; à imprimer en PDF">Fiche technique de l'auditorium</button></div>
+  <div class="row" data-salle="audi" hidden><button id="plaquesAU" title="Page à imprimer : pour chaque boîtier, les noms de circuits lus dans le carnet, avec une case à cocher et une colonne de correction, à comparer aux vraies plaques">Contrôle des plaques</button><button id="ficheAU" class="grow" title="Fiche technique de la salle (plateau, machinerie, son, lumière, vidéo, électricité, loges) d'après les plans EXE, avec le plan 2D actuel ; à imprimer en PDF">Fiche technique de l'auditorium</button></div>
   <div class="row" data-salle="audi" hidden><button id="patchBtn" class="grow on" title="Plan 2D lisible : chaque projecteur, son boîtier et son circuit ; déplacer, re-patcher, imprimer">Éditeur de patch 2D</button></div>
   <div class="row" data-salle="audi" hidden><button id="sonAuBtn" class="grow" title="Système Fohhn du synoptique audio : façade DLI-430 + DLI-230 (jardin / cour), 4 subs AS40 et point central AT40 suspendus devant le cadre, 8 XT1 en nez de scène, 4 retours XT22">Système son Fohhn</button></div>
   <div class="row" data-salle="audi" hidden><button id="conqueBtn" class="grow" title="Les 6 décors d'orchestre mobiles en configuration concert (rangés sinon sur le mur du lointain)">Conques d'orchestre</button><button id="gcBtn" class="grow" title="Proposition d'implantation de la liste lumière Gaspar Claus (24 projecteurs + brouillard) sur F1, F2, F3, S1 et au plateau, reliée aux boîtiers BECL ; pose aussi les cintres s'ils manquent">Plan de feu Gaspar Claus</button></div>
@@ -842,10 +842,11 @@ function rigging() {
   return { pts, off, total:pts.reduce((s, p) => s + p.kg, 0), max:+$('pointMax').value || Infinity };
 }
 // --- jauge : surface publique de l'Agora (calcul DACAM) moins scènes, praticables et régies posés dans l'Agora ---
+const JAUGE_AU = 277; // auditorium : 277 places en gradins dont 8 PMR (plan de la salle, confirmé par la régie générale) ; 72 places sur chaises à plat
 const AGORA_PUBLIC = 3184.9, JAUGE_KINDS = new Set(['scene_fip', 'scene', 'scene_m', 'prat', 'regie']), DACAM_RDC = 2164;
 // ponytail: deux éléments superposés (praticable sur la scène) sont déduits deux fois
 function jauge() {
-  if (salle === 'audi') { const v = seatList().filter(shown); return { audi:true, n:v.length, mov:v.filter(o => /amovible/i.test(o.name)).length }; }
+  if (salle === 'audi') { const v = seatList().filter(shown); return { audi:true, n:JAUGE_AU, pmr:8, seats:v.length, mov:v.filter(o => /amovible/i.test(o.name)).length }; } // jauge officielle du plan ; la maquette 3D compte ses sièges à part
   let occ = 0;
   for (const o of props.children) if (o.visible && JAUGE_KINDS.has(o.userData.kind) && o.position.x > 5.95 + DWG_SHIFT[0]) occ += o.userData.dims[0] * o.userData.dims[1]; // Agora : à l'est de la cloison CTA (x DXF 5,95)
   const r = +$('m2pp').value || 3, pub = AGORA_PUBLIC - occ;
@@ -1414,7 +1415,7 @@ function updateDossier() {
       + (r.off.length ? `<br><span class="warn">⚠ hors grill (non compté) : ${r.off.map(esc).join(', ')}</span>` : '');
   } else $('rigInfo').textContent = '';
   const j = jauge();
-  $('jaugeInfo').innerHTML = j.audi ? `<b>Jauge Auditorium</b> : <b>${j.n} places assises</b> (dont ${j.mov} amovibles)` : `<b>Jauge Agora</b> : ${fr(AGORA_PUBLIC)} − ${fr(j.occ)} m² occupés = ${fr(j.pub)} m² → <b>${j.n.toLocaleString('fr')} pers.</b> (${fr(j.r)} m²/pers.)`
+  $('jaugeInfo').innerHTML = j.audi ? `<b>Jauge Auditorium</b> : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR <span style="opacity:.7">(maquette 3D : ${j.seats} sièges visibles, dont ${j.mov} amovibles)</span>` : `<b>Jauge Agora</b> : ${fr(AGORA_PUBLIC)} − ${fr(j.occ)} m² occupés = ${fr(j.pub)} m² → <b>${j.n.toLocaleString('fr')} pers.</b> (${fr(j.r)} m²/pers.)`
     + (j.n > DACAM_RDC ? `<br><span class="warn">⚠ plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : '');
   const c = cabling();
   $('elecInfo').innerHTML = c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind], kw = e.W / 1000;
@@ -2194,6 +2195,23 @@ $('compare').onclick = async () => {
 // --- fiche technique de l'auditorium (salle, pas setup) : données des plans EXE lots 22 (INEO) et 23 (TAMBE), du synoptique audio et des fiches produits
 // ponytail: matériel installé sans quantités (non données par les fiches produits) ; contacts / accès / horaires à compléter par la régie générale
 const VIT = { F1:0.15, F2:0.15, F3:0.15, S1:0.15, LJ:0.15, LC:0.15, C1:0.08, C2:0.08 }; // m/s (plaques des équipes)
+// fiche de contrôle des plaques : noms lus (OCR) par boîtier, dans l'ordre de la plaque, à cocher sur place ; regroupés par porteuse puis niveau
+$('plaquesAU').onclick = () => {
+  const bx = (termGroup()?.children || []).map(b => b.userData.term).filter(t => t.img?.labels?.some(l => l.t !== t.id));
+  const zone = t => t.bar ? `Porteuse ${t.bar}` : { R0:'Plateau et RDC', R1:'Niveau R+1', R2:'Niveau R+2' }[t.lvl] || t.lvl;
+  const order = ['Porteuse S1', 'Porteuse F1', 'Porteuse F2', 'Porteuse F3', 'Plateau et RDC', 'Niveau R+1', 'Niveau R+2'];
+  const groups = [...new Set(bx.map(zone))].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+  const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour imprimer la fiche.');
+  const nb = bx.reduce((s, t) => s + [...new Set(t.img.labels.map(l => l.t))].filter(x => x !== t.id).length, 0);
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Contrôle des plaques — Auditorium</title><style>@page { size:A4 portrait; margin:10mm } body { font:10.5px Helvetica, Arial, sans-serif; margin:0 }
+    h1 { font-size:17px; margin:0 } h2 { font-size:12px; margin:10px 0 4px; border-bottom:1px solid #999; break-after:avoid } table { border-collapse:collapse; width:100% } td, th { border:1px solid #bbb; padding:2px 5px; text-align:left }
+    th { background:#eee } .ok { width:16px; text-align:center } .cor { width:34% } .box { break-inside:avoid } .note { color:#555 } td.n { font-family:Menlo, Consolas, monospace }</style></head><body>
+    <h1>Contrôle des plaques des boîtiers — Auditorium</h1><div class="note">${bx.length} boîtiers · ${nb} noms de circuits lus automatiquement dans le carnet de détails (LGS2-INE-EXE-22-DET-AU-TN-0606-C), dans l'ordre de la plaque (gauche → droite, haut → bas). Cocher si conforme, sinon noter le vrai nom. Version du ${new Date().toLocaleDateString('fr')}.</div>
+    ${groups.map(g => `<h2>${g}</h2>` + bx.filter(t => zone(t) === g).sort((a, b) => a.id.localeCompare(b.id, 'fr', { numeric:true })).map(t => { const names = [...new Set(t.img.labels.map(l => l.t))].filter(x => x !== t.id);
+      return `<div class="box"><table><tr><th colspan="3">${esc(t.id)} <span style="font-weight:400">· ${esc([t.detail?.type, t.detail?.loc?.toLowerCase()].filter(Boolean).join(' · '))}</span></th></tr>${names.map(x => `<tr><td class="n">${esc(x)}</td><td class="ok">☐</td><td class="cor"></td></tr>`).join('')}</table></div>`; }).join('')).join('')}
+    <p class="note">Boîtiers sans noms posés sur la plaque (à contrôler avec leur tableau de circuits dans la fenêtre du boîtier, ou absents du carnet) : ${esc((termGroup()?.children || []).map(b => b.userData.term).filter(t => t.kind !== 'HP' && !bx.includes(t)).map(t => t.id).join(', '))}.</p></body></html>`);
+  w.document.close(); setTimeout(() => w.print(), 400);
+};
 $('ficheAU').onclick = async () => {
   const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour générer la fiche.');
   w.document.write('<p style="font:14px sans-serif">Préparation de la fiche…</p>');
@@ -2214,9 +2232,9 @@ $('ficheAU').onclick = async () => {
     .kpi div { border:1px solid #bbb; border-radius:4px; padding:4px 6px } .kpi b { display:block; font-size:16px } .note { color:#666; font-size:9.5px }
     .plan { break-before:page } .plan svg { display:block; width:100%; height:auto; max-height:255mm } .todo { color:#b45309 } section { break-inside:avoid } section.patch { break-inside:auto; break-before:page } .patch td { padding:1px 4px } tr.warn td { color:#c00 }</style></head><body>
     <header><div><h1>Auditorium — fiche technique</h1><div class="sub">Les Grandes Serres · rue Louis Nadot, 93500 Pantin</div></div><div class="sub">Version du ${new Date().toLocaleDateString('fr')}</div></header>
-    <div class="kpi"><div><b>${seatsN} places</b>dont ${mov} sièges amovibles</div><div><b>13,90 × 6,83 m</b>plateau (cadre → lointain)</div><div><b>10,48 m</b>sous gril</div><div><b>8 équipes</b>motorisées (2 × 1,5 t)</div></div>
+    <div class="kpi"><div><b>${JAUGE_AU} places</b>en gradins dont 8 PMR</div><div><b>13,90 × 6,83 m</b>plateau (cadre → lointain)</div><div><b>10,48 m</b>sous gril</div><div><b>8 équipes</b>motorisées (2 × 1,5 t)</div></div>
     <p class="todo">Contacts régie générale, accès décors / déchargement, horaires : à compléter.</p>
-    <section>${sec('Salle', ul([`${seatsN} places en gradins (${seatsN - mov} fauteuils + ${mov} sièges amovibles sur marches)`, 'Régie spectacle en fond de salle (R+2) ; table de régie de milieu de salle mobile (Equip\'cité Praktikus)', 'Boucle malentendants Rondson EJ-770T ; limiteur de niveau sonore Audiopole SPL-ONE avec afficheur']))}</section>
+    <section>${sec('Salle', ul([`${JAUGE_AU} places en gradins dont 8 PMR ; 72 places sur chaises en configuration à plat ; ${mov} sièges amovibles sur marches`, 'Régie spectacle en fond de salle (R+2) ; table de régie de milieu de salle mobile (Equip\'cité Praktikus)', 'Boucle malentendants Rondson EJ-770T ; limiteur de niveau sonore Audiopole SPL-ONE avec afficheur']))}</section>
     <section>${sec('Plateau', `<table><tr><th>Ouverture entre murs de cage</th><td>13,90 m</td><th>Profondeur cadre → lointain</th><td>6,83 m (axes 7,05 m)</td></tr>
       <tr><th>Avant-scène devant le cadre</th><td>≈ 1,6 m</td><th>Surface</th><td>96,7 m²</td></tr><tr><th>Hauteur sous gril</th><td>10,48 m (niv. 64,05)</td><th>Sol</th><td>parquet</td></tr></table>`
       + ul(['Habillage : velours noir Seine (Azur Scenic) ; patience motorisée d\'avant-scène Gerriets Trumpf 95 Trac-Drive, rail à 9,57 m, 0,43 m derrière le cadre, 1 m/s', 'Écran de projection Oray Infiny, image 9,6 × 6 m (de 2 à 8 m), à 5,87 m derrière le cadre', 'Conques : 6 décors d\'orchestre mobiles 1,46 × 4,52 m (rangés au lointain) ; 2 conques de plafond sur scène (1 290 et 1 310 kg) ; 3 réflecteurs acoustiques en salle', 'Nacelle de réglage Genie AWP-30S (11 m)']))}</section>
@@ -2259,7 +2277,7 @@ $('fiche').onclick = async () => {
     <h2>Matériel</h2><table><tr><th>Désignation</th><th>Qté</th><th>Poids unit.</th><th>Poids total</th><th>Puissance</th></tr>
     ${[...mat].map(([k, e]) => `<tr>${td(esc(k))}${num(e.n)}${num(e.kg ? e.kg + ' kg' : '—')}${num(e.kg ? e.kg * e.n + ' kg' : '—')}${num(e.W ? fr(e.W / 1000) + ' kW' : '—')}</tr>`).join('')}</table>
     <div>${esc(charges())}</div>
-    ${j.audi ? `<h2>Jauge</h2><div>Auditorium : <b>${j.n} places assises</b> (dont ${j.mov} sièges amovibles sur marches)</div>` : `<h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}</div>`}
+    ${j.audi ? `<h2>Jauge</h2><div>Auditorium : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR (72 places sur chaises à plat)</div>` : `<h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}</div>`}
     </div><div>
     ${r ? `<h2>Rigging — grill</h2><table><tr><th>Point</th><th>Charge</th><th></th></tr>${r.pts.map(p => `<tr>${td('P' + p.n)}${num(kg(p.kg))}${td(p.kg > r.max ? '<span class="warn">> ' + kg(r.max) + '</span>' : 'ok')}</tr>`).join('')}
       <tr>${td('<b>Total</b>')}${num('<b>' + kg(r.total) + '</b>')}${td('')}</tr></table><div>Hypothèses : poutres ${esc($('trussKg').value)} kg/m, palans ${esc($('hoistKg').value)} kg, limite ${kg(r.max)} par point, poids des poutres réparti par demi-travée.${r.off.length ? ` <span class="warn">Hors grill : ${r.off.map(esc).join(', ')}</span>` : ''}</div>` : ''}

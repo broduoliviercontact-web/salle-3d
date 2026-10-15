@@ -81,7 +81,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   - la vue n'affiche que l'auditorium (scène, gradins, loges, régie), plafond coupé pour voir dedans ;
   - les **sièges** sont transparents, avec un curseur d'opacité (sous 50 %, un clic les traverse) ;
   - une case masque les **9 sièges amovibles** sur marches ;
-  - la jauge compte les places assises visibles (287 avec les amovibles) ;
+  - la jauge est celle du plan de la salle : **277 places en gradins dont 8 PMR** (72 places sur chaises à plat) ; la maquette 3D compte à part ses 287 sièges (278 fauteuils + 9 amovibles) ;
   - les setups, l'aperçu 2D, la fiche PDF et la vue **Face** sont propres à l'auditorium ;
   - les presets et repères de l'Agora (machiniste, concert, FIP 360, trappes, axe et piliers) sont masqués.
   Chaque setup garde sa salle : le charger (ou ouvrir son lien) bascule dans la bonne vue.
@@ -89,7 +89,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   | Équipe | Position | Longueur | CMU | Course (m / plateau) |
   |---|---|---|---|---|
   | F1, F2, F3 (frontales) | 0,77 · 3,32 · 6,38 m du cadre vers le lointain | 12 m | 350 daN | 1,00 → 9,20 |
-  | C1, C2 (lourdes) | 5,29 · 3,90 m | 10,4 m | 1,5 t | 0,20 → 9,20 |
+  | C1, C2 (lourdes) | C1 à 5,29 m (côté lointain, confirmé), C2 à 3,90 m | 10,4 m | 1,5 t | 0,20 → 9,20 |
   | S1 (salle) | 3,50 m en salle | 10,4 m | 350 daN | 1,80 → 9,20 |
   | LC, LJ (latérales) | à 6,45 m de l'axe, côté cour et jardin | 5,5 m | 350 daN | 1,00 → 9,20 |
 
@@ -125,6 +125,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   | Plateau | 4 × 654 SX en latéraux, 1 × 654 SX en contre, 4 × lyres découpe au lointain, Atomic 3000, brouillard en coulisse jardin |
 
   Les appareils des porteuses sont accrochés tête en bas et suivent leur équipe. Chacun est relié au boîtier BECL le plus proche (de sa porteuse, sinon au plateau) : la sélection affiche « → BECL-05 », et le dossier technique liste par boîtier le nombre d'appareils, la puissance et les prises 16 A utilisées / disponibles.
+- **Contrôle des plaques** (mode auditorium, Installations) : page à imprimer pour le montage : pour chaque boîtier (par porteuse puis niveau), les noms de circuits lus dans le carnet, dans l'ordre de la plaque, avec une case à cocher et une colonne de correction ; liste des boîtiers dont les noms ne sont pas posés sur la plaque.
 - **Fiche technique de l'auditorium** (mode auditorium, Installations) : page A4 à imprimer en PDF, établie d'après les plans EXE (lots 22 et 23), le synoptique audio et les fiches produits :
   - chiffres clés (places, plateau 13,90 × 6,83 m, 10,48 m sous gril, équipes) ;
   - salle, plateau (dimensions, habillage, patience, écran, conques, nacelle) ;
