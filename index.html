@@ -47,6 +47,7 @@
   #patch .ph b { font-size:15px; margin-right:8px; } #patchSum { flex:1; color:var(--mute); }
   #patch[open] { display:flex; flex-direction:column; } #patch .pb { display:grid; grid-template-columns:1fr 400px; flex:1; min-height:0; }
   #patch .ptool { display:flex; gap:8px; align-items:center; padding:6px 12px; background:#e9ecf1; border-bottom:1px solid #ccd; color:#445; font-size:12px; }
+  #patch .ptool { flex-wrap:wrap; row-gap:4px; } #patch .ptool > span, #patchMode button { white-space:nowrap; } #patchMode { display:flex; } #patchMode button { border-radius:0; margin-left:-1px; padding:3px 9px; font-size:12px; } #patchMode button:first-child { border-radius:5px 0 0 5px; } #patchMode button:last-child { border-radius:0 5px 5px 0; }
   #patch .ptool button { background:#fff; color:#111; border-color:#bbc; } #patch .ptool button.on { background:var(--acc); border-color:var(--acc); }
   #patchSvg { width:100%; height:100%; background:#fff; touch-action:none; user-select:none; }
   #patch .pside { overflow-y:auto; padding:10px 12px; border-left:1px solid #ccd; background:#fafbfc; }
@@ -147,7 +148,8 @@
 <dialog id="patch">
   <div class="ph"><b>Patch lumière — Auditorium</b><span id="patchSum"></span>
     <button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
-  <div class="ptool"><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
+  <div class="ptool"><span>Pose :</span><span id="patchMode"><button data-m="auto" class="on" title="Accroché si on clique sur une porteuse, sinon au sol">Auto</button><button data-m="sol" title="Toujours au sol (aussi : ⌥ Alt + clic)">Au sol</button><button data-m="perche" title="Toujours sur la porteuse la plus proche (≤ 2 m)">Porteuse</button></span>
+    <span style="color:#778">● accroché ■ au sol</span><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
   <div class="pb"><svg id="patchSvg"></svg>
     <div class="pside"><h3>Projecteur</h3><div id="patchEd"><span style="color:#778">Clique un projecteur sur le plan ou dans la liste. Glisse-le pour le déplacer (le long de sa porteuse s'il est accroché).</span></div>
       <h3>Patch</h3><table id="patchTab"></table></div></div>
@@ -1039,7 +1041,8 @@ const FXCOL = { pc1k:'#d97706', sx713:'#2563eb', sx654:'#0891b2', lyreprof:'#7c3
 const ZONES = ['S1', 'F1', 'F2', 'C2', 'C1', 'F3', 'LJ', 'LC'];
 const patchSet = new Set(); // projecteurs sélectionnés (Maj / ⌘ clic, cadre Maj + glisser)
 const selOnly = o => { patchSet.clear(); if (o) patchSet.add(o); };
-let patchDrag = null, patchVB = null, patchAdd = null, patchBar = null, patchLasso = null; // viewBox courant (zoom / déplacement)
+let patchDrag = null, patchVB = null, patchAdd = null, patchBar = null, patchLasso = null, patchMode = 'auto';
+const modeOf = e => e?.altKey ? 'sol' : patchMode; // ⌥ Alt : toujours au sol // viewBox courant (zoom / déplacement)
 function patchRows() {
   const term = termGroup()?.children || [], byId = id => term.find(b => b.userData.term.id === id), pr = percheRig();
   const rows = props.children.filter(o => o.visible && LIGHTS.has(o.userData.kind) && AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z))).map(o => {
@@ -1102,7 +1105,7 @@ function drawPatch() {
       + (sel ? `<circle cx="${x}" cy="${y}" r="0.46" fill="#ffd27a"/>` : '') + (r.err ? `<circle cx="${x}" cy="${y}" r="0.38" fill="none" stroke="#d0021b" stroke-width="0.08"/>` : '')
       + (() => { const yaw = r.o.rotation.y, dx = -Math.cos(yaw), dy = Math.sin(yaw), tip = [x + dx * 0.5, y + dy * 0.5], b1 = [x + dx * 0.3 - dy * 0.1, y + dy * 0.3 + dx * 0.1], b2 = [x + dx * 0.3 + dy * 0.1, y + dy * 0.3 - dx * 0.1];
           return `<polygon points="${[tip, b1, b2].map(p => p.map(f).join(',')).join(' ')}" fill="${col}"/>`; })() // sens du faisceau
-      + `<circle cx="${x}" cy="${y}" r="0.27" fill="${col}" stroke="#fff" stroke-width="0.04"/><text x="${x}" y="${f(y + 0.1)}" font-size="0.27" text-anchor="middle" font-weight="700" fill="#fff">${r.n}</text>`
+      + (r.bar ? `<circle cx="${x}" cy="${y}" r="0.27" fill="${col}" stroke="#fff" stroke-width="0.04"/>` : `<rect x="${f(x - 0.26)}" y="${f(y - 0.26)}" width="0.52" height="0.52" rx="0.06" fill="${col}" stroke="#fff" stroke-width="0.04"/>`) + `<text x="${x}" y="${f(y + 0.1)}" font-size="0.27" text-anchor="middle" font-weight="700" fill="#fff">${r.n}</text>`
       + `<text x="${x}" y="${f(ly + (up > 0 ? 0.12 : -0.3))}" font-size="0.2" text-anchor="middle" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)} · <tspan font-weight="700">${dmxTxt(r)}</tspan></text>`
       + `<text x="${x}" y="${f(ly + (up > 0 ? 0.38 : -0.04))}" font-size="0.25" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text></g>`); });
   if (patchLasso) { const [a, b] = patchLasso; out.push(`<rect x="${f(Math.min(a.x, b.x))}" y="${f(Math.min(a.y, b.y))}" width="${f(Math.abs(a.x - b.x))}" height="${f(Math.abs(a.y - b.y))}" fill="rgba(240,165,58,.12)" stroke="#f0a53a" stroke-width="0.04" stroke-dasharray="0.15 0.1"/>`); }
@@ -1120,7 +1123,7 @@ function drawPatch() {
   const selRows = rows.filter(r => patchSet.has(r.o)), r = selRows.length === 1 ? selRows[0] : null;
   if (r) { const boxes = (tg?.children || []).filter(b => b.userData.term.kind === 'BECL').map(b => b.userData.term.id).sort((a, b) => a.localeCompare(b, 'fr', { numeric:true }));
     $('patchEd').innerHTML = `<div class="row"><span class="pnum" style="background:${FXCOL[r.o.userData.kind]}">${r.n}</span><b>${esc(r.o.name)}</b></div>`
-      + `<div class="row">Position : ${esc(r.zone)}${r.bar ? ` à ${fr(r.o.position.y - fy, 2)} m` : ''}</div>`
+      + `<div class="row">Position : ${esc(r.zone)}${r.bar ? ` à ${fr(r.o.position.y - fy, 2)} m` : ' (au sol)'} <button id="peFloor" style="margin-left:auto">${r.bar ? 'Poser au sol' : 'Accrocher'}</button></div>`
       + `<div class="row">Boîtier <select id="peBox"><option value="">auto (le plus proche)</option>${boxes.map(id => `<option ${r.o.userData.patch?.box === id ? 'selected' : ''}>${id}</option>`).join('')}</select>`
       + ` Circuit <input type="number" id="peC" min="0" max="24" value="${r.o.userData.patch?.c || 0}" style="width:52px" title="0 = premier circuit libre"></div>`
       + `<div class="row">DMX univers <input type="number" id="peU" min="1" max="64" value="${r.o.userData.dmx?.u || r.u}" style="width:46px"> adresse <input type="number" id="peA" min="0" max="512" value="${r.o.userData.dmx?.a || 0}" style="width:56px" title="0 = adresse auto (suite du patch)"> <span style="color:#778">${r.dmxManual ? '' : `auto ${dmxTxt(r)}`}</span></div>`
@@ -1137,6 +1140,9 @@ function drawPatch() {
     $('peDel').onclick = () => { pushUndo(); props.remove(r.o); selOnly(null); drawPatch(); };
     $('peDup').onclick = () => patchDup(r.o);
     $('peRot').onchange = () => { pushUndo(); r.o.rotation.y = +$('peRot').value; drawPatch(); };
+    $('peFloor').onclick = () => { const p = r.o.position; // accroché -> au sol à l'aplomb ; au sol -> porteuse la plus proche (≤ 3 m)
+      if (!r.bar && !nearBar(p.x, p.z, 3)) return alert('Aucune porteuse à moins de 3 m.');
+      pushUndo(); placeFx(r.o, p.x, p.z, r.bar ? 'sol' : 'perche'); drawPatch(); };
     $('peKind').onchange = () => { pushUndo(); selOnly(changeKind(r.o, $('peKind').value)); drawPatch(); };
   } else if (selRows.length > 1) { const boxes = (tg?.children || []).filter(b => b.userData.term.kind === 'BECL').map(b => b.userData.term.id).sort((a, b) => a.localeCompare(b, 'fr', { numeric:true }));
     const kinds = [...new Set(selRows.map(q => SHORT[q.o.userData.kind] || q.o.userData.kind))], W = selRows.reduce((t, q) => t + powerOf(q.o), 0);
@@ -1146,6 +1152,7 @@ function drawPatch() {
       + `<div class="row">Boîtier <select id="pmBox"><option value="">—</option><option value="auto">auto (le plus proche)</option>${boxes.map(id => `<option>${id}</option>`).join('')}</select> <span style="color:#778">circuits libres</span></div>`
       + `<div class="row">DMX à la suite depuis U <input type="number" id="pmU" min="1" max="64" value="${selRows[0].u}" style="width:44px"> / <input type="number" id="pmA" min="1" max="512" value="${selRows[0].a}" style="width:54px"><button id="pmDmx">Adresser</button></div>`
       + `<div class="row">Canaux <input type="number" id="pmCh" min="1" max="512" placeholder="—" style="width:56px"><button id="pmChOk">Appliquer</button> <button id="pmAuto" title="Adresses DMX et patch automatiques pour la sélection">Auto</button></div>`
+      + `<div class="row"><button id="pmFloor">Poser au sol</button><button id="pmHang" title="Sur la porteuse la plus proche (≤ 3 m)">Accrocher</button></div>`
       + `<div class="row"><button id="pmSpread" title="Sur chaque porteuse : garde les deux extrêmes, répartit les autres à intervalles égaux">Espacer régulièrement</button><button id="pmDup" title="D">Dupliquer</button><button id="pmDel" title="Suppr">Supprimer</button></div>`;
     const each = fn => { pushUndo(); selRows.forEach(fn); drawPatch(); };
     $('pmRot').onchange = () => $('pmRot').value !== '' && each(q => q.o.rotation.y = +$('pmRot').value);
@@ -1155,6 +1162,8 @@ function drawPatch() {
       each(q => { if (a + q.ch - 1 > 512) { u++; a = 1; } q.o.userData.dmx = { u, a, ch:q.o.userData.dmx?.ch || 0 }; a += q.ch; }); };
     $('pmChOk').onclick = () => { const ch = Math.round(+$('pmCh').value); if (ch >= 1) each(q => q.o.userData.dmx = { ...q.o.userData.dmx, ch:ch === DMX_CH[q.o.userData.kind] ? 0 : ch }); };
     $('pmAuto').onclick = () => each(q => { delete q.o.userData.patch; if (q.o.userData.dmx) q.o.userData.dmx = { ch:q.o.userData.dmx.ch }; });
+    $('pmFloor').onclick = () => each(q => placeFx(q.o, q.o.position.x, q.o.position.z, 'sol'));
+    $('pmHang').onclick = () => each(q => nearBar(q.o.position.x, q.o.position.z, 3) && placeFx(q.o, q.o.position.x, q.o.position.z, 'perche'));
     $('pmSpread').onclick = () => { pushUndo(); spreadSel(selRows); drawPatch(); };
     $('pmDup').onclick = () => patchDupAll();
     $('pmDel').onclick = () => { pushUndo(); selRows.forEach(q => props.remove(q.o)); patchSet.clear(); drawPatch(); };
@@ -1163,7 +1172,7 @@ function drawPatch() {
       + `<div class="row">Hauteur <input type="number" id="pbH" step="0.1" value="${h.toFixed(2)}" style="width:66px"> m <span style="color:#778">${isFinite(hi) ? `course ${fr(lo, 2)} → ${fr(hi, 2)} m` : ''}</span></div>`
       + `<div class="row">Charge : <b class="${pr && pr.kg > pr.cap ? 'warn' : ''}">${kg(pr?.kg || 0)}</b> / ${kg(pr?.cap || cap)} · ${pr?.loads.filter(q => LIGHTS.has(q.userData.kind)).length || 0} projecteurs</div>`;
     $('pbH').onchange = () => { pushUndo(); const prev = selected; select(patchBar); liftBy((+$('pbH').value || 0) - (liftTarget(patchBar)?.y ?? 0)); select(prev); drawPatch(); };
-  } else { patchSet.clear(); patchBar = null; $('patchEd').innerHTML = '<span style="color:#778">Clique un projecteur ou une porteuse ; Maj / ⌘ + clic ou Maj + glisser le fond pour en sélectionner plusieurs, ⌘A pour tout. Palette en haut : ajouter (clic sur une porteuse = accroché, au plateau = au sol). Glisse un projecteur pour le déplacer, d\'une porteuse à l\'autre ou au sol. Suppr : supprimer · D : dupliquer · Échap : arrêter l\'ajout.</span>'; }
+  } else { patchSet.clear(); patchBar = null; $('patchEd').innerHTML = '<span style="color:#778">Clique un projecteur ou une porteuse ; Maj / ⌘ + clic ou Maj + glisser le fond pour en sélectionner plusieurs, ⌘A pour tout. Palette en haut : ajouter (Pose Auto : clic sur une porteuse = accroché, ailleurs = au sol ; « Au sol » ou ⌥ Alt + clic pour forcer le sol). Glisse un projecteur pour le déplacer, d\'une porteuse à l\'autre ou au sol. Suppr : supprimer · D : dupliquer · Échap : arrêter l\'ajout.</span>'; }
 }
 const patchRowByN = n => patchRows().find(r => r.n === +n);
 $('patchBtn').onclick = () => { patchSet.clear(); patchBar = patchAdd = null; patchVB = null; drawPatch(); $('patch').showModal(); };
@@ -1186,8 +1195,8 @@ function nearBar(x, z, tol = 0.6) {
   return best;
 }
 // pose un appareil : accroché tête en bas sous la porteuse proche, sinon au sol (orientation gardée)
-function placeFx(o, x, z) {
-  const b = nearBar(x, z), yaw = o.rotation.y;
+function placeFx(o, x, z, mode = 'auto') { // mode : auto (porteuse si ≤ 0,6 m), sol, perche (porteuse la plus proche ≤ 2 m)
+  const b = mode === 'sol' ? null : nearBar(x, z, mode === 'perche' ? 2 : 0.6), yaw = o.rotation.y;
   if (b) { o.position.set(b.a.x + b.d.x * b.t, b.p.position.y - 0.06, b.a.z + b.d.z * b.t); o.rotation.set(0, yaw, Math.PI); return b.p; }
   x = Math.round(x * 20) / 20; z = Math.round(z * 20) / 20; o.position.set(x, floorAt(new THREE.Vector3(x, 0, z)), z); o.rotation.set(0, yaw, 0); return null;
 }
@@ -1214,6 +1223,7 @@ function spreadSel(rows) { const by = new Map(); rows.forEach(q => { const k = q
   for (const [bar, list] of by) { if (list.length < 3) continue; const { a, d } = segEnds(bar), t = o => (o.position.x - a.x) * d.x + (o.position.z - a.z) * d.z;
     list.sort((p, q) => t(p) - t(q)); const t0 = t(list[0]), t1 = t(list.at(-1));
     list.forEach((o, i) => { const ti = t0 + (t1 - t0) * i / (list.length - 1); o.position.x = a.x + d.x * ti; o.position.z = a.z + d.z * ti; }); } }
+$('patchMode').onclick = e => { const b = e.target.closest('button[data-m]'); if (!b) return; patchMode = b.dataset.m; $('patchMode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
 $('patchPal').onclick = e => { const b = e.target.closest('button[data-k]'); if (!b) return; patchAdd = patchAdd === b.dataset.k ? null : b.dataset.k; drawPatch(); };
 $('patch').addEventListener('keydown', e => { if (/INPUT|SELECT/.test(e.target.tagName)) return;
   if (e.key === 'Escape' && (patchAdd || patchSet.size || patchBar)) { e.preventDefault(); patchAdd = patchBar = null; patchSet.clear(); drawPatch(); }
@@ -1225,8 +1235,8 @@ const svgPt = e => { const p = $('patchSvg').createSVGPoint(); p.x = e.clientX; 
 $('patchSvg').onpointerdown = e => { const g = e.target.closest('g[data-n]');
   if (!g && patchAdd) { // ajout : sur une porteuse (posée ou en pointillé) ou au plateau
     const q = svgPt(e), x = q.y, z = AXE_AU - q.x; pushUndo();
-    if (!props.children.some(o => o.userData.grp === 'Cintres auditorium') && EQUIPES_AU.some(([, d, L, , , , dz = 0, alongX]) => alongX ? Math.abs(z - AXE_AU - dz) < 0.6 && Math.abs(x - A04 + d) < L / 2 : Math.abs(x - A04 + d) < 0.6 && Math.abs(z - AXE_AU) < L / 2)) placeCintres();
-    const o = makeProp(patchAdd, DEFAULT[patchAdd]), bar = nearBar(x, z)?.p; o.rotation.y = defaultYaw(x, z, bar); placeFx(o, x, z);
+    if (modeOf(e) !== 'sol' && !props.children.some(o => o.userData.grp === 'Cintres auditorium') && EQUIPES_AU.some(([, d, L, , , , dz = 0, alongX]) => alongX ? Math.abs(z - AXE_AU - dz) < 0.6 && Math.abs(x - A04 + d) < L / 2 : Math.abs(x - A04 + d) < 0.6 && Math.abs(z - AXE_AU) < L / 2)) placeCintres();
+    const m = modeOf(e), o = makeProp(patchAdd, DEFAULT[patchAdd]), bar = m === 'sol' ? null : nearBar(x, z, m === 'perche' ? 2 : 0.6)?.p; o.rotation.y = defaultYaw(x, z, bar); placeFx(o, x, z, m);
     selOnly(o); patchBar = null; drawPatch(); return; }
   const multi = e.shiftKey || e.metaKey || e.ctrlKey, gb = !g && e.target.closest('g[data-bar]');
   if (gb && !multi) { patchBar = props.children[+gb.dataset.bar]; patchSet.clear(); drawPatch(); return; }
@@ -1242,7 +1252,8 @@ $('patchSvg').onpointermove = e => { if (!patchDrag) return; const q = svgPt(e);
   if (patchDrag.pan) { const [cx, cy, x, y, w, h] = patchDrag.pan, el = $('patchSvg'), k = Math.max(w / el.clientWidth, h / el.clientHeight); // m par pixel (preserveAspectRatio « meet »)
     if (Math.hypot(e.clientX - cx, e.clientY - cy) > 3) patchDrag.moved = true; patchVB = [x - (e.clientX - cx) * k, y - (e.clientY - cy) * k, w, h]; drawPatch(); return; }
   const dx = q.y - patchDrag.start.x, dz = AXE_AU - q.x - patchDrag.start.z; // même décalage pour tous ; chacun s'accroche à sa porteuse la plus proche
-  for (const [o, x0, z0] of patchDrag.from) placeFx(o, x0 + dx, z0 + dz); patchDrag.moved = true; drawPatch(); };
+  const m = modeOf(e); // en Auto, un projecteur au sol reste au sol et un accroché passe d'une porteuse à l'autre
+  for (const [o, x0, z0] of patchDrag.from) placeFx(o, x0 + dx, z0 + dz, m !== 'auto' ? m : flipped(o) ? 'perche' : 'sol'); patchDrag.moved = true; drawPatch(); };
 $('patchSvg').onpointerup = () => {
   if (patchDrag?.lasso) { const [a, b] = patchLasso, x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x), y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
     for (const r of patchRows()) { const X = AXE_AU - r.o.position.z, Y = r.o.position.x; if (X >= x0 && X <= x1 && Y >= y0 && Y <= y1) patchSet.add(r.o); }

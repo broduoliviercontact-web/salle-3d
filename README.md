@@ -133,6 +133,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
 - **Éditeur de patch 2D** (mode auditorium, Installations) : plan de feu de dessus, lointain en haut, jardin à gauche, sur fond blanc :
   - chaque projecteur est une pastille numérotée (couleur par type) avec son type et « boîtier · circuit » (ex. B05 · C2), et un trait pointillé vers son boîtier ;
   - les équipes portent leur nom et leur hauteur ; les boîtiers utilisés sont en couleur, les autres en gris ;
+  - **au sol ou accroché** : barre « Pose » : *Auto* (clic sur une porteuse = accroché, ailleurs = au sol), *Au sol* (toujours au sol, même sous une porteuse ; aussi ⌥ Alt + clic) ou *Porteuse* (toujours sur la porteuse la plus proche, ≤ 2 m). Les projecteurs au sol sont des carrés, les accrochés des ronds. En Auto, un projecteur glissé garde son état (au sol il reste au sol). Panneau : « Poser au sol » / « Accrocher » (aussi pour une sélection) ;
   - **ajouter** : barre « Ajouter » (PC, 713 SX, 654 SX, Rivale, lyre, PAR LED, Atomic, brouillard), puis clic sur une porteuse (accroché tête en bas) ou au plateau (au sol) ; l'outil reste actif pour en poser plusieurs, Échap pour arrêter. Si les cintres ne sont pas posés, les équipes sont en pointillé et se posent au premier clic dessus ;
   - glisser un projecteur le déplace : il s'accroche à la porteuse la plus proche (à ≤ 0,6 m), sinon il se pose au sol ; la 3D suit ;
   - une flèche montre le sens du faisceau ; orientation au panneau : face, contre, latéral jardin / cour ;
