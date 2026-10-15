@@ -154,7 +154,7 @@
 </dialog>
 <dialog id="patch">
   <div class="ph"><b>Patch lumière — Auditorium</b><span id="patchSum"></span>
-    <button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
+    <button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchDxf" title="Plan de feu et liste du patch en DXF (R12), dans le repère du DWG du bâtiment">Export DXF</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
   <div class="ptool"><span>Pose :</span><span id="patchMode"><button data-m="auto" class="on" title="Accroché si on clique sur une porteuse, sinon au sol">Auto</button><button data-m="sol" title="Toujours au sol (aussi : ⌥ Alt + clic)">Au sol</button><button data-m="perche" title="Toujours sur la porteuse la plus proche (≤ 2 m)">Porteuse</button></span>
     <span style="color:#778">● accroché ■ au sol</span><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
   <div class="pb"><svg id="patchSvg"></svg>
@@ -2300,6 +2300,58 @@ function exportDxf() {
   a.download = `setup-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}.dxf`; a.click();
 }
 $('dxf').onclick = exportDxf;
+// --- export DXF du patch de l'auditorium : cage, équipes, boîtiers, projecteurs (rond = accroché, carré = sol, flèche = faisceau), liaisons, liste
+// même repère que exportDxf (DWG du bâtiment, mètres) ; un calque par famille pour les masquer / colorer dans AutoCAD
+const PDXF = { PATCH_CAGE:8, PATCH_PORTEUSES:9, PATCH_BOITIERS:1, PATCH_PROJECTEURS:2, PATCH_LIAISONS:252, PATCH_TEXTE:7, PATCH_LISTE:7 };
+function exportPatchDxf() {
+  const rows = patchRows(); if (!rows.length) return alert('Aucun projecteur dans le patch de l\'auditorium.');
+  const L = [], put = (...kv) => L.push(...kv.map(String)), n = v => v.toFixed(4), P = (x, z) => toDwg([x, z]);
+  put(0, 'SECTION', 2, 'HEADER', 9, '$ACADVER', 1, 'AC1009', 0, 'ENDSEC');
+  put(0, 'SECTION', 2, 'TABLES', 0, 'TABLE', 2, 'LTYPE', 70, 1, 0, 'LTYPE', 2, 'CONTINUOUS', 70, 0, 3, 'Solid line', 72, 65, 73, 0, 40, 0, 0, 'ENDTAB');
+  put(0, 'TABLE', 2, 'LAYER', 70, Object.keys(PDXF).length); for (const [k, c] of Object.entries(PDXF)) put(0, 'LAYER', 2, k, 70, 0, 62, c, 6, 'CONTINUOUS');
+  put(0, 'ENDTAB', 0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
+  const line = (l, a, b) => put(0, 'LINE', 8, l, 10, n(a[0]), 20, n(a[1]), 11, n(b[0]), 21, n(b[1]));
+  const poly = (l, pts) => { put(0, 'POLYLINE', 8, l, 66, 1, 70, 1); for (const [x, y] of pts) put(0, 'VERTEX', 8, l, 10, n(x), 20, n(y)); put(0, 'SEQEND', 8, l); };
+  const text = (l, [x, y], h, t, al = 1) => put(0, 'TEXT', 8, l, 10, n(x), 20, n(y), 40, n(h), 1, dxfText(t), 72, al, 73, 2, 11, n(x), 21, n(y));
+  const sq = (l, [x, y], r) => poly(l, [[x - r, y - r], [x + r, y - r], [x + r, y + r], [x - r, y + r]]);
+  // cage de scène (faces intérieures IFC) et cadre
+  const Lo = -89.67, Ca = A04 + 0.1, J = 9.83, Co = -4.07, fy = plateauAU();
+  poly('PATCH_CAGE', [P(Lo, Co), P(Ca, Co), P(Ca, J), P(Lo, J)]); line('PATCH_CAGE', P(A04, Co - 0.6), P(A04, J + 0.6));
+  text('PATCH_CAGE', P(Lo + 0.4, AXE_AU), 0.3, 'LOINTAIN'); text('PATCH_CAGE', P(A04 + 0.5, AXE_AU), 0.3, 'CADRE DE SCENE - SALLE');
+  text('PATCH_CAGE', P((Lo + Ca) / 2, J + 0.4), 0.3, 'JARDIN'); text('PATCH_CAGE', P((Lo + Ca) / 2, Co - 0.4), 0.3, 'COUR');
+  // équipes avec leur hauteur
+  for (const o of props.children) { if (o.userData.kind !== 'perche' || !o.visible || !AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z))) continue;
+    const { a, b } = segEnds(o), nm = typeof o.userData.dims[3] === 'string' ? o.userData.dims[3] : 'P' + (o.userData.dims[3] || ''), e = a.z > b.z ? a : b;
+    line('PATCH_PORTEUSES', P(a.x, a.z), P(b.x, b.z)); text('PATCH_PORTEUSES', P(e.x, e.z + 0.5), 0.26, `${nm} ${fr(o.position.y - fy, 2)} m`); }
+  // boîtiers d'éclairage
+  const used = new Set(rows.map(r => r.b));
+  for (const b of termGroup()?.children || []) { const t = b.userData.term; if (t.kind !== 'BECL' || !AUDI.containsPoint(new THREE.Vector3(b.position.x, 2, b.position.z))) continue;
+    const c = P(b.position.x, b.position.z); sq('PATCH_BOITIERS', c, 0.15); text('PATCH_BOITIERS', [c[0], c[1] - 0.35], used.has(b) ? 0.2 : 0.14, t.id); }
+  // projecteurs : symbole, faisceau, n°, type · DMX, boîtier · circuit (côté lointain si accroché, côté salle au sol), liaison vers le boîtier
+  for (const r of rows) {
+    const p = r.o.position, c = P(p.x, p.z), yaw = r.o.rotation.y, d = P(p.x + Math.sin(yaw), p.z + Math.cos(yaw)), dx = d[0] - c[0], dy = d[1] - c[1];
+    if (r.bar) put(0, 'CIRCLE', 8, 'PATCH_PROJECTEURS', 10, n(c[0]), 20, n(c[1]), 40, n(0.27)); else sq('PATCH_PROJECTEURS', c, 0.26);
+    const tip = [c[0] + dx * 0.55, c[1] + dy * 0.55], b1 = [c[0] + dx * 0.32 - dy * 0.1, c[1] + dy * 0.32 + dx * 0.1], b2 = [c[0] + dx * 0.32 + dy * 0.1, c[1] + dy * 0.32 - dx * 0.1];
+    put(0, 'SOLID', 8, 'PATCH_PROJECTEURS', 10, n(b1[0]), 20, n(b1[1]), 11, n(b2[0]), 21, n(b2[1]), 12, n(tip[0]), 22, n(tip[1]), 13, n(tip[0]), 23, n(tip[1]));
+    text('PATCH_PROJECTEURS', c, 0.24, r.n);
+    // deux lignes à côté du symbole (dans le DWG le lointain est à gauche) : accroché -> côté lointain, aligné à droite ; au sol -> côté salle, aligné à gauche
+    const sx = r.bar ? -0.42 : 0.42, al = r.bar ? 2 : 0;
+    text('PATCH_TEXTE', [c[0] + sx, c[1] + 0.14], 0.17, `${SHORT[r.o.userData.kind] || r.o.userData.kind} ${dmxTxt(r)}`, al);
+    text('PATCH_TEXTE', [c[0] + sx, c[1] - 0.16], 0.19, r.b ? `${r.b.userData.term.id} ${r.cn}` : 'sans boitier', al);
+    if (r.b) line('PATCH_LIAISONS', c, P(r.b.position.x, r.b.position.z));
+  }
+  // liste du patch à droite de la salle
+  const W = rows.reduce((t, r) => t + powerOf(r.o), 0), o0 = P(-73.5, Co - 1); let y = o0[1];
+  const row = (cols, h = 0.22) => { const xs = [0, 0.7, 3.4, 4.6, 5.8, 7.4, 9.2, 10.5, 11.4]; cols.forEach((t, k) => text('PATCH_LISTE', [o0[0] + xs[k], y], h, t, 0)); y -= h * 1.7; };
+  row([`Patch lumiere - Auditorium${setupName ? ' - ' + setupName : ''}`], 0.35);
+  row([`${rows.length} projecteurs - ${fr(W / 1000, 1)} kW - circuits 3 kW (gradateurs RVE) - ${new Date().toLocaleDateString('fr')}`], 0.2);
+  row(['N', 'Appareil', 'Ou', 'Haut.', 'Boitier', 'Circuit', 'DMX', 'Can.', 'W']);
+  for (const r of rows) row([r.n, SHORT[r.o.userData.kind] || r.o.userData.kind, r.zone, r.bar ? fr(r.o.position.y - fy, 2) : 'sol', r.b ? r.b.userData.term.id : '-', r.b ? r.cn : '-', dmxTxt(r), r.ch, powerOf(r.o)]);
+  put(0, 'ENDSEC', 0, 'EOF');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([L.join('\r\n') + '\r\n'], { type:'application/dxf' }));
+  a.download = `patch-auditorium-${(setupName || 'plan').replace(/[^\w-]+/g, '_')}.dxf`; a.click();
+}
+$('patchDxf').onclick = exportPatchDxf;
 
 // --- rendu ---
 function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
