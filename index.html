@@ -56,6 +56,12 @@
   #patchEd { padding:8px; border:1px solid #ccd; border-radius:8px; background:#fff; min-height:44px; }
   #patchTab { width:100%; border-collapse:collapse; font-size:12px; } #patchTab th, #patchTab td { padding:3px 4px; white-space:nowrap; border-bottom:1px solid #e3e5ea; text-align:left; }
   #patchTab th { position:sticky; top:0; background:#fafbfc; } #patchTab tr { cursor:pointer; } #patchTab tr.sel { background:#fff1d6; } #patchTab tr.bad td { color:#d0021b; font-weight:600; }
+  #boxDlg { width:min(1180px, 96vw); max-height:94vh; padding:0; border:0; border-radius:10px; background:#fff; color:#111; }
+  #boxDlg::backdrop { background:rgba(0,0,0,.6); } #boxDlg .bh { display:flex; gap:10px; align-items:baseline; padding:10px 14px; background:var(--panel); color:var(--fg); position:sticky; top:0; }
+  #boxDlg .bh b { font-size:18px; } #boxDlg .bh span { color:var(--mute); } #boxDlg .bb { display:grid; grid-template-columns:minmax(0, 1.3fr) minmax(0, 1fr); gap:14px; padding:12px 14px; }
+  #boxDlg img { max-width:100%; display:block; border:1px solid #dde; border-radius:6px; background:#fff; cursor:zoom-in; } #boxDlg img.big { cursor:zoom-out; }
+  #boxDlg h3 { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#556; margin:0 0 6px; } #boxDlg table { border-collapse:collapse; width:100%; font-size:12px; }
+  #boxDlg td, #boxDlg th { border-bottom:1px solid #e3e5ea; padding:3px 5px; text-align:left; } #boxDlg .note { color:#778; font-size:11px; margin-top:6px; }
   #patchPal { display:flex; gap:4px; flex-wrap:wrap; } #patchPal button { padding:3px 8px; font-size:12px; } #patchPal button i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; vertical-align:middle; }
   #patchSvg.adding { cursor:crosshair; }
   .pnum { display:inline-block; min-width:22px; text-align:center; border-radius:11px; color:#fff; font-weight:700; padding:0 4px; }
@@ -154,6 +160,7 @@
     <div class="pside"><h3>Projecteur</h3><div id="patchEd"><span style="color:#778">Clique un projecteur sur le plan ou dans la liste. Glisse-le pour le déplacer (le long de sa porteuse s'il est accroché).</span></div>
       <h3>Patch</h3><table id="patchTab"></table></div></div>
 </dialog>
+<dialog id="boxDlg"><div class="bh"><b id="bxId"></b><span id="bxSub" class="grow"></span><button id="bxPrev" title="Boîtier précédent">◀</button><button id="bxNext" title="Boîtier suivant">▶</button><button id="bxClose" title="Fermer (Échap)">✕</button></div><div class="bb" id="bxBody"></div></dialog>
 <div id="drop">Dépose un fichier .glb</div>
 <div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD : avancer · A/E : tourner la vue · ↑↓ : incliner · G/B ou → ← : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · P : tracer des passe-câbles · V : vue public · C : centrer · Suppr · Échap</div>
 
@@ -1035,6 +1042,26 @@ $('gcBtn').onclick = () => {
     else { o.position.set(A04 - d, fy, AXE_AU + dz); o.rotation.y = rot ?? (dz > 0 ? Math.PI : 0); }
   }
 };
+// --- fenêtre d'un boîtier : plaque et tableau de circuits découpés dans le carnet de détails (noms exacts, cf. tools/boitiers.py) + ce qui y est branché
+let boxCur = null;
+function openBox(b) {
+  boxCur = b; const t = b.userData.term, d = t.detail || {}, im = t.img;
+  $('bxId').textContent = t.id;
+  $('bxSub').textContent = [TERM[t.kind]?.name, d.type && `type ${d.type}`, d.loc && d.loc.replace(/\s+/g, ' ').toLowerCase(), t.bar ? `porteuse ${t.bar}` : t.lvl].filter(Boolean).join(' · ');
+  const rows = salle === 'audi' ? patchRows().filter(r => r.b === b) : [];
+  const list = Object.entries(d.prises || {}).map(([k, n]) => `<tr><td>${esc(k)}</td><td>${n}</td></tr>`).join('') + Object.entries(d.data || {}).map(([k, n]) => `<tr><td>${esc(k)}</td><td>${n}</td></tr>`).join('');
+  $('bxBody').innerHTML = `<div><h3>Plaque${im?.plaque?.length > 1 ? 's' : ''}</h3>${im?.plaque?.length ? im.plaque.map(f => `<img src="boitiers/${f}" alt="Plaque ${esc(t.id)}" loading="lazy">`).join('') : '<p class="note">Ce boîtier n\'est pas décrit dans le carnet de détails.</p>'}
+      <p class="note">Repères génériques (« ADC-xx-xx ») sur la plaque : les noms exacts de ce boîtier sont dans son tableau de circuits →</p></div>
+    <div><h3>Circuits de ${esc(t.id)}</h3>${im?.circuits ? `<img src="boitiers/${im.circuits}" alt="Circuits ${esc(t.id)}">` : '<p class="note">Tableau de circuits non disponible pour ce boîtier.</p>'}
+      ${list ? `<h3 style="margin-top:12px">Connecteurs</h3><table>${list}</table>` : ''}
+      ${t.kind === 'BECL' && salle === 'audi' ? `<h3 style="margin-top:12px">Branché (patch)</h3>${rows.length ? `<table><tr><th>N°</th><th>Appareil</th><th>Circuit</th><th>DMX</th><th>W</th></tr>${rows.map(r => `<tr><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>C${r.c}${r.pc ? ` / ${r.pc}` : ''}</td><td>${dmxTxt(r)}</td><td>${powerOf(r.o)}</td></tr>`).join('')}</table>` : '<p class="note">Aucun projecteur relié à ce boîtier.</p>'}` : ''}
+      <p class="note">Source : carnet de détails des boîtiers AV (LGS2-INE-EXE-22-DET-AU-TN-0606-C)${im?.page ? `, folio ${im.page - 1}` : ''}. Clic sur une image : agrandir.</p></div>`;
+  $('bxBody').querySelectorAll('img').forEach(i => i.onclick = () => { i.classList.toggle('big'); i.style.maxWidth = i.classList.contains('big') ? 'none' : ''; });
+  if (!$('boxDlg').open) $('boxDlg').showModal();
+}
+const boxStep = k => { const g = termGroup(); if (!g || !boxCur) return; const all = g.children.filter(b => b.userData.term.kind !== 'HP').sort((a, b) => a.userData.term.id.localeCompare(b.userData.term.id, 'fr', { numeric:true }));
+  openBox(all[(all.indexOf(boxCur) + k + all.length) % all.length]); };
+$('bxPrev').onclick = () => boxStep(-1); $('bxNext').onclick = () => boxStep(1); $('bxClose').onclick = () => $('boxDlg').close();
 // boîtier d'éclairage le plus proche : sur sa porteuse pour un appareil accroché (BECL de la même équipe), sinon le plus proche au plateau
 const LIGHTS = new Set(['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']);
 function boxFor(o) {
@@ -1101,7 +1128,7 @@ function drawPatch() {
   const usedB = new Set(rows.map(r => r.b)); const tg = termGroup();
   if (tg) for (const b of tg.children) { const t = b.userData.term; if (t.kind !== 'BECL' || !AUDI.containsPoint(new THREE.Vector3(b.position.x, 2, b.position.z))) continue;
     const u = usedB.has(b), col = u ? boxHue(t.id) : '#b8bec8', p = b.position;
-    out.push(`<rect x="${f(X(p) - 0.13)}" y="${f(Y(p) - 0.13)}" width="0.26" height="0.26" fill="${u ? col : '#fff'}" stroke="${col}" stroke-width="0.04"/>`
+    out.push(`<g data-box="${tg.children.indexOf(b)}" style="cursor:pointer"><rect x="${f(X(p) - 0.13)}" y="${f(Y(p) - 0.13)}" width="0.26" height="0.26" fill="${u ? col : '#fff'}" stroke="${col}" stroke-width="0.04"/></g>`
       + `<text x="${f(X(p))}" y="${f(Y(p) + 0.42)}" font-size="${u ? 0.2 : 0.15}" text-anchor="middle" font-weight="${u ? 700 : 400}" fill="${col}">${esc(t.id.replace('BECL-', 'B'))}</text>`); }
   // câbles de patch puis projecteurs (numéro dans la pastille, type + boîtier·circuit en étiquette, une sur deux au-dessus / au-dessous)
   for (const r of rows) if (r.b) out.push(`<line x1="${X(r.o.position)}" y1="${Y(r.o.position)}" x2="${X(r.b.position)}" y2="${Y(r.b.position)}" stroke="${boxHue(r.b.userData.term.id)}" stroke-width="0.035" stroke-dasharray="0.12 0.08" opacity="0.55"/>`);
@@ -1248,6 +1275,7 @@ $('patchSvg').onpointerdown = e => { const g = e.target.closest('g[data-n]');
     if (modeOf(e) !== 'sol' && !props.children.some(o => o.userData.grp === 'Cintres auditorium') && EQUIPES_AU.some(([, d, L, , , , dz = 0, alongX]) => alongX ? Math.abs(z - AXE_AU - dz) < 0.6 && Math.abs(x - A04 + d) < L / 2 : Math.abs(x - A04 + d) < 0.6 && Math.abs(z - AXE_AU) < L / 2)) placeCintres();
     const m = modeOf(e), o = makeProp(patchAdd, DEFAULT[patchAdd]), bar = m === 'sol' ? null : nearBar(x, z, m === 'perche' ? 2 : 0.6)?.p; o.rotation.y = defaultYaw(x, z, bar); placeFx(o, x, z, m);
     selOnly(o); patchBar = null; drawPatch(); return; }
+  const gx = !g && e.target.closest('g[data-box]'); if (gx) return openBox(termGroup().children[+gx.dataset.box]); // fenêtre du boîtier
   const multi = e.shiftKey || e.metaKey || e.ctrlKey, gb = !g && e.target.closest('g[data-bar]');
   if (gb && !multi) { patchBar = props.children[+gb.dataset.bar]; patchSet.clear(); drawPatch(); return; }
   if (!g) { $('patchSvg').setPointerCapture(e.pointerId); // fond : Maj = cadre de sélection, sinon déplacer le plan (un clic sans bouger désélectionne)
@@ -1483,6 +1511,7 @@ let selected = null;
 function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) + termInfo(o) + (salle === 'audi' && boxFor(o) ? ` → ${boxFor(o).userData.term.id}` : '') : '—';
+  if (o?.userData.term && !$('boxDlg').open) openBox(o); // boîtier : fenêtre de ses connexions
   const isProp = !!o && props.children.includes(o); syncLift(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
   if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.slice(0, 3).map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40', 'truss30t'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
@@ -1702,7 +1731,7 @@ $('dup').onclick = () => { if (selected) pushUndo();
   c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
 };
 addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || $('patch').open || $('catalog').open) return; // raccourcis 3D coupés pendant le patch et le catalogue
+  if (e.target.tagName === 'INPUT' || $('patch').open || $('catalog').open || $('boxDlg').open) return; // raccourcis 3D coupés pendant le patch et le catalogue
   if (e.metaKey || e.ctrlKey) { // ⌘Z / Ctrl+Z : annuler ; ⌘⇧Z / Ctrl+Y : rétablir ; les autres raccourcis ⌘ restent au navigateur
     const k = e.key.toLowerCase();
     if (k === 'z') { e.preventDefault(); $(e.shiftKey ? 'redo' : 'undo').click(); }
@@ -2254,7 +2283,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 const keys = new Set(), clock = new THREE.Clock();
 // A / E (lettres, quel que soit le clavier) : tourner la vue à gauche / à droite ; les autres touches de déplacement suivent leur position physique
 const TURN = { a:'TurnLeft', e:'TurnRight' };
-addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey && !$('patch').open) keys.add(TURN[e.key.toLowerCase()] || e.code); });
+addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey && !$('patch').open && !$('boxDlg').open) keys.add(TURN[e.key.toLowerCase()] || e.code); });
 addEventListener('keyup', e => { keys.delete(e.code); keys.delete(TURN[e.key.toLowerCase()]); if (e.key === 'Meta' || e.key === 'Control') keys.clear(); });
 addEventListener('blur', () => keys.clear());
 const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], KeyS:[0, -1], KeyA:[-1, 0], KeyD:[1, 0] }; // flèches : ← → descendre / monter, ↑ ↓ incliner le regard (cf. navigate)

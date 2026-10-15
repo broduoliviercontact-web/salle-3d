@@ -18,6 +18,13 @@
 "FO multimode": 5,
 "DMX": 4
 }
+},
+"img": {
+"plaque": [
+"folio_11.png"
+],
+"circuits": "BAV-PMS-01.png",
+"page": 12
 }
 },
 {
@@ -42,6 +49,13 @@
 "FO multimode": 3,
 "XLR audio": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_22.png"
+],
+"circuits": "BAV-01.png",
+"page": 23
 }
 },
 {
@@ -62,6 +76,13 @@
 "Synchro": 1,
 "SDI": 5
 }
+},
+"img": {
+"plaque": [
+"folio_12.png"
+],
+"circuits": "BAV-PMS-02.png",
+"page": 13
 }
 },
 {
@@ -85,6 +106,13 @@
 "SDI": 2,
 "XLR audio": 4
 }
+},
+"img": {
+"plaque": [
+"plaque_18.png"
+],
+"circuits": "BAV-02.png",
+"page": 19
 }
 },
 {
@@ -108,6 +136,13 @@
 "SDI": 6,
 "XLR audio": 4
 }
+},
+"img": {
+"plaque": [
+"plaque_17.png"
+],
+"circuits": "BAV-03.png",
+"page": 18
 }
 },
 {
@@ -132,6 +167,13 @@
 "FO multimode": 3,
 "XLR audio": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_22.png"
+],
+"circuits": "BAV-04.png",
+"page": 23
 }
 },
 {
@@ -156,6 +198,13 @@
 "FO multimode": 3,
 "XLR audio": 2
 }
+},
+"img": {
+"plaque": [
+"folio_21.png"
+],
+"circuits": "BAV-05.png",
+"page": 22
 }
 },
 {
@@ -178,6 +227,13 @@
 "XLR audio": 4,
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"folio_25.png"
+],
+"circuits": "BAV-06.png",
+"page": 26
 }
 },
 {
@@ -198,6 +254,13 @@
 "data": {
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_24.png"
+],
+"circuits": null,
+"page": 25
 }
 },
 {
@@ -220,6 +283,13 @@
 "RJ45": 2,
 "SDI": 1
 }
+},
+"img": {
+"plaque": [
+"plaque_13.png"
+],
+"circuits": "BAV-08.png",
+"page": 14
 }
 },
 {
@@ -242,6 +312,13 @@
 "RJ45": 2,
 "SDI": 1
 }
+},
+"img": {
+"plaque": [
+"plaque_13.png"
+],
+"circuits": "BAV-09.png",
+"page": 14
 }
 },
 {
@@ -262,6 +339,13 @@
 "data": {
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_24.png"
+],
+"circuits": null,
+"page": 25
 }
 },
 {
@@ -282,6 +366,13 @@
 "data": {
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_24.png"
+],
+"circuits": null,
+"page": 25
 }
 },
 {
@@ -302,6 +393,13 @@
 "data": {
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_24.png"
+],
+"circuits": null,
+"page": 25
 }
 },
 {
@@ -322,6 +420,13 @@
 "data": {
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_24.png"
+],
+"circuits": null,
+"page": 25
 }
 },
 {
@@ -342,6 +447,13 @@
 "data": {
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_24.png"
+],
+"circuits": null,
+"page": 25
 }
 },
 {
@@ -365,6 +477,13 @@
 "SDI": 2,
 "FO multimode": 3
 }
+},
+"img": {
+"plaque": [
+"plaque_23.png"
+],
+"circuits": "BAV-15.png",
+"page": 24
 }
 },
 {
@@ -387,6 +506,13 @@
 "RJ45": 2,
 "SDI": 1
 }
+},
+"img": {
+"plaque": [
+"plaque_20.png"
+],
+"circuits": "BAV-16.png",
+"page": 21
 }
 },
 {
@@ -409,6 +535,13 @@
 "RJ45": 2,
 "SDI": 1
 }
+},
+"img": {
+"plaque": [
+"plaque_13.png"
+],
+"circuits": "BAV-17.png",
+"page": 14
 }
 },
 {
@@ -431,6 +564,13 @@
 "RJ45": 2,
 "SDI": 1
 }
+},
+"img": {
+"plaque": [
+"plaque_20.png"
+],
+"circuits": "BAV-18.png",
+"page": 21
 }
 },
 {
@@ -451,6 +591,13 @@
 "data": {
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_24.png"
+],
+"circuits": null,
+"page": 25
 }
 },
 {
@@ -477,6 +624,13 @@
 "XLR audio": 4,
 "SDI": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_14.png"
+],
+"circuits": "BAV-20.png",
+"page": 15
 }
 },
 {
@@ -499,6 +653,13 @@
 "FO multimode": 2,
 "XLR audio": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_19.png"
+],
+"circuits": "BAV-21.png",
+"page": 20
 }
 },
 {
@@ -521,6 +682,13 @@
 "FO multimode": 2,
 "XLR audio": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_19.png"
+],
+"circuits": "BAV-22.png",
+"page": 20
 }
 },
 {
@@ -547,6 +715,13 @@
 "XLR audio": 4,
 "SDI": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_14.png"
+],
+"circuits": "BAV-23.png",
+"page": 15
 }
 },
 {
@@ -567,6 +742,13 @@
 "data": {
 "RJ45": 4
 }
+},
+"img": {
+"plaque": [
+"plaque_15.png"
+],
+"circuits": "BAV-24.png",
+"page": 16
 }
 },
 {
@@ -587,6 +769,13 @@
 "data": {
 "RJ45": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_24.png"
+],
+"circuits": null,
+"page": 25
 }
 },
 {
@@ -609,6 +798,13 @@
 "XLR audio": 4,
 "FO multimode": 3
 }
+},
+"img": {
+"plaque": [
+"plaque_16.png"
+],
+"circuits": "BAV-26.png",
+"page": 17
 }
 },
 {
@@ -629,6 +825,13 @@
 "data": {
 "RJ45": 4
 }
+},
+"img": {
+"plaque": [
+"plaque_15.png"
+],
+"circuits": "BAV-27.png",
+"page": 16
 }
 },
 {
@@ -651,6 +854,13 @@
 "XLR audio": 4,
 "FO multimode": 3
 }
+},
+"img": {
+"plaque": [
+"plaque_16.png"
+],
+"circuits": "BAV-28.png",
+"page": 17
 }
 },
 {
@@ -669,6 +879,13 @@
 "PC 16A mono": 6
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"folio_9.png"
+],
+"circuits": "BECL-01.png",
+"page": 10
 }
 },
 {
@@ -691,6 +908,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-02.png",
+"page": 5
 }
 },
 {
@@ -710,6 +934,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-03.png",
+"page": 3
 }
 },
 {
@@ -729,6 +960,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-04.png",
+"page": 3
 }
 },
 {
@@ -748,6 +986,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-05.png",
+"page": 3
 }
 },
 {
@@ -767,6 +1012,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-06.png",
+"page": 3
 }
 },
 {
@@ -788,6 +1040,13 @@
 "data": {
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_3.png"
+],
+"circuits": "BECL-07.png",
+"page": 4
 }
 },
 {
@@ -810,6 +1069,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-08.png",
+"page": 5
 }
 },
 {
@@ -829,6 +1095,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-09.png",
+"page": 3
 }
 },
 {
@@ -848,6 +1121,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-10.png",
+"page": 3
 }
 },
 {
@@ -867,6 +1147,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-11.png",
+"page": 3
 }
 },
 {
@@ -886,6 +1173,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-12.png",
+"page": 3
 }
 },
 {
@@ -907,6 +1201,13 @@
 "data": {
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_3.png"
+],
+"circuits": "BECL-13.png",
+"page": 4
 }
 },
 {
@@ -929,6 +1230,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-14.png",
+"page": 5
 }
 },
 {
@@ -951,6 +1259,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-15.png",
+"page": 5
 }
 },
 {
@@ -970,6 +1285,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-16.png",
+"page": 3
 }
 },
 {
@@ -989,6 +1311,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-17.png",
+"page": 3
 }
 },
 {
@@ -1008,6 +1337,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-18.png",
+"page": 3
 }
 },
 {
@@ -1027,6 +1363,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-19.png",
+"page": 3
 }
 },
 {
@@ -1048,6 +1391,13 @@
 "data": {
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_3.png"
+],
+"circuits": "BECL-20.png",
+"page": 4
 }
 },
 {
@@ -1070,6 +1420,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-21.png",
+"page": 5
 }
 },
 {
@@ -1092,6 +1449,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-22.png",
+"page": 5
 }
 },
 {
@@ -1114,6 +1478,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-23.png",
+"page": 5
 }
 },
 {
@@ -1133,6 +1504,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-24.png",
+"page": 3
 }
 },
 {
@@ -1152,6 +1530,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-25.png",
+"page": 3
 }
 },
 {
@@ -1171,6 +1556,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-26.png",
+"page": 3
 }
 },
 {
@@ -1190,6 +1582,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-27.png",
+"page": 3
 }
 },
 {
@@ -1211,6 +1610,13 @@
 "data": {
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_3.png"
+],
+"circuits": "BECL-28.png",
+"page": 4
 }
 },
 {
@@ -1233,6 +1639,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-29.png",
+"page": 5
 }
 },
 {
@@ -1251,6 +1664,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-30.png",
+"page": 3
 }
 },
 {
@@ -1269,6 +1689,13 @@
 "PC 16A direct commandée": 4
 },
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_2.png"
+],
+"circuits": "BECL-31.png",
+"page": 3
 }
 },
 {
@@ -1290,6 +1717,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-32.png",
+"page": 5
 }
 },
 {
@@ -1311,6 +1745,13 @@
 "Art-Net": 1,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_4.png"
+],
+"circuits": "BECL-33.png",
+"page": 5
 }
 },
 {
@@ -1345,6 +1786,13 @@
 "lvl": "",
 "prises": {},
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_6.png"
+],
+"circuits": null,
+"page": 7
 }
 },
 {
@@ -1361,6 +1809,13 @@
 "lvl": "",
 "prises": {},
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_7.png"
+],
+"circuits": null,
+"page": 8
 }
 },
 {
@@ -1382,6 +1837,13 @@
 "Art-Net": 2,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"plaque_8.png"
+],
+"circuits": "BECL-38.png",
+"page": 9
 }
 },
 {
@@ -1406,6 +1868,13 @@
 "Art-Net": 2,
 "DMX": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_5.png"
+],
+"circuits": "BECL-39.png",
+"page": 6
 }
 },
 {
@@ -1430,6 +1899,13 @@
 "Art-Net": 2,
 "DMX": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_5.png"
+],
+"circuits": "BECL-40.png",
+"page": 6
 }
 },
 {
@@ -1451,6 +1927,13 @@
 "Art-Net": 2,
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"plaque_8.png"
+],
+"circuits": "BECL-41.png",
+"page": 9
 }
 },
 {
@@ -1467,6 +1950,13 @@
 "lvl": "",
 "prises": {},
 "data": {}
+},
+"img": {
+"plaque": [
+"plaque_7.png"
+],
+"circuits": null,
+"page": 8
 }
 },
 {
@@ -1487,6 +1977,13 @@
 "data": {
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_3.png"
+],
+"circuits": "BECL-43.png",
+"page": 4
 }
 },
 {
@@ -1511,6 +2008,13 @@
 "Art-Net": 2,
 "DMX": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_5.png"
+],
+"circuits": "BECL-44.png",
+"page": 6
 }
 },
 {
@@ -1531,6 +2035,13 @@
 "data": {
 "DMX": 1
 }
+},
+"img": {
+"plaque": [
+"folio_3.png"
+],
+"circuits": "BECL-45.png",
+"page": 4
 }
 },
 {
@@ -1555,6 +2066,13 @@
 "Art-Net": 2,
 "DMX": 2
 }
+},
+"img": {
+"plaque": [
+"plaque_5.png"
+],
+"circuits": "BECL-46.png",
+"page": 6
 }
 },
 {
