@@ -59,6 +59,7 @@
   #boxDlg { width:min(1180px, 96vw); max-height:94vh; padding:0; border:0; border-radius:10px; background:#fff; color:#111; }
   #boxDlg::backdrop { background:rgba(0,0,0,.6); } #boxDlg .bh { display:flex; gap:10px; align-items:baseline; padding:10px 14px; background:var(--panel); color:var(--fg); position:sticky; top:0; }
   #boxDlg .bh b { font-size:18px; } #boxDlg .bh span { color:var(--mute); } #boxDlg .bb { display:grid; grid-template-columns:minmax(0, 1.3fr) minmax(0, 1fr); gap:14px; padding:12px 14px; }
+  #boxDlg .plq { position:relative; display:inline-block; max-width:100%; } #boxDlg .plq.big { max-width:none; } #boxDlg .plq svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   #boxDlg img { max-width:100%; display:block; border:1px solid #dde; border-radius:6px; background:#fff; cursor:zoom-in; } #boxDlg img.big { cursor:zoom-out; }
   #boxDlg h3 { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#556; margin:0 0 6px; } #boxDlg table { border-collapse:collapse; width:100%; font-size:12px; }
   #boxDlg td, #boxDlg th { border-bottom:1px solid #e3e5ea; padding:3px 5px; text-align:left; } #boxDlg .note { color:#778; font-size:11px; margin-top:6px; }
@@ -1050,13 +1051,19 @@ function openBox(b) {
   $('bxSub').textContent = [TERM[t.kind]?.name, d.type && `type ${d.type}`, d.loc && d.loc.replace(/\s+/g, ' ').toLowerCase(), t.bar ? `porteuse ${t.bar}` : t.lvl].filter(Boolean).join(' · ');
   const rows = salle === 'audi' ? patchRows().filter(r => r.b === b) : [];
   const list = Object.entries(d.prises || {}).map(([k, n]) => `<tr><td>${esc(k)}</td><td>${n}</td></tr>`).join('') + Object.entries(d.data || {}).map(([k, n]) => `<tr><td>${esc(k)}</td><td>${n}</td></tr>`).join('');
-  $('bxBody').innerHTML = `<div><h3>Plaque${im?.plaque?.length > 1 ? 's' : ''}</h3>${im?.plaque?.length ? im.plaque.map(f => `<img src="boitiers/${f}" alt="Plaque ${esc(t.id)}" loading="lazy">`).join('') : '<p class="note">Ce boîtier n\'est pas décrit dans le carnet de détails.</p>'}
-      <p class="note">Repères génériques (« ADC-xx-xx ») sur la plaque : les noms exacts de ce boîtier sont dans son tableau de circuits →</p></div>
+  $('bxBody').innerHTML = `<div><h3>Plaque${im?.plaque?.length > 1 ? 's' : ''}</h3>${im?.plaque?.length ? im.plaque.map(f => `<div class="plq"><img src="boitiers/${f}" alt="Plaque ${esc(t.id)}"><svg></svg></div>`).join('') : '<p class="note">Ce boîtier n\'est pas décrit dans le carnet de détails.</p>'}
+      <p class="note">${im?.labels?.some(l => l.t !== t.id) ? 'Noms en bleu : circuits de ce boîtier, lus dans son tableau et posés sur les repères génériques de la plaque.' : 'Repères génériques sur la plaque : les noms de ce boîtier sont dans son tableau de circuits →'}</p></div>
     <div><h3>Circuits de ${esc(t.id)}</h3>${im?.circuits ? `<img src="boitiers/${im.circuits}" alt="Circuits ${esc(t.id)}">` : '<p class="note">Tableau de circuits non disponible pour ce boîtier.</p>'}
       ${list ? `<h3 style="margin-top:12px">Connecteurs</h3><table>${list}</table>` : ''}
       ${t.kind === 'BECL' && salle === 'audi' ? `<h3 style="margin-top:12px">Branché (patch)</h3>${rows.length ? `<table><tr><th>N°</th><th>Appareil</th><th>Circuit</th><th>DMX</th><th>W</th></tr>${rows.map(r => `<tr><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>C${r.c}${r.pc ? ` / ${r.pc}` : ''}</td><td>${dmxTxt(r)}</td><td>${powerOf(r.o)}</td></tr>`).join('')}</table>` : '<p class="note">Aucun projecteur relié à ce boîtier.</p>'}` : ''}
       <p class="note">Source : carnet de détails des boîtiers AV (LGS2-INE-EXE-22-DET-AU-TN-0606-C)${im?.page ? `, folio ${im.page - 1}` : ''}. Clic sur une image : agrandir.</p></div>`;
-  $('bxBody').querySelectorAll('img').forEach(i => i.onclick = () => { i.classList.toggle('big'); i.style.maxWidth = i.classList.contains('big') ? 'none' : ''; });
+  $('bxBody').querySelectorAll('img').forEach(i => i.onclick = () => { const w = i.closest('.plq') || i; w.classList.toggle('big'); i.style.maxWidth = w.classList.contains('big') ? 'none' : ''; });
+  // noms réels par-dessus les étiquettes génériques de la plaque (positions normalisées dans l'image)
+  $('bxBody').querySelectorAll('.plq').forEach(w => { const i = w.querySelector('img'), draw = () => { const W = i.naturalWidth, H = i.naturalHeight; if (!W) return;
+    w.querySelector('svg').setAttribute('viewBox', `0 0 ${W} ${H}`);
+    w.querySelector('svg').innerHTML = (im.labels || []).map(l => { const x = l.x * W, y = l.y * H, lw = l.w * W, lh = l.h * H, own = l.t === t.id;
+      return `<rect x="${x - 3}" y="${y - 2}" width="${lw + 6}" height="${lh + 4}" fill="#fff"/><text x="${x + lw / 2}" y="${y + lh * 0.82}" font-size="${lh * (own ? 0.95 : 0.9)}" font-family="Helvetica, Arial, sans-serif" font-weight="700" text-anchor="middle" fill="${own ? '#111' : '#1d4ed8'}" textLength="${Math.min(lw + 4, lh * 0.62 * l.t.length)}" lengthAdjust="spacingAndGlyphs">${esc(l.t)}</text>`; }).join(''); };
+    i.complete ? draw() : i.addEventListener('load', draw); });
   if (!$('boxDlg').open) $('boxDlg').showModal();
 }
 const boxStep = k => { const g = termGroup(); if (!g || !boxCur) return; const all = g.children.filter(b => b.userData.term.kind !== 'HP').sort((a, b) => a.userData.term.id.localeCompare(b.userData.term.id, 'fr', { numeric:true }));
