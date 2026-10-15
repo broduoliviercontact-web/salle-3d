@@ -1028,7 +1028,7 @@ function boxFor(o) {
 }
 // --- éditeur de patch 2D : vue de dessus façon plan de feu (lointain en haut, jardin à gauche), unités en mètres
 // X = AXE_AU − z (jardin à gauche), Y = x (lointain en haut) ; circuit = n° de prise 16 A du boîtier (les repères ADC-xx du carnet sont des images)
-const SHORT = { pc1k:'PC 1 kW', sx713:'713 SX', sx654:'654 SX', lyreprof:'Lyre déc.', lyre:'Lyre', par:'PAR LED', atomic:'Atomic', fog:'Brouillard' };
+const SHORT = { pc1k:'PC 1 kW', sx713:'713 SX', sx654:'654 SX', lyreprof:'Rivale Prof.', lyre:'Lyre', par:'PAR LED', atomic:'Atomic', fog:'Brouillard' };
 const FXCOL = { pc1k:'#d97706', sx713:'#2563eb', sx654:'#0891b2', lyreprof:'#7c3aed', lyre:'#9333ea', par:'#16a34a', atomic:'#475569', fog:'#64748b' };
 const ZONES = ['S1', 'F1', 'F2', 'C2', 'C1', 'F3', 'LJ', 'LC'];
 let patchSel = null, patchDrag = null, patchVB = null; // viewBox courant (zoom / déplacement)
@@ -1055,8 +1055,8 @@ function patchRows() {
   return rows;
 }
 // empreinte DMX par défaut (canaux) ; ponytail: modes les plus courants, modifiable par appareil dans l'éditeur
-// trad. (PC, découpes) : 1 circuit de gradateur ; Robe Esprite mode 1 : 46 ; Martin Atomic 3000 : 4 ; Look Unique 2.1 : 2
-const DMX_CH = { pc1k:1, sx713:1, sx654:1, lyreprof:46, lyre:16, par:8, atomic:4, fog:2 };
+// trad. (PC, découpes) : 1 circuit de gradateur ; Ayrton Rivale Profile mode Standard : 42 (Extended : 65, charte DMX V117) ; Martin Atomic 3000 : 4 ; Look Unique 2.1 : 2
+const DMX_CH = { pc1k:1, sx713:1, sx654:1, lyreprof:42, lyre:16, par:8, atomic:4, fog:2 };
 const dmxTxt = r => `${r.u}/${String(r.a).padStart(3, '0')}`;
 const boxHue = id => `hsl(${[...id].reduce((h, c) => h * 31 + c.charCodeAt(0) >>> 0, 7) % 360} 65% 38%)`;
 function drawPatch() {
