@@ -130,6 +130,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   - salle, plateau (dimensions, habillage, patience, écran, conques, nacelle) ;
   - tableau des 8 équipes (position, longueur, CMU, course, vitesse, conque, boîtiers) ;
   - son (système Fohhn, console Yamaha DM7, HF Shure / DPA, micros, interphonie Riedel), lumière (grandMA3, gradateurs RVE 96 × 3 kW, DMX / Art-Net, boîtiers BECL), vidéo (écran Oray, Videohub 40 × 40, caméras Panasonic), électricité (160 kVA scénique, 100 kVA audio, coffrets 80 + 2 × 40 kVA, boîtiers de plateau), loges ;
+  - **patch lumière** (si des projecteurs sont posés) : résumé (projecteurs, kW, boîtiers, canaux DMX par univers, circuits 3 kW), tableau N° / appareil / équipe / hauteur / boîtier / circuit / DMX / canaux / W avec les alertes, puis le plan de feu de l'éditeur de patch sur une page ;
   - le plan 2D de l'état actuel de la salle en dernière page (poser cintres, son, conques… avant d'imprimer).
   Contacts, accès décors, horaires et quantités des projecteurs installés : à compléter.
 - **Éditeur de patch 2D** (mode auditorium, Installations) : plan de feu de dessus, lointain en haut, jardin à gauche, sur fond blanc :

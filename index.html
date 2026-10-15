@@ -2173,6 +2173,10 @@ const VIT = { F1:0.15, F2:0.15, F3:0.15, S1:0.15, LJ:0.15, LC:0.15, C1:0.08, C2:
 $('ficheAU').onclick = async () => {
   const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour générer la fiche.');
   w.document.write('<p style="font:14px sans-serif">Préparation de la fiche…</p>');
+  // patch lumière : tableau + plan de feu (rendu de l'éditeur 2D, recadré sur toute la salle)
+  const prows = patchRows(), pfy = plateauAU();
+  let psvg = ''; if (prows.length) { const vb = patchVB, sel = new Set(patchSet), bx = patchBox, br = patchBar; patchVB = null; patchSet.clear(); patchBox = patchBar = null; drawPatch();
+    psvg = $('patchSvg').outerHTML.replace(' id="patchSvg"', ' xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:240mm;background:#fff"'); /* viewBox gardé */ patchVB = vb; sel.forEach(o => patchSet.add(o)); patchBox = bx; patchBar = br; }
   const svg = await planSvg(true), terms = (termGroup()?.children || []).map(b => b.userData.term), becl = terms.filter(t => t.kind === 'BECL');
   const perBar = b => becl.filter(t => t.bar === b).length, seatsN = seatList().length, mov = seatList().filter(o => /amovible/i.test(o.name)).length;
   const td = v => `<td>${v}</td>`, sec = (t, body) => `<h2>${t}</h2>${body}`, ul = a => `<ul>${a.map(x => `<li>${x}</li>`).join('')}</ul>`;
@@ -2184,7 +2188,7 @@ $('ficheAU').onclick = async () => {
     table { border-collapse:collapse; width:100%; margin:2px 0 6px } th, td { border:1px solid #bbb; padding:2px 5px; text-align:left; vertical-align:top } th { background:#eee }
     ul { margin:2px 0 4px; padding-left:16px } li { margin:1px 0 } .kpi { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin:6px 0 }
     .kpi div { border:1px solid #bbb; border-radius:4px; padding:4px 6px } .kpi b { display:block; font-size:16px } .note { color:#666; font-size:9.5px }
-    .plan { break-before:page } .plan svg { display:block; width:100%; height:auto; max-height:255mm } .todo { color:#b45309 } section { break-inside:avoid }</style></head><body>
+    .plan { break-before:page } .plan svg { display:block; width:100%; height:auto; max-height:255mm } .todo { color:#b45309 } section { break-inside:avoid } section.patch { break-inside:auto; break-before:page } .patch td { padding:1px 4px } tr.warn td { color:#c00 }</style></head><body>
     <header><div><h1>Auditorium — fiche technique</h1><div class="sub">Les Grandes Serres · rue Louis Nadot, 93500 Pantin</div></div><div class="sub">Version du ${new Date().toLocaleDateString('fr')}</div></header>
     <div class="kpi"><div><b>${seatsN} places</b>dont ${mov} sièges amovibles</div><div><b>13,90 × 6,83 m</b>plateau (cadre → lointain)</div><div><b>10,48 m</b>sous gril</div><div><b>8 équipes</b>motorisées (2 × 1,5 t)</div></div>
     <p class="todo">Contacts régie générale, accès décors / déchargement, horaires : à compléter.</p>
@@ -2204,6 +2208,11 @@ $('ficheAU').onclick = async () => {
     <section>${sec('Électricité', ul(['Armoire éclairage scénique 160 kVA (local technique R+1)', 'Alimentation audio nodale 100 kVA sur transformateur d\'isolement (TNS)', 'Coffrets de raccordement Legrand face scène cour / jardin : 1 × 80 kVA et 2 × 40 kVA (tétra)', 'Boîtiers de plateau (BECL-39, 40, 44, 46) : chacun 1 × 32 A tétra, 1 × 32 A mono, 2 × 16 A, 12 × 16 A direct commandées, 2 DMX, 2 Art-Net']))}</section>
     <section>${sec('Loges', ul(['Loge / salle de musique 55,1 m²', 'Loge PMR 16,0 m²', 'Vestiaires 18,5 m²', 'Loge de changement rapide (local à confirmer)']))}</section>
     <p class="note">Établie d'après les plans d'exécution (lot 22 audiovisuel et éclairage scénique — INEO ; lot 23 machinerie — TAMBE), le synoptique audio et les fiches produits. Charges, CMU et puissances à valider par la régie générale avant toute exploitation.</p>
+    ${prows.length ? `<section class="patch"><h2>Patch lumière${setupName ? ' — ' + esc(setupName) : ''}</h2>
+      <div class="note">${prows.length} projecteurs · ${fr(prows.reduce((t, r) => t + powerOf(r.o), 0) / 1000, 1)} kW · ${new Set(prows.map(r => r.b)).size} boîtiers · DMX ${[...new Set(prows.map(r => r.u))].sort((a, b) => a - b).map(u => `U${u} : ${Math.max(...prows.filter(r => r.u === u).map(r => r.a + r.ch - 1))} canaux`).join(', ')} · circuits 3 kW (gradateurs RVE)${prows.some(r => r.err) ? ` · <span class="warn">${prows.filter(r => r.err).length} à corriger</span>` : ''}</div>
+      <table><tr><th>N°</th><th>Appareil</th><th>Où</th><th>Haut.</th><th>Boîtier</th><th>Circuit</th><th>DMX</th><th>Canaux</th><th>W</th></tr>${prows.map(r => `<tr${r.err ? ' class="warn"' : ''}>${td('<b>' + r.n + '</b>')}${td(esc(LABELS[r.o.userData.kind] || r.o.userData.kind))}${td(esc(r.zone))}${td(r.bar ? fr(r.o.position.y - pfy, 2) + ' m' : 'sol')}${td(r.b ? esc(r.b.userData.term.id) : '—')}${td(r.b ? esc(r.cn) : '—')}${td(dmxTxt(r))}${td(r.ch)}${td(powerOf(r.o))}</tr>`).join('')}</table>
+      ${prows.some(r => r.err) ? `<div class="warn">${prows.filter(r => r.err).map(r => `n°${r.n} : ${esc(r.err)}`).join(' · ')}</div>` : ''}</section>
+    <div class="plan"><h2>Plan de feu — patch</h2>${psvg}</div>` : ''}
     <div class="plan"><h2>Plan du plateau et de la salle${setupName ? ' — ' + esc(setupName) : ''}</h2>${svg.replace(/^<svg [^>]*?width="[^"]+" height="[^"]+"/, m => m.replace(/ width="[^"]+" height="[^"]+"/, ''))}</div>
     </body></html>`;
   w.document.open(); w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500);
