@@ -133,7 +133,11 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
 - **Éditeur de patch 2D** (mode auditorium, Installations) : plan de feu de dessus, lointain en haut, jardin à gauche, sur fond blanc :
   - chaque projecteur est une pastille numérotée (couleur par type) avec son type et « boîtier · circuit » (ex. B05 · C2), et un trait pointillé vers son boîtier ;
   - les équipes portent leur nom et leur hauteur ; les boîtiers utilisés sont en couleur, les autres en gris ;
-  - glisser un projecteur le déplace (le long de sa porteuse s'il est accroché, librement au plateau) ; la 3D suit ;
+  - **ajouter** : barre « Ajouter » (PC, 713 SX, 654 SX, Rivale, lyre, PAR LED, Atomic, brouillard), puis clic sur une porteuse (accroché tête en bas) ou au plateau (au sol) ; l'outil reste actif pour en poser plusieurs, Échap pour arrêter. Si les cintres ne sont pas posés, les équipes sont en pointillé et se posent au premier clic dessus ;
+  - glisser un projecteur le déplace : il s'accroche à la porteuse la plus proche (à ≤ 0,6 m), sinon il se pose au sol ; la 3D suit ;
+  - une flèche montre le sens du faisceau ; orientation au panneau : face, contre, latéral jardin / cour ;
+  - clic sur une porteuse : sa hauteur (dans sa course), sa charge / CMU et son nombre de projecteurs ;
+  - clavier : Suppr supprime, D duplique (0,6 m plus loin sur la même porteuse), Échap désélectionne ;
   - un clic ouvre son panneau : boîtier (auto = le plus proche), circuit (0 = premier libre), puissance, suppression ;
   - le tableau de patch liste N°, appareil, équipe, boîtier, circuit / prises du boîtier, puissance ; en rouge : circuit en double, circuit au-delà des prises 16 A du boîtier, appareil sans boîtier ;
   - molette : zoom, glisser le fond : déplacer, « Recadrer » ; « Patch auto » oublie les choix manuels ; « Imprimer » sort le plan et le tableau sur une page A4 paysage.
