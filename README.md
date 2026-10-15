@@ -123,6 +123,13 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   | Plateau | 4 × 654 SX en latéraux, 1 × 654 SX en contre, 4 × lyres découpe au lointain, Atomic 3000, brouillard en coulisse jardin |
 
   Les appareils des porteuses sont accrochés tête en bas et suivent leur équipe. Chacun est relié au boîtier BECL le plus proche (de sa porteuse, sinon au plateau) : la sélection affiche « → BECL-05 », et le dossier technique liste par boîtier le nombre d'appareils, la puissance et les prises 16 A utilisées / disponibles.
+- **Fiche technique de l'auditorium** (mode auditorium, Installations) : page A4 à imprimer en PDF, établie d'après les plans EXE (lots 22 et 23), le synoptique audio et les fiches produits :
+  - chiffres clés (places, plateau 13,90 × 6,83 m, 10,48 m sous gril, équipes) ;
+  - salle, plateau (dimensions, habillage, patience, écran, conques, nacelle) ;
+  - tableau des 8 équipes (position, longueur, CMU, course, vitesse, conque, boîtiers) ;
+  - son (système Fohhn, console Yamaha DM7, HF Shure / DPA, micros, interphonie Riedel), lumière (grandMA3, gradateurs RVE 96 × 3 kW, DMX / Art-Net, boîtiers BECL), vidéo (écran Oray, Videohub 40 × 40, caméras Panasonic), électricité (160 kVA scénique, 100 kVA audio, coffrets 80 + 2 × 40 kVA, boîtiers de plateau), loges ;
+  - le plan 2D de l'état actuel de la salle en dernière page (poser cintres, son, conques… avant d'imprimer).
+  Contacts, accès décors, horaires et quantités des projecteurs installés : à compléter.
 - **Éditeur de patch 2D** (mode auditorium, Installations) : plan de feu de dessus, lointain en haut, jardin à gauche, sur fond blanc :
   - chaque projecteur est une pastille numérotée (couleur par type) avec son type et « boîtier · circuit » (ex. B05 · C2), et un trait pointillé vers son boîtier ;
   - les équipes portent leur nom et leur hauteur ; les boîtiers utilisés sont en couleur, les autres en gris ;
