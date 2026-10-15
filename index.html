@@ -1072,7 +1072,7 @@ $('bxPrev').onclick = () => boxStep(-1); $('bxNext').onclick = () => boxStep(1);
 // boîtier d'éclairage le plus proche : sur sa porteuse pour un appareil accroché (BECL de la même équipe), sinon le plus proche au plateau
 const LIGHTS = new Set(['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']);
 // circuits d'éclairage d'un boîtier : repères ADC lus sur sa plaque (prise double 16 A direct commandée), sinon C1… d'après le carnet
-const CIRC_W = 3680; // 16 A × 230 V par circuit
+const CIRC_W = 3000; // gradateur RVE 3D Concept 96 × 3 kW : 3 kW par circuit (la prise 16 A en supporterait 3,68)
 function circs(b) {
   const t = b.userData.term; if (t._c) return t._c;
   const named = [...new Set((t.img?.labels || []).map(l => l.t).filter(x => /^ADC-/.test(x)))], pr = t.detail?.prises || {};
@@ -1105,14 +1105,14 @@ function patchRows() {
   const zi = r => { const i = ZONES.indexOf(r.zone); return i < 0 ? 99 : i; };
   rows.sort((a, b) => zi(a) - zi(b) || b.o.position.z - a.o.position.z || a.o.position.x - b.o.position.x); // par équipe, de jardin à cour
   rows.forEach((r, i) => r.n = i + 1);
-  // circuits : choix manuels d'abord, puis le premier circuit vide du boîtier, sinon partage d'une prise double (2 appareils, ≤ 3,68 kW)
+  // circuits : choix manuels d'abord, puis le premier circuit vide du boîtier, sinon partage d'une prise double (2 appareils, ≤ 3 kW)
   const load = new Map(), K = (b, c) => b.userData.term.id + '/' + c, add = r => { const e = load.get(K(r.b, r.c)) || { n:0, W:0 }; e.n++; e.W += powerOf(r.o); load.set(K(r.b, r.c), e); };
   rows.filter(r => r.b && r.c).forEach(add);
   for (const r of rows) if (r.b && !r.c) { const n = circs(r.b).length, ok = c => { const e = load.get(K(r.b, c)); return !e || (e.n < 2 && e.W + powerOf(r.o) <= CIRC_W); };
     let c = 1; while (c <= n && load.get(K(r.b, c))) c++; if (c > n) { c = 1; while (c <= n && !ok(c)) c++; } r.c = c; add(r); }
   for (const r of rows) { const list = r.b ? circs(r.b) : [], e = r.b && load.get(K(r.b, r.c));
     r.pc = list.length; r.cn = list[r.c - 1] || `C${r.c}`;
-    r.err = !r.b ? 'sans boîtier' : !list.length ? 'boîtier sans circuit connu' : r.c > list.length ? `le boîtier n'a que ${list.length} circuits` : e.n > 2 ? `${e.n} appareils sur ${r.cn} (prise double : 2 max)` : e.W > CIRC_W ? `${r.cn} chargé à ${fr(e.W / 1000, 2)} kW (> 3,68 kW)` : ''; }
+    r.err = !r.b ? 'sans boîtier' : !list.length ? 'boîtier sans circuit connu' : r.c > list.length ? `le boîtier n'a que ${list.length} circuits` : e.n > 2 ? `${e.n} appareils sur ${r.cn} (prise double : 2 max)` : e.W > CIRC_W ? `${r.cn} chargé à ${fr(e.W / 1000, 2)} kW (gradateur 3 kW)` : ''; }
   // DMX : adresses manuelles d'abord, puis adressage auto dans l'ordre du patch (univers 1, sans chevauchement, on passe à l'univers suivant à 512)
   for (const r of rows) { const m = r.o.userData.dmx || {}; r.ch = m.ch || DMX_CH[r.o.userData.kind] || 1; r.u = m.a ? m.u || 1 : 0; r.a = m.a || 0; r.dmxManual = !!m.a; }
   const occ = (u, a, ch, self) => rows.some(q => q !== self && q.a && q.u === u && a <= q.a + q.ch - 1 && q.a <= a + ch - 1);
