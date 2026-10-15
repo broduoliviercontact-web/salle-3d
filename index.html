@@ -1125,6 +1125,7 @@ function drawPatch() {
       + ` Circuit <input type="number" id="peC" min="0" max="24" value="${r.o.userData.patch?.c || 0}" style="width:52px" title="0 = premier circuit libre"></div>`
       + `<div class="row">DMX univers <input type="number" id="peU" min="1" max="64" value="${r.o.userData.dmx?.u || r.u}" style="width:46px"> adresse <input type="number" id="peA" min="0" max="512" value="${r.o.userData.dmx?.a || 0}" style="width:56px" title="0 = adresse auto (suite du patch)"> <span style="color:#778">${r.dmxManual ? '' : `auto ${dmxTxt(r)}`}</span></div>`
       + `<div class="row">Canaux <input type="number" id="peCh" min="1" max="512" value="${r.ch}" style="width:56px" title="Empreinte DMX du mode utilisé"> <span style="color:#778">${r.u}/${r.a} → ${r.u}/${r.a + r.ch - 1}</span></div>`
+      + `<div class="row">Type <select id="peKind">${Object.entries(SHORT).map(([k, t]) => `<option value="${k}" ${k === r.o.userData.kind ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`
       + `<div class="row">Orientation <select id="peRot">${ORIENT.map(([t, v]) => `<option value="${v}" ${Math.abs(Math.atan2(Math.sin(r.o.rotation.y - v), Math.cos(r.o.rotation.y - v))) < 0.3 ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`
       + `<div class="row">Puissance <input type="number" id="peW" step="100" min="0" value="${powerOf(r.o)}" style="width:72px"> W <button id="peDup" style="margin-left:auto" title="D">Dupliquer</button><button id="peDel" title="Suppr">Supprimer</button></div>`
       + (r.err ? `<div class="warn">⚠ ${esc(r.err)}</div>` : `<div style="color:#178a3c">→ ${esc(r.b.userData.term.id)}, circuit ${r.c}${r.b.userData.term.detail?.loc ? ` (${esc(r.b.userData.term.detail.loc.toLowerCase())})` : ''}</div>`);
@@ -1136,9 +1137,11 @@ function drawPatch() {
     $('peDel').onclick = () => { pushUndo(); props.remove(r.o); selOnly(null); drawPatch(); };
     $('peDup').onclick = () => patchDup(r.o);
     $('peRot').onchange = () => { pushUndo(); r.o.rotation.y = +$('peRot').value; drawPatch(); };
+    $('peKind').onchange = () => { pushUndo(); selOnly(changeKind(r.o, $('peKind').value)); drawPatch(); };
   } else if (selRows.length > 1) { const boxes = (tg?.children || []).filter(b => b.userData.term.kind === 'BECL').map(b => b.userData.term.id).sort((a, b) => a.localeCompare(b, 'fr', { numeric:true }));
     const kinds = [...new Set(selRows.map(q => SHORT[q.o.userData.kind] || q.o.userData.kind))], W = selRows.reduce((t, q) => t + powerOf(q.o), 0);
     $('patchEd').innerHTML = `<div class="row"><b>${selRows.length} projecteurs</b> <span style="color:#778">(${selRows.map(q => q.n).join(', ')})</span></div><div class="row" style="color:#556">${esc(kinds.join(', '))} · ${fr(W / 1000)} kW</div>`
+      + `<div class="row">Type <select id="pmKind"><option value="">—</option>${Object.entries(SHORT).map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></div>`
       + `<div class="row">Orientation <select id="pmRot"><option value="">—</option>${ORIENT.map(([t, v]) => `<option value="${v}">${t}</option>`).join('')}</select></div>`
       + `<div class="row">Boîtier <select id="pmBox"><option value="">—</option><option value="auto">auto (le plus proche)</option>${boxes.map(id => `<option>${id}</option>`).join('')}</select> <span style="color:#778">circuits libres</span></div>`
       + `<div class="row">DMX à la suite depuis U <input type="number" id="pmU" min="1" max="64" value="${selRows[0].u}" style="width:44px"> / <input type="number" id="pmA" min="1" max="512" value="${selRows[0].a}" style="width:54px"><button id="pmDmx">Adresser</button></div>`
@@ -1146,6 +1149,7 @@ function drawPatch() {
       + `<div class="row"><button id="pmSpread" title="Sur chaque porteuse : garde les deux extrêmes, répartit les autres à intervalles égaux">Espacer régulièrement</button><button id="pmDup" title="D">Dupliquer</button><button id="pmDel" title="Suppr">Supprimer</button></div>`;
     const each = fn => { pushUndo(); selRows.forEach(fn); drawPatch(); };
     $('pmRot').onchange = () => $('pmRot').value !== '' && each(q => q.o.rotation.y = +$('pmRot').value);
+    $('pmKind').onchange = () => { const k = $('pmKind').value; if (!k) return; pushUndo(); const out = selRows.map(q => changeKind(q.o, k)); patchSet.clear(); out.forEach(c => patchSet.add(c)); drawPatch(); };
     $('pmBox').onchange = () => { const v = $('pmBox').value; if (v) each(q => q.o.userData.patch = v === 'auto' ? undefined : { box:v, c:0 }); };
     $('pmDmx').onclick = () => { let u = Math.max(1, Math.round(+$('pmU').value) || 1), a = Math.max(1, Math.round(+$('pmA').value) || 1); // dans l'ordre du patch
       each(q => { if (a + q.ch - 1 > 512) { u++; a = 1; } q.o.userData.dmx = { u, a, ch:q.o.userData.dmx?.ch || 0 }; a += q.ch; }); };
@@ -1192,6 +1196,14 @@ function patchDup(o) { pushUndo(); const c = makeProp(o.userData.kind, [...o.use
   const b = nearBar(o.position.x, o.position.z); // la copie se pose 0,6 m plus loin, sur la même porteuse si possible
   if (b) placeFx(c, o.position.x + b.d.x * 0.6, o.position.z + b.d.z * 0.6); else placeFx(c, o.position.x, o.position.z + 0.6);
   selOnly(c); drawPatch(); return c; }
+// change le type d'un appareil : même place, même orientation, même boîtier / circuit et adresse DMX ; empreinte et puissance reprennent celles du nouveau type
+function changeKind(o, k) {
+  if (o.userData.kind === k) return o;
+  const c = makeProp(k, [...DEFAULT[k]]); c.position.copy(o.position); c.rotation.copy(o.rotation); // accroché : la platine reste sous la porteuse
+  if (o.userData.patch) c.userData.patch = { ...o.userData.patch };
+  if (o.userData.dmx?.a) c.userData.dmx = { u:o.userData.dmx.u, a:o.userData.dmx.a, ch:0 };
+  props.remove(o); return c;
+}
 // copie de la sélection : même forme, décalée de 0,6 m le long des porteuses (ou vers jardin au sol)
 function patchDupAll() { const src = [...patchSet]; if (!src.length) return; pushUndo(); const out = [];
   for (const o of src) { const c = makeProp(o.userData.kind, [...o.userData.dims]); c.rotation.copy(o.rotation); if (o.userData.power != null) c.userData.power = o.userData.power; if (o.userData.dmx?.ch) c.userData.dmx = { ch:o.userData.dmx.ch };
