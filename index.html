@@ -154,7 +154,7 @@
 </dialog>
 <dialog id="patch">
   <div class="ph"><b>Patch lumière — Auditorium</b><span id="patchSum"></span>
-    <button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchDxf" title="Plan de feu et liste du patch en DXF (R12), dans le repère du DWG du bâtiment">Export DXF</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
+    <button id="patchUndo" title="Annuler (⌘Z)">↶</button><button id="patchRedo" title="Rétablir (⌘⇧Z)">↷</button><button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchDxf" title="Plan de feu et liste du patch en DXF (R12), dans le repère du DWG du bâtiment">Export DXF</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
   <div class="ptool"><span>Pose :</span><span id="patchMode"><button data-m="auto" class="on" title="Accroché si on clique sur une porteuse, sinon au sol">Auto</button><button data-m="sol" title="Toujours au sol (aussi : ⌥ Alt + clic)">Au sol</button><button data-m="perche" title="Toujours sur la porteuse la plus proche (≤ 2 m)">Porteuse</button></span>
     <span style="color:#778">● accroché ■ au sol</span><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
   <div class="pb"><svg id="patchSvg"></svg>
@@ -1079,10 +1079,10 @@ function circs(b) {
   const n = Math.floor((pr['PC 16A direct commandée'] || 0) / 2) + (pr['PC 16A mono'] || 0);
   return t._c = named.length ? named : Array.from({ length:n }, (_, i) => `C${i + 1}`);
 }
-function boxFor(o) {
+function boxFor(o, rig) { // rig : percheRig() déjà calculé (le patch l'évalue une fois pour tous les appareils)
   const g = termGroup(); if (!g || !LIGHTS.has(o.userData.kind)) return null;
   if (o.userData.patch?.box) { const m = g.children.find(b => b.userData.term.id === o.userData.patch.box); if (m) return m; } // boîtier choisi dans l'éditeur de patch
-  const pr = percheRig().find(r => r.loads.includes(o)), b = pr && typeof pr.o.userData.dims[3] === 'string' ? pr.o.userData.dims[3] : null;
+  const pr = (rig || percheRig()).find(r => r.loads.includes(o)), b = pr && typeof pr.o.userData.dims[3] === 'string' ? pr.o.userData.dims[3] : null;
   const cand = g.children.filter(c => c.userData.term.kind === 'BECL' && circs(c).length && (b ? c.userData.term.bar === b : !c.userData.term.bar && c.userData.term.lvl === 'R0')); // boîtier avec circuits connus
   return cand.length ? cand.reduce((a, c) => c.position.distanceTo(o.position) < a.position.distanceTo(o.position) ? c : a) : null;
 }
@@ -1093,13 +1093,14 @@ const FXCOL = { pc1k:'#d97706', sx713:'#2563eb', sx654:'#0891b2', lyreprof:'#7c3
 const ZONES = ['S1', 'F1', 'F2', 'C2', 'C1', 'F3', 'LJ', 'LC'];
 const patchSet = new Set(); // projecteurs sélectionnés (Maj / ⌘ clic, cadre Maj + glisser)
 const selOnly = o => { patchSet.clear(); if (o) patchSet.add(o); };
+let patchRaf = 0; const drawPatchSoon = () => patchRaf ||= requestAnimationFrame(() => { patchRaf = 0; drawPatch(); }); // pendant un glisser : un dessin par image
 let patchDrag = null, patchVB = null, patchAdd = null, patchBar = null, patchLasso = null, patchMode = 'auto', patchBox = null;
 const modeOf = e => e?.altKey ? 'sol' : patchMode; // ⌥ Alt : toujours au sol // viewBox courant (zoom / déplacement)
 function patchRows() {
   const term = termGroup()?.children || [], byId = id => term.find(b => b.userData.term.id === id), pr = percheRig();
   const rows = props.children.filter(o => o.visible && LIGHTS.has(o.userData.kind) && AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z))).map(o => {
     const bar = pr.find(r => r.loads.includes(o))?.o, zone = bar && typeof bar.userData.dims[3] === 'string' ? bar.userData.dims[3] : bar ? 'Perche' : 'Plateau';
-    const m = o.userData.patch, b = (m?.box && byId(m.box)) || boxFor(o);
+    const m = o.userData.patch, b = (m?.box && byId(m.box)) || boxFor(o, pr);
     return { o, bar, zone, b, c:m?.c || 0, manual:!!m?.box || !!m?.c };
   });
   const zi = r => { const i = ZONES.indexOf(r.zone); return i < 0 ? 99 : i; };
@@ -1291,7 +1292,10 @@ function spreadSel(rows) { const by = new Map(); rows.forEach(q => { const k = q
     list.forEach((o, i) => { const ti = t0 + (t1 - t0) * i / (list.length - 1); o.position.x = a.x + d.x * ti; o.position.z = a.z + d.z * ti; }); } }
 $('patchMode').onclick = e => { const b = e.target.closest('button[data-m]'); if (!b) return; patchMode = b.dataset.m; $('patchMode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
 $('patchPal').onclick = e => { const b = e.target.closest('button[data-k]'); if (!b) return; patchAdd = patchAdd === b.dataset.k ? null : b.dataset.k; drawPatch(); };
+const patchHist = k => { $(k > 0 ? 'redo' : 'undo').onclick(); drawPatch(); }; // l'historique de la salle : les projecteurs sont recréés, la sélection se vide d'elle-même
+$('patchUndo').onclick = () => patchHist(-1); $('patchRedo').onclick = () => patchHist(1);
 $('patch').addEventListener('keydown', e => { if (/INPUT|SELECT/.test(e.target.tagName)) return;
+  if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y')) { e.preventDefault(); return patchHist(e.key.toLowerCase() === 'y' || e.shiftKey ? 1 : -1); } // ⌘Z / ⌘⇧Z / Ctrl+Y
   if (e.key === 'Escape' && (patchAdd || patchSet.size || patchBar || patchBox)) { e.preventDefault(); patchAdd = patchBar = patchBox = null; patchSet.clear(); drawPatch(); }
   else if ((e.key === 'Delete' || e.key === 'Backspace') && patchSet.size) { e.preventDefault(); pushUndo(); patchSet.forEach(o => props.remove(o)); patchSet.clear(); drawPatch(); }
   else if (e.key.toLowerCase() === 'a' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); patchRows().forEach(r => patchSet.add(r.o)); patchBar = null; drawPatch(); }
@@ -1315,12 +1319,12 @@ $('patchSvg').onpointerdown = e => { const g = e.target.closest('g[data-n]');
   const q = svgPt(e); pushUndo(); patchDrag = { start:{ x:q.y, z:AXE_AU - q.x }, from:[...patchSet].map(o => [o, o.position.x, o.position.z]), moved:false }; // tout le groupe suit
   $('patchSvg').setPointerCapture(e.pointerId); drawPatch(); };
 $('patchSvg').onpointermove = e => { if (!patchDrag) return; const q = svgPt(e);
-  if (patchDrag.lasso) { patchLasso[1] = q; drawPatch(); return; }
+  if (patchDrag.lasso) { patchLasso[1] = q; drawPatchSoon(); return; }
   if (patchDrag.pan) { const [cx, cy, x, y, w, h] = patchDrag.pan, el = $('patchSvg'), k = Math.max(w / el.clientWidth, h / el.clientHeight); // m par pixel (preserveAspectRatio « meet »)
-    if (Math.hypot(e.clientX - cx, e.clientY - cy) > 3) patchDrag.moved = true; patchVB = [x - (e.clientX - cx) * k, y - (e.clientY - cy) * k, w, h]; drawPatch(); return; }
+    if (Math.hypot(e.clientX - cx, e.clientY - cy) > 3) patchDrag.moved = true; patchVB = [x - (e.clientX - cx) * k, y - (e.clientY - cy) * k, w, h]; drawPatchSoon(); return; }
   const dx = q.y - patchDrag.start.x, dz = AXE_AU - q.x - patchDrag.start.z; // même décalage pour tous ; chacun s'accroche à sa porteuse la plus proche
   const m = modeOf(e); // en Auto, un projecteur au sol reste au sol et un accroché passe d'une porteuse à l'autre
-  for (const [o, x0, z0] of patchDrag.from) placeFx(o, x0 + dx, z0 + dz, m !== 'auto' ? m : flipped(o) ? 'perche' : 'sol'); patchDrag.moved = true; drawPatch(); };
+  for (const [o, x0, z0] of patchDrag.from) placeFx(o, x0 + dx, z0 + dz, m !== 'auto' ? m : flipped(o) ? 'perche' : 'sol'); patchDrag.moved = true; drawPatchSoon(); };
 $('patchSvg').onpointerup = () => {
   if (patchDrag?.lasso) { const [a, b] = patchLasso, x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x), y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
     for (const r of patchRows()) { const X = AXE_AU - r.o.position.z, Y = r.o.position.x; if (X >= x0 && X <= x1 && Y >= y0 && Y <= y1) patchSet.add(r.o); }
@@ -1338,12 +1342,11 @@ $('patchPrint').onclick = () => {
     <div class="g"><div>${svg}</div><table>${$('patchTab').innerHTML.replace(/ ✎/g, '')}</table></div></body></html>`);
   w.document.close(); setTimeout(() => w.print(), 400);
 };
-function boxUsage() { // appareils, puissance et prises par boîtier (prises 16 A : direct commandée + 230 V)
+function boxUsage() { // par boîtier, d'après le patch : appareils, puissance, circuits utilisés, alertes (mêmes règles que l'éditeur : circuits ADC, 3 kW)
+  if (salle !== 'audi') return [];
   const m = new Map();
-  for (const o of props.children) { if (!o.visible || salle !== 'audi') continue; const b = boxFor(o); if (!b) continue;
-    const e = m.get(b) || { b, n:0, W:0 }; e.n++; e.W += powerOf(o); m.set(b, e); }
-  return [...m.values()].map(e => { const pr = e.b.userData.term.detail?.prises || {}; return { ...e, pc:(pr['PC 16A direct commandée'] || 0) + (pr['PC 16A mono'] || 0) }; })
-    .sort((a, b) => a.b.userData.term.id.localeCompare(b.b.userData.term.id, 'fr', { numeric:true }));
+  for (const r of patchRows()) { if (!r.b) continue; const e = m.get(r.b) || { b:r.b, n:0, W:0, used:new Set(), err:0, pc:r.pc }; e.n++; e.W += powerOf(r.o); e.used.add(r.c); if (r.err) e.err++; m.set(r.b, e); }
+  return [...m.values()].sort((a, b) => a.b.userData.term.id.localeCompare(b.b.userData.term.id, 'fr', { numeric:true }));
 }
 // --- gril ground support : 4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour
 $('gsBtn').onclick = () => {
@@ -1396,8 +1399,8 @@ function updateDossier() {
   const c = cabling();
   $('elecInfo').innerHTML = c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind], kw = e.W / 1000;
     return `<b>T${t.n}</b> ${t.kind.replace('A', ' A')} : ${e.items.length} élt · <span class="${kw > cap ? 'warn' : ''}">${fr(kw)} / ${fr(cap)} kW</span> · câble max ${Math.ceil(Math.max(...e.items.map(i => i.len)))} m`; }).join('<br>');
-  if (salle === 'audi') $('elecInfo').innerHTML = boxUsage().map(e => { const t = e.b.userData.term, over = e.pc && e.n > e.pc; // ponytail: une prise 16 A par appareil, sans gradateur partagé
-    return `<b>${esc(t.id)}</b>${t.bar ? ` (${esc(t.bar)})` : ''} : ${e.n} app. · ${fr(e.W / 1000)} kW · <span class="${over ? 'warn' : ''}">${e.n} / ${e.pc || '?'} prises 16 A</span>`; }).join('<br>');
+  if (salle === 'audi') $('elecInfo').innerHTML = boxUsage().map(e => { const t = e.b.userData.term;
+    return `<b>${esc(t.id)}</b>${t.bar ? ` (${esc(t.bar)})` : ''} : ${e.n} app. · ${fr(e.W / 1000)} kW · ${e.used.size} / ${e.pc} circuits${e.err ? ` <span class="warn">⚠ ${e.err} à corriger (patch)</span>` : ''}`; }).join('<br>');
   // câbles en 3D : trajet en L au sol depuis la trappe
   cables.children.forEach(l => l.geometry.dispose()); cables.clear();
   for (const e of c) for (const { a, b } of e.items) {
@@ -1863,12 +1866,12 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx })), moved, view };
+  return { salle, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; setSalle(cfg.salle || 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
