@@ -1055,7 +1055,7 @@ function openBox(b) {
       <p class="note">${im?.labels?.some(l => l.t !== t.id) ? 'Noms en bleu : circuits de ce boîtier, lus dans son tableau et posés sur les repères génériques de la plaque.' : 'Repères génériques sur la plaque : les noms de ce boîtier sont dans son tableau de circuits →'}</p></div>
     <div><h3>Circuits de ${esc(t.id)}</h3>${im?.circuits ? `<img src="boitiers/${im.circuits}" alt="Circuits ${esc(t.id)}">` : '<p class="note">Tableau de circuits non disponible pour ce boîtier.</p>'}
       ${list ? `<h3 style="margin-top:12px">Connecteurs</h3><table>${list}</table>` : ''}
-      ${t.kind === 'BECL' && salle === 'audi' ? `<h3 style="margin-top:12px">Branché (patch)</h3>${rows.length ? `<table><tr><th>N°</th><th>Appareil</th><th>Circuit</th><th>DMX</th><th>W</th></tr>${rows.map(r => `<tr><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>C${r.c}${r.pc ? ` / ${r.pc}` : ''}</td><td>${dmxTxt(r)}</td><td>${powerOf(r.o)}</td></tr>`).join('')}</table>` : '<p class="note">Aucun projecteur relié à ce boîtier.</p>'}` : ''}
+      ${t.kind === 'BECL' && salle === 'audi' ? `<h3 style="margin-top:12px">Branché (patch)</h3>${rows.length ? `<table><tr><th>N°</th><th>Appareil</th><th>Circuit</th><th>DMX</th><th>W</th></tr>${rows.map(r => `<tr><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>${esc(r.cn)}</td><td>${dmxTxt(r)}</td><td>${powerOf(r.o)}</td></tr>`).join('')}</table>` : '<p class="note">Aucun projecteur relié à ce boîtier.</p>'}` : ''}
       <p class="note">Source : carnet de détails des boîtiers AV (LGS2-INE-EXE-22-DET-AU-TN-0606-C)${im?.page ? `, folio ${im.page - 1}` : ''}. Clic sur une image : agrandir.</p></div>`;
   $('bxBody').querySelectorAll('img').forEach(i => i.onclick = () => { const w = i.closest('.plq') || i; w.classList.toggle('big'); i.style.maxWidth = w.classList.contains('big') ? 'none' : ''; });
   // noms réels par-dessus les étiquettes génériques de la plaque (positions normalisées dans l'image)
@@ -1071,11 +1071,19 @@ const boxStep = k => { const g = termGroup(); if (!g || !boxCur) return; const a
 $('bxPrev').onclick = () => boxStep(-1); $('bxNext').onclick = () => boxStep(1); $('bxClose').onclick = () => $('boxDlg').close();
 // boîtier d'éclairage le plus proche : sur sa porteuse pour un appareil accroché (BECL de la même équipe), sinon le plus proche au plateau
 const LIGHTS = new Set(['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']);
+// circuits d'éclairage d'un boîtier : repères ADC lus sur sa plaque (prise double 16 A direct commandée), sinon C1… d'après le carnet
+const CIRC_W = 3680; // 16 A × 230 V par circuit
+function circs(b) {
+  const t = b.userData.term; if (t._c) return t._c;
+  const named = [...new Set((t.img?.labels || []).map(l => l.t).filter(x => /^ADC-/.test(x)))], pr = t.detail?.prises || {};
+  const n = Math.floor((pr['PC 16A direct commandée'] || 0) / 2) + (pr['PC 16A mono'] || 0);
+  return t._c = named.length ? named : Array.from({ length:n }, (_, i) => `C${i + 1}`);
+}
 function boxFor(o) {
   const g = termGroup(); if (!g || !LIGHTS.has(o.userData.kind)) return null;
   if (o.userData.patch?.box) { const m = g.children.find(b => b.userData.term.id === o.userData.patch.box); if (m) return m; } // boîtier choisi dans l'éditeur de patch
   const pr = percheRig().find(r => r.loads.includes(o)), b = pr && typeof pr.o.userData.dims[3] === 'string' ? pr.o.userData.dims[3] : null;
-  const cand = g.children.filter(c => c.userData.term.kind === 'BECL' && (b ? c.userData.term.bar === b : !c.userData.term.bar && c.userData.term.lvl === 'R0'));
+  const cand = g.children.filter(c => c.userData.term.kind === 'BECL' && circs(c).length && (b ? c.userData.term.bar === b : !c.userData.term.bar && c.userData.term.lvl === 'R0')); // boîtier avec circuits connus
   return cand.length ? cand.reduce((a, c) => c.position.distanceTo(o.position) < a.position.distanceTo(o.position) ? c : a) : null;
 }
 // --- éditeur de patch 2D : vue de dessus façon plan de feu (lointain en haut, jardin à gauche), unités en mètres
@@ -1085,7 +1093,7 @@ const FXCOL = { pc1k:'#d97706', sx713:'#2563eb', sx654:'#0891b2', lyreprof:'#7c3
 const ZONES = ['S1', 'F1', 'F2', 'C2', 'C1', 'F3', 'LJ', 'LC'];
 const patchSet = new Set(); // projecteurs sélectionnés (Maj / ⌘ clic, cadre Maj + glisser)
 const selOnly = o => { patchSet.clear(); if (o) patchSet.add(o); };
-let patchDrag = null, patchVB = null, patchAdd = null, patchBar = null, patchLasso = null, patchMode = 'auto';
+let patchDrag = null, patchVB = null, patchAdd = null, patchBar = null, patchLasso = null, patchMode = 'auto', patchBox = null;
 const modeOf = e => e?.altKey ? 'sol' : patchMode; // ⌥ Alt : toujours au sol // viewBox courant (zoom / déplacement)
 function patchRows() {
   const term = termGroup()?.children || [], byId = id => term.find(b => b.userData.term.id === id), pr = percheRig();
@@ -1097,11 +1105,14 @@ function patchRows() {
   const zi = r => { const i = ZONES.indexOf(r.zone); return i < 0 ? 99 : i; };
   rows.sort((a, b) => zi(a) - zi(b) || b.o.position.z - a.o.position.z || a.o.position.x - b.o.position.x); // par équipe, de jardin à cour
   rows.forEach((r, i) => r.n = i + 1);
-  const used = new Set(rows.filter(r => r.b && r.c).map(r => r.b.userData.term.id + '/' + r.c));
-  for (const r of rows) if (r.b && !r.c) { let c = 1; while (used.has(r.b.userData.term.id + '/' + c)) c++; r.c = c; used.add(r.b.userData.term.id + '/' + c); } // premier circuit libre
-  const cnt = {}; rows.forEach(r => { if (r.b) { const k = r.b.userData.term.id + '/' + r.c; cnt[k] = (cnt[k] || 0) + 1; } });
-  for (const r of rows) { const pc = r.b ? (r.b.userData.term.detail?.prises?.['PC 16A direct commandée'] || 0) + (r.b.userData.term.detail?.prises?.['PC 16A mono'] || 0) : 0;
-    r.pc = pc; r.err = !r.b ? 'sans boîtier' : cnt[r.b.userData.term.id + '/' + r.c] > 1 ? 'circuit en double' : pc && r.c > pc ? `le boîtier n'a que ${pc} prises 16 A` : ''; }
+  // circuits : choix manuels d'abord, puis le premier circuit vide du boîtier, sinon partage d'une prise double (2 appareils, ≤ 3,68 kW)
+  const load = new Map(), K = (b, c) => b.userData.term.id + '/' + c, add = r => { const e = load.get(K(r.b, r.c)) || { n:0, W:0 }; e.n++; e.W += powerOf(r.o); load.set(K(r.b, r.c), e); };
+  rows.filter(r => r.b && r.c).forEach(add);
+  for (const r of rows) if (r.b && !r.c) { const n = circs(r.b).length, ok = c => { const e = load.get(K(r.b, c)); return !e || (e.n < 2 && e.W + powerOf(r.o) <= CIRC_W); };
+    let c = 1; while (c <= n && load.get(K(r.b, c))) c++; if (c > n) { c = 1; while (c <= n && !ok(c)) c++; } r.c = c; add(r); }
+  for (const r of rows) { const list = r.b ? circs(r.b) : [], e = r.b && load.get(K(r.b, r.c));
+    r.pc = list.length; r.cn = list[r.c - 1] || `C${r.c}`;
+    r.err = !r.b ? 'sans boîtier' : !list.length ? 'boîtier sans circuit connu' : r.c > list.length ? `le boîtier n'a que ${list.length} circuits` : e.n > 2 ? `${e.n} appareils sur ${r.cn} (prise double : 2 max)` : e.W > CIRC_W ? `${r.cn} chargé à ${fr(e.W / 1000, 2)} kW (> 3,68 kW)` : ''; }
   // DMX : adresses manuelles d'abord, puis adressage auto dans l'ordre du patch (univers 1, sans chevauchement, on passe à l'univers suivant à 512)
   for (const r of rows) { const m = r.o.userData.dmx || {}; r.ch = m.ch || DMX_CH[r.o.userData.kind] || 1; r.u = m.a ? m.u || 1 : 0; r.a = m.a || 0; r.dmxManual = !!m.a; }
   const occ = (u, a, ch, self) => rows.some(q => q !== self && q.a && q.u === u && a <= q.a + q.ch - 1 && q.a <= a + ch - 1);
@@ -1135,23 +1146,23 @@ function drawPatch() {
   const usedB = new Set(rows.map(r => r.b)); const tg = termGroup();
   if (tg) for (const b of tg.children) { const t = b.userData.term; if (t.kind !== 'BECL' || !AUDI.containsPoint(new THREE.Vector3(b.position.x, 2, b.position.z))) continue;
     const u = usedB.has(b), col = u ? boxHue(t.id) : '#b8bec8', p = b.position;
-    out.push(`<g data-box="${tg.children.indexOf(b)}" style="cursor:pointer"><rect x="${f(X(p) - 0.13)}" y="${f(Y(p) - 0.13)}" width="0.26" height="0.26" fill="${u ? col : '#fff'}" stroke="${col}" stroke-width="0.04"/></g>`
+    out.push(`<g data-box="${tg.children.indexOf(b)}" style="cursor:pointer">${b === patchBox ? `<rect x="${f(X(p) - 0.3)}" y="${f(Y(p) - 0.3)}" width="0.6" height="0.6" rx="0.08" fill="#ffd27a"/>` : ''}<rect x="${f(X(p) - 0.35)}" y="${f(Y(p) - 0.35)}" width="0.7" height="0.7" fill="transparent"/><rect x="${f(X(p) - 0.15)}" y="${f(Y(p) - 0.15)}" width="0.3" height="0.3" fill="${u ? col : '#fff'}" stroke="${col}" stroke-width="0.04"/></g>`
       + `<text x="${f(X(p))}" y="${f(Y(p) + 0.42)}" font-size="${u ? 0.2 : 0.15}" text-anchor="middle" font-weight="${u ? 700 : 400}" fill="${col}">${esc(t.id.replace('BECL-', 'B'))}</text>`); }
   // câbles de patch puis projecteurs (numéro dans la pastille, type + boîtier·circuit en étiquette, une sur deux au-dessus / au-dessous)
   for (const r of rows) if (r.b) out.push(`<line x1="${X(r.o.position)}" y1="${Y(r.o.position)}" x2="${X(r.b.position)}" y2="${Y(r.b.position)}" stroke="${boxHue(r.b.userData.term.id)}" stroke-width="0.035" stroke-dasharray="0.12 0.08" opacity="0.55"/>`);
   const side = new Map(); // accroché : étiquette côté lointain, sol : côté salle ; deux voisins à < 1,4 m sur une porteuse : le second passe dessous
   for (const r of [...rows].sort((a, b) => a.o.position.z - b.o.position.z || a.o.position.x - b.o.position.x)) {
     const prev = [...side.keys()].reverse().find(q => q.bar && q.bar === r.bar);
-    side.set(r, !r.bar ? 1 : prev && prev.o.position.distanceTo(r.o.position) < 1.4 && side.get(prev) < 0 ? 1.35 : -1); }
+    side.set(r, !r.bar ? 1 : prev && prev.o.position.distanceTo(r.o.position) < 1.7 && side.get(prev) < 0 ? 1.35 : -1); } // étiquettes « B09 · ADC-14-P1 » ≈ 1,5 m
   rows.forEach((r, i) => { const p = r.o.position, x = X(p), y = Y(p), col = FXCOL[r.o.userData.kind] || '#333', up = Math.sign(side.get(r)), sel = patchSet.has(r.o);
-    const ly = y + side.get(r) * 0.45, t2 = r.b ? `${r.b.userData.term.id.replace('BECL-', 'B')} · C${r.c}` : '—';
+    const ly = y + side.get(r) * 0.45, t2 = r.b ? `${r.b.userData.term.id.replace('BECL-', 'B')} · ${r.cn}` : '—';
     out.push(`<g data-n="${r.n}" style="cursor:grab">`
       + (sel ? `<circle cx="${x}" cy="${y}" r="0.46" fill="#ffd27a"/>` : '') + (r.err ? `<circle cx="${x}" cy="${y}" r="0.38" fill="none" stroke="#d0021b" stroke-width="0.08"/>` : '')
       + (() => { const yaw = r.o.rotation.y, dx = -Math.cos(yaw), dy = Math.sin(yaw), tip = [x + dx * 0.5, y + dy * 0.5], b1 = [x + dx * 0.3 - dy * 0.1, y + dy * 0.3 + dx * 0.1], b2 = [x + dx * 0.3 + dy * 0.1, y + dy * 0.3 - dx * 0.1];
           return `<polygon points="${[tip, b1, b2].map(p => p.map(f).join(',')).join(' ')}" fill="${col}"/>`; })() // sens du faisceau
       + (r.bar ? `<circle cx="${x}" cy="${y}" r="0.27" fill="${col}" stroke="#fff" stroke-width="0.04"/>` : `<rect x="${f(x - 0.26)}" y="${f(y - 0.26)}" width="0.52" height="0.52" rx="0.06" fill="${col}" stroke="#fff" stroke-width="0.04"/>`) + `<text x="${x}" y="${f(y + 0.1)}" font-size="0.27" text-anchor="middle" font-weight="700" fill="#fff">${r.n}</text>`
       + `<text x="${x}" y="${f(ly + (up > 0 ? 0.12 : -0.3))}" font-size="0.2" text-anchor="middle" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)} · <tspan font-weight="700">${dmxTxt(r)}</tspan></text>`
-      + `<text x="${x}" y="${f(ly + (up > 0 ? 0.38 : -0.04))}" font-size="0.25" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text></g>`); });
+      + `<text x="${x}" y="${f(ly + (up > 0 ? 0.36 : -0.05))}" font-size="0.2" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text></g>`); });
   if (patchLasso) { const [a, b] = patchLasso; out.push(`<rect x="${f(Math.min(a.x, b.x))}" y="${f(Math.min(a.y, b.y))}" width="${f(Math.abs(a.x - b.x))}" height="${f(Math.abs(a.y - b.y))}" fill="rgba(240,165,58,.12)" stroke="#f0a53a" stroke-width="0.04" stroke-dasharray="0.15 0.1"/>`); }
   if (!rows.length) out.push(`<text x="0" y="${f((L + C) / 2)}" font-size="0.36" text-anchor="middle" fill="#6b7280">Aucun projecteur : choisis un appareil dans la palette en haut,</text><text x="0" y="${f((L + C) / 2 + 0.5)}" font-size="0.36" text-anchor="middle" fill="#6b7280">puis clique sur une porteuse (accroché) ou au plateau (au sol).</text>`);
   patchVB ??= [AXE_AU - J - 1.6, L - 0.9, J - Co + 3.2, -75.6 - L + 0.9]; svg.setAttribute('viewBox', patchVB.map(f).join(' ')); svg.classList.toggle('adding', !!patchAdd);
@@ -1161,22 +1172,33 @@ function drawPatch() {
   const bad = rows.filter(r => r.err).length, W = rows.reduce((s, r) => s + powerOf(r.o), 0);
   const us = [...new Set(rows.map(r => r.u))].sort((a, b) => a - b), last = u => Math.max(...rows.filter(r => r.u === u).map(r => r.a + r.ch - 1));
   $('patchSum').innerHTML = `${rows.length} projecteurs · ${fr(W / 1000)} kW · ${new Set(rows.map(r => r.b)).size} boîtiers · DMX ${us.map(u => `U${u} : ${last(u)} canaux`).join(', ') || '—'}` + (bad ? ` · <span class="warn">${bad} à corriger</span>` : ' · patch OK');
-  $('patchTab').innerHTML = '<tr><th>N°</th><th>Appareil</th><th>Où</th><th>Boîtier</th><th>Circ.</th><th>DMX</th><th>W</th></tr>' + rows.map(r =>
-    `<tr data-n="${r.n}" class="${patchSet.has(r.o) ? 'sel' : ''} ${r.err ? 'bad' : ''}" title="${esc(r.err)}"><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>${esc(r.zone)}</td><td>${r.b ? esc(r.b.userData.term.id) : '—'}${r.manual ? ' ✎' : ''}</td><td>${r.c || '—'}${r.pc ? `<small style="color:#889">/${r.pc}</small>` : ''}</td><td>${dmxTxt(r)}${r.dmxManual ? ' ✎' : ''}<small style="color:#889"> ${r.ch}c</small></td><td>${powerOf(r.o)}</td></tr>`).join('');
+  $('patchTab').innerHTML = '<tr><th>N°</th><th>Appareil</th><th>Où</th><th>Boîtier</th><th>Circuit</th><th>DMX</th><th>W</th></tr>' + rows.map(r =>
+    `<tr data-n="${r.n}" class="${patchSet.has(r.o) ? 'sel' : ''} ${r.err ? 'bad' : ''}" title="${esc(r.err)}"><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>${esc(r.zone)}</td><td>${r.b ? esc(r.b.userData.term.id) : '—'}${r.manual ? ' ✎' : ''}</td><td>${r.b ? esc(r.cn) : '—'}</td><td>${dmxTxt(r)}${r.dmxManual ? ' ✎' : ''}<small style="color:#889"> ${r.ch}c</small></td><td>${powerOf(r.o)}</td></tr>`).join('');
   for (const o of [...patchSet]) if (!rows.some(r => r.o === o)) patchSet.delete(o); // supprimés entre-temps
-  const selRows = rows.filter(r => patchSet.has(r.o)), r = selRows.length === 1 ? selRows[0] : null;
-  if (r) { const boxes = (tg?.children || []).filter(b => b.userData.term.kind === 'BECL').map(b => b.userData.term.id).sort((a, b) => a.localeCompare(b, 'fr', { numeric:true }));
+  const selRows = rows.filter(r => patchSet.has(r.o)), r = !patchBox && selRows.length === 1 ? selRows[0] : null;
+  if (patchBox && tg?.children.includes(patchBox)) { const b = patchBox, t = b.userData.term, list = circs(b), on = rows.filter(q => q.b === b), W = on.reduce((s, q) => s + powerOf(q.o), 0);
+    const chip = q => `<span class="pnum" title="${esc(SHORT[q.o.userData.kind] || '')}" style="background:${FXCOL[q.o.userData.kind] || '#333'}">${q.n}</span>`;
+    $('patchEd').innerHTML = `<div class="row"><b style="font-size:15px">${esc(t.id)}</b> <span style="color:#556">${esc([t.detail?.type, t.detail?.loc?.toLowerCase(), t.bar ? 'porteuse ' + t.bar : t.lvl].filter(Boolean).join(' · '))}</span></div>`
+      + `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="text-align:left">Circuit</th><th style="text-align:left">Branché</th><th style="text-align:right">W</th></tr>${list.map((n, k) => { const qs = on.filter(q => q.c === k + 1), w = qs.reduce((s, q) => s + powerOf(q.o), 0);
+          return `<tr style="border-top:1px solid #e3e5ea"><td><b style="color:${boxHue(t.id)}">${esc(n)}</b></td><td>${qs.map(chip).join(' ') || '<span style="color:#aab">libre</span>'}</td><td style="text-align:right;${w > CIRC_W ? 'color:#d0021b;font-weight:700' : ''}">${w || ''}</td></tr>`; }).join('')}
+        ${on.filter(q => q.c > list.length).map(q => `<tr><td class="warn">hors circuits</td><td>${chip(q)}</td><td></td></tr>`).join('')}</table>`
+      + `<div class="row" style="margin-top:6px;color:#556">${on.length} appareils · ${fr(W / 1000, 2)} kW · ${list.filter((n, k) => !on.some(q => q.c === k + 1)).length} / ${list.length} circuits libres</div>`
+      + `<div class="row"><button id="pxPlate">Plaque et connexions…</button>${selRows.length ? `<button id="pxHere">Patcher ${selRows.length > 1 ? 'les ' + selRows.length + ' projecteurs sélectionnés' : 'le n°' + selRows[0].n} ici</button>` : ''}</div>`
+      + '<div style="color:#778;font-size:11px">Astuce : sélectionne des projecteurs puis clique un boîtier pour les y patcher.</div>';
+    $('pxPlate').onclick = () => openBox(b);
+    if ($('pxHere')) $('pxHere').onclick = () => { pushUndo(); selRows.forEach(q => q.o.userData.patch = { box:t.id, c:0 }); drawPatch(); };
+  } else if (r) { const boxes = (tg?.children || []).filter(b => b.userData.term.kind === 'BECL').map(b => b.userData.term.id).sort((a, b) => a.localeCompare(b, 'fr', { numeric:true }));
     $('patchEd').innerHTML = `<div class="row"><span class="pnum" style="background:${FXCOL[r.o.userData.kind]}">${r.n}</span><b>${esc(r.o.name)}</b></div>`
       + `<div class="row">Position : ${esc(r.zone)}${r.bar ? ` à ${fr(r.o.position.y - fy, 2)} m` : ' (au sol)'} <button id="peFloor" style="margin-left:auto">${r.bar ? 'Poser au sol' : 'Accrocher'}</button></div>`
       + `<div class="row">Boîtier <select id="peBox"><option value="">auto (le plus proche)</option>${boxes.map(id => `<option ${r.o.userData.patch?.box === id ? 'selected' : ''}>${id}</option>`).join('')}</select>`
-      + ` Circuit <input type="number" id="peC" min="0" max="24" value="${r.o.userData.patch?.c || 0}" style="width:52px" title="0 = premier circuit libre"></div>`
+      + `</div><div class="row">Circuit <select id="peC"><option value="0">auto (premier libre)</option>${(r.b ? circs(r.b) : []).map((n, k) => `<option value="${k + 1}" ${r.o.userData.patch?.c === k + 1 ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`
       + `<div class="row">DMX univers <input type="number" id="peU" min="1" max="64" value="${r.o.userData.dmx?.u || r.u}" style="width:46px"> adresse <input type="number" id="peA" min="0" max="512" value="${r.o.userData.dmx?.a || 0}" style="width:56px" title="0 = adresse auto (suite du patch)"> <span style="color:#778">${r.dmxManual ? '' : `auto ${dmxTxt(r)}`}</span></div>`
       + `<div class="row">Canaux <input type="number" id="peCh" min="1" max="512" value="${r.ch}" style="width:56px" title="Empreinte DMX du mode utilisé"> <span style="color:#778">${r.u}/${r.a} → ${r.u}/${r.a + r.ch - 1}</span></div>`
       + `<div class="row">Type <select id="peKind">${Object.entries(SHORT).map(([k, t]) => `<option value="${k}" ${k === r.o.userData.kind ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`
       + `<div class="row">Orientation <select id="peRot">${ORIENT.map(([t, v]) => `<option value="${v}" ${Math.abs(Math.atan2(Math.sin(r.o.rotation.y - v), Math.cos(r.o.rotation.y - v))) < 0.3 ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`
       + `<div class="row">Puissance <input type="number" id="peW" step="100" min="0" value="${powerOf(r.o)}" style="width:72px"> W <button id="peDup" style="margin-left:auto" title="D">Dupliquer</button><button id="peDel" title="Suppr">Supprimer</button></div>`
-      + (r.err ? `<div class="warn">⚠ ${esc(r.err)}</div>` : `<div style="color:#178a3c">→ ${esc(r.b.userData.term.id)}, circuit ${r.c}${r.b.userData.term.detail?.loc ? ` (${esc(r.b.userData.term.detail.loc.toLowerCase())})` : ''}</div>`);
-    const setP = () => { pushUndo(); const box = $('peBox').value, c = Math.max(0, Math.round(+$('peC').value) || 0); r.o.userData.patch = box || c ? { box, c } : undefined; drawPatch(); };
+      + (r.err ? `<div class="warn">⚠ ${esc(r.err)}</div>` : `<div style="color:#178a3c">→ ${esc(r.b.userData.term.id)}, circuit ${esc(r.cn)}${r.b.userData.term.detail?.loc ? ` (${esc(r.b.userData.term.detail.loc.toLowerCase())})` : ''}</div>`);
+    const setP = e => { pushUndo(); const box = $('peBox').value, c = e?.target.id === 'peBox' ? 0 : Math.max(0, Math.round(+$('peC').value) || 0); r.o.userData.patch = box || c ? { box:box || r.b?.userData.term.id || '', c } : undefined; drawPatch(); }; // changer de boîtier remet le circuit en auto
     $('peBox').onchange = $('peC').onchange = setP;
     $('peU').onchange = $('peA').onchange = $('peCh').onchange = () => { pushUndo(); const ch = Math.max(1, Math.round(+$('peCh').value) || 1), a = Math.max(0, Math.round(+$('peA').value) || 0);
       r.o.userData.dmx = { u:Math.max(1, Math.round(+$('peU').value) || 1), a, ch:ch === DMX_CH[r.o.userData.kind] ? 0 : ch }; drawPatch(); };
@@ -1219,7 +1241,7 @@ function drawPatch() {
   } else { patchSet.clear(); patchBar = null; $('patchEd').innerHTML = '<span style="color:#778">Clique un projecteur ou une porteuse ; Maj / ⌘ + clic ou Maj + glisser le fond pour en sélectionner plusieurs, ⌘A pour tout. Palette en haut : ajouter (Pose Auto : clic sur une porteuse = accroché, ailleurs = au sol ; « Au sol » ou ⌥ Alt + clic pour forcer le sol). Glisse un projecteur pour le déplacer, d\'une porteuse à l\'autre ou au sol. Suppr : supprimer · D : dupliquer · Échap : arrêter l\'ajout.</span>'; }
 }
 const patchRowByN = n => patchRows().find(r => r.n === +n);
-$('patchBtn').onclick = () => { patchSet.clear(); patchBar = patchAdd = null; patchVB = null; drawPatch(); $('patch').showModal(); };
+$('patchBtn').onclick = () => { patchSet.clear(); patchBar = patchAdd = patchBox = null; patchVB = null; drawPatch(); $('patch').showModal(); };
 $('patchFit').onclick = () => { patchVB = null; drawPatch(); };
 $('patchSvg').onwheel = e => { e.preventDefault(); const q = svgPt(e), k = Math.exp(e.deltaY * 0.0015), [x, y, w, h] = patchVB; // zoom autour du curseur
   const nw = THREE.MathUtils.clamp(w * k, 2, 60), r = nw / w; patchVB = [q.x - (q.x - x) * r, q.y - (q.y - y) * r, nw, h * r]; drawPatch(); };
@@ -1270,7 +1292,7 @@ function spreadSel(rows) { const by = new Map(); rows.forEach(q => { const k = q
 $('patchMode').onclick = e => { const b = e.target.closest('button[data-m]'); if (!b) return; patchMode = b.dataset.m; $('patchMode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
 $('patchPal').onclick = e => { const b = e.target.closest('button[data-k]'); if (!b) return; patchAdd = patchAdd === b.dataset.k ? null : b.dataset.k; drawPatch(); };
 $('patch').addEventListener('keydown', e => { if (/INPUT|SELECT/.test(e.target.tagName)) return;
-  if (e.key === 'Escape' && (patchAdd || patchSet.size || patchBar)) { e.preventDefault(); patchAdd = patchBar = null; patchSet.clear(); drawPatch(); }
+  if (e.key === 'Escape' && (patchAdd || patchSet.size || patchBar || patchBox)) { e.preventDefault(); patchAdd = patchBar = patchBox = null; patchSet.clear(); drawPatch(); }
   else if ((e.key === 'Delete' || e.key === 'Backspace') && patchSet.size) { e.preventDefault(); pushUndo(); patchSet.forEach(o => props.remove(o)); patchSet.clear(); drawPatch(); }
   else if (e.key.toLowerCase() === 'a' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); patchRows().forEach(r => patchSet.add(r.o)); patchBar = null; drawPatch(); }
   else if (e.key.toLowerCase() === 'd' && !e.metaKey && !e.ctrlKey && patchSet.size) { e.preventDefault(); patchSet.size === 1 ? patchDup([...patchSet][0]) : patchDupAll(); } });
@@ -1282,12 +1304,12 @@ $('patchSvg').onpointerdown = e => { const g = e.target.closest('g[data-n]');
     if (modeOf(e) !== 'sol' && !props.children.some(o => o.userData.grp === 'Cintres auditorium') && EQUIPES_AU.some(([, d, L, , , , dz = 0, alongX]) => alongX ? Math.abs(z - AXE_AU - dz) < 0.6 && Math.abs(x - A04 + d) < L / 2 : Math.abs(x - A04 + d) < 0.6 && Math.abs(z - AXE_AU) < L / 2)) placeCintres();
     const m = modeOf(e), o = makeProp(patchAdd, DEFAULT[patchAdd]), bar = m === 'sol' ? null : nearBar(x, z, m === 'perche' ? 2 : 0.6)?.p; o.rotation.y = defaultYaw(x, z, bar); placeFx(o, x, z, m);
     selOnly(o); patchBar = null; drawPatch(); return; }
-  const gx = !g && e.target.closest('g[data-box]'); if (gx) return openBox(termGroup().children[+gx.dataset.box]); // fenêtre du boîtier
+  const gx = !g && e.target.closest('g[data-box]'); if (gx) { patchBox = termGroup().children[+gx.dataset.box]; patchBar = null; drawPatch(); return; } // panneau du boîtier (la sélection de projecteurs est gardée)
   const multi = e.shiftKey || e.metaKey || e.ctrlKey, gb = !g && e.target.closest('g[data-bar]');
   if (gb && !multi) { patchBar = props.children[+gb.dataset.bar]; patchSet.clear(); drawPatch(); return; }
   if (!g) { $('patchSvg').setPointerCapture(e.pointerId); // fond : Maj = cadre de sélection, sinon déplacer le plan (un clic sans bouger désélectionne)
     if (multi) { const q = svgPt(e); patchLasso = [q, q]; patchDrag = { lasso:true }; } else patchDrag = { pan:[e.clientX, e.clientY, ...patchVB], moved:false }; return; }
-  const r = patchRowByN(g.dataset.n); if (!r) return; patchBar = null;
+  const r = patchRowByN(g.dataset.n); if (!r) return; patchBar = patchBox = null;
   if (multi) { patchSet.has(r.o) ? patchSet.delete(r.o) : patchSet.add(r.o); drawPatch(); return; }
   if (!patchSet.has(r.o)) selOnly(r.o);
   const q = svgPt(e); pushUndo(); patchDrag = { start:{ x:q.y, z:AXE_AU - q.x }, from:[...patchSet].map(o => [o, o.position.x, o.position.z]), moved:false }; // tout le groupe suit
@@ -1303,7 +1325,7 @@ $('patchSvg').onpointerup = () => {
   if (patchDrag?.lasso) { const [a, b] = patchLasso, x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x), y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
     for (const r of patchRows()) { const X = AXE_AU - r.o.position.z, Y = r.o.position.x; if (X >= x0 && X <= x1 && Y >= y0 && Y <= y1) patchSet.add(r.o); }
     patchLasso = null; patchBar = null; drawPatch(); }
-  else if (patchDrag?.pan && !patchDrag.moved && (patchSet.size || patchBar)) { patchSet.clear(); patchBar = null; drawPatch(); }
+  else if (patchDrag?.pan && !patchDrag.moved && (patchSet.size || patchBar || patchBox)) { patchSet.clear(); patchBar = patchBox = null; drawPatch(); }
   patchDrag = null; };
 // impression : plan + tableau sur une page A4 paysage
 $('patchPrint').onclick = () => {
