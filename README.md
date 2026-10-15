@@ -110,7 +110,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   | 8 XT1 nez de scène | le long du nez de scène, tous les 1,55 m | « enceintes mobiles » : implantation type |
   | 4 XT22 retours | à 1,2 m derrière le cadre, face au lointain | « enceintes mobiles » : implantation type |
 
-  Hauteur de la DLI-430 non cotée (bas posé à 2,5 m). Dimensions des AS40, AT40, XT1, XT22 estimées (pas de cotes dans les fiches du dossier). Toutes sont aussi au catalogue (Son).
+  Cotes et poids des fiches Fohhn (fohhn.com) : DLI-230 133 × 2 308 × 128 mm, 15,5 kg ; DLI-430 133 × 4 316 × 128 mm, 29,3 kg ; AS-40 506 × 772 × 606 mm, 40 kg, 18" ; AT-40 381 × 591 × 421 mm, 24 kg, 12" + 1,4" ; XT-1 196 × 381 × 240 mm, 7 kg ; XT-22 323 × 511 × 291 mm, 13 kg, posé en retour à 55°. Hauteur de la DLI-430 non cotée sur les plans (bas posé à 2,5 m). Toutes sont aussi au catalogue (Son).
 - **Équipement de cage** (avec les cintres) : écran polichinelle (image 9,6 × 6 m, de 2 à 8 m, à 5,87 m du cadre) et patience motorisée d'avant-scène (rail à 9,57 m, à 0,43 m, rideaux massés). La conque de scène 1 (1 290 kg) est comptée pour moitié sur C1 et sur C2 ; la conque 2 et les 3 réflecteurs de salle pendent sur câbles fixes (déjà dans la maquette IFC).
 - **Conques d'orchestre** : les 6 décors d'orchestre mobiles (1,46 × 4,52 m) en configuration concert, 3 de chaque côté, ouverts à ≈ 31° vers la salle.
 - **Plan de feu Gaspar Claus** : proposition d'implantation de la liste de location (V.2) :
