@@ -45,13 +45,13 @@
   #patch { width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:0; border:0; background:#f4f5f7; color:#111; }
   #patch .ph { display:flex; gap:8px; align-items:center; padding:8px 12px; background:var(--panel); color:var(--fg); }
   #patch .ph b { font-size:15px; margin-right:8px; } #patchSum { flex:1; color:var(--mute); }
-  #patch .pb { display:grid; grid-template-columns:1fr 340px; height:calc(100vh - 48px); }
+  #patch .pb { display:grid; grid-template-columns:1fr 400px; height:calc(100vh - 48px); }
   #patchSvg { width:100%; height:100%; background:#fff; touch-action:none; user-select:none; }
   #patch .pside { overflow-y:auto; padding:10px 12px; border-left:1px solid #ccd; background:#fafbfc; }
   #patch .pside h3 { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#556; margin:10px 0 6px; }
   #patch .pside button, #patch .pside select, #patch .pside input { background:#fff; color:#111; border-color:#bbc; }
   #patchEd { padding:8px; border:1px solid #ccd; border-radius:8px; background:#fff; min-height:44px; }
-  #patchTab { width:100%; border-collapse:collapse; font-size:12px; } #patchTab th, #patchTab td { padding:3px 5px; border-bottom:1px solid #e3e5ea; text-align:left; }
+  #patchTab { width:100%; border-collapse:collapse; font-size:12px; } #patchTab th, #patchTab td { padding:3px 4px; white-space:nowrap; border-bottom:1px solid #e3e5ea; text-align:left; }
   #patchTab th { position:sticky; top:0; background:#fafbfc; } #patchTab tr { cursor:pointer; } #patchTab tr.sel { background:#fff1d6; } #patchTab tr.bad td { color:#d0021b; font-weight:600; }
   .pnum { display:inline-block; min-width:22px; text-align:center; border-radius:11px; color:#fff; font-weight:700; padding:0 4px; }
 </style>
@@ -1047,8 +1047,17 @@ function patchRows() {
   const cnt = {}; rows.forEach(r => { if (r.b) { const k = r.b.userData.term.id + '/' + r.c; cnt[k] = (cnt[k] || 0) + 1; } });
   for (const r of rows) { const pc = r.b ? (r.b.userData.term.detail?.prises?.['PC 16A direct commandée'] || 0) + (r.b.userData.term.detail?.prises?.['PC 16A mono'] || 0) : 0;
     r.pc = pc; r.err = !r.b ? 'sans boîtier' : cnt[r.b.userData.term.id + '/' + r.c] > 1 ? 'circuit en double' : pc && r.c > pc ? `le boîtier n'a que ${pc} prises 16 A` : ''; }
+  // DMX : adresses manuelles d'abord, puis adressage auto dans l'ordre du patch (univers 1, sans chevauchement, on passe à l'univers suivant à 512)
+  for (const r of rows) { const m = r.o.userData.dmx || {}; r.ch = m.ch || DMX_CH[r.o.userData.kind] || 1; r.u = m.a ? m.u || 1 : 0; r.a = m.a || 0; r.dmxManual = !!m.a; }
+  const occ = (u, a, ch, self) => rows.some(q => q !== self && q.a && q.u === u && a <= q.a + q.ch - 1 && q.a <= a + ch - 1);
+  for (const r of rows) if (!r.a) { let u = 1, a = 1; while (occ(u, a, r.ch, r) || a + r.ch - 1 > 512) { a++; if (a + r.ch - 1 > 512) { u++; a = 1; } } r.u = u; r.a = a; }
+  for (const r of rows) if (!r.err) r.err = r.a + r.ch - 1 > 512 ? `DMX : dépasse 512 (${r.a} + ${r.ch} canaux)` : occ(r.u, r.a, r.ch, r) ? 'DMX : adresses qui se chevauchent' : '';
   return rows;
 }
+// empreinte DMX par défaut (canaux) ; ponytail: modes les plus courants, modifiable par appareil dans l'éditeur
+// trad. (PC, découpes) : 1 circuit de gradateur ; Robe Esprite mode 1 : 46 ; Martin Atomic 3000 : 4 ; Look Unique 2.1 : 2
+const DMX_CH = { pc1k:1, sx713:1, sx654:1, lyreprof:46, lyre:16, par:8, atomic:4, fog:2 };
+const dmxTxt = r => `${r.u}/${String(r.a).padStart(3, '0')}`;
 const boxHue = id => `hsl(${[...id].reduce((h, c) => h * 31 + c.charCodeAt(0) >>> 0, 7) % 360} 65% 38%)`;
 function drawPatch() {
   const svg = $('patchSvg'), rows = patchRows(), f = v => +v.toFixed(3), X = p => f(AXE_AU - p.z), Y = p => f(p.x), out = [];
@@ -1080,25 +1089,30 @@ function drawPatch() {
     out.push(`<g data-n="${r.n}" style="cursor:grab">`
       + (sel ? `<circle cx="${x}" cy="${y}" r="0.46" fill="#ffd27a"/>` : '') + (r.err ? `<circle cx="${x}" cy="${y}" r="0.38" fill="none" stroke="#d0021b" stroke-width="0.08"/>` : '')
       + `<circle cx="${x}" cy="${y}" r="0.27" fill="${col}" stroke="#fff" stroke-width="0.04"/><text x="${x}" y="${f(y + 0.1)}" font-size="0.27" text-anchor="middle" font-weight="700" fill="#fff">${r.n}</text>`
-      + `<text x="${x}" y="${f(ly + (up > 0 ? 0.12 : -0.3))}" font-size="0.2" text-anchor="middle" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</text>`
+      + `<text x="${x}" y="${f(ly + (up > 0 ? 0.12 : -0.3))}" font-size="0.2" text-anchor="middle" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)} · <tspan font-weight="700">${dmxTxt(r)}</tspan></text>`
       + `<text x="${x}" y="${f(ly + (up > 0 ? 0.38 : -0.04))}" font-size="0.25" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text></g>`); });
   patchVB ??= [AXE_AU - J - 1.6, L - 0.9, J - Co + 3.2, -75.6 - L + 0.9]; svg.setAttribute('viewBox', patchVB.map(f).join(' '));
   svg.innerHTML = out.join('');
   // résumé, tableau, éditeur
   const bad = rows.filter(r => r.err).length, W = rows.reduce((s, r) => s + powerOf(r.o), 0);
-  $('patchSum').innerHTML = `${rows.length} projecteurs · ${fr(W / 1000)} kW · ${new Set(rows.map(r => r.b)).size} boîtiers` + (bad ? ` · <span class="warn">${bad} à corriger</span>` : ' · patch OK');
-  $('patchTab').innerHTML = '<tr><th>N°</th><th>Appareil</th><th>Où</th><th>Boîtier</th><th>Circ.</th><th>W</th></tr>' + rows.map(r =>
-    `<tr data-n="${r.n}" class="${r.o === patchSel ? 'sel' : ''} ${r.err ? 'bad' : ''}" title="${esc(r.err)}"><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>${esc(r.zone)}</td><td>${r.b ? esc(r.b.userData.term.id) : '—'}${r.manual ? ' ✎' : ''}</td><td>${r.c || '—'}${r.pc ? `<small style="color:#889">/${r.pc}</small>` : ''}</td><td>${powerOf(r.o)}</td></tr>`).join('');
+  const us = [...new Set(rows.map(r => r.u))].sort((a, b) => a - b), last = u => Math.max(...rows.filter(r => r.u === u).map(r => r.a + r.ch - 1));
+  $('patchSum').innerHTML = `${rows.length} projecteurs · ${fr(W / 1000)} kW · ${new Set(rows.map(r => r.b)).size} boîtiers · DMX ${us.map(u => `U${u} : ${last(u)} canaux`).join(', ') || '—'}` + (bad ? ` · <span class="warn">${bad} à corriger</span>` : ' · patch OK');
+  $('patchTab').innerHTML = '<tr><th>N°</th><th>Appareil</th><th>Où</th><th>Boîtier</th><th>Circ.</th><th>DMX</th><th>W</th></tr>' + rows.map(r =>
+    `<tr data-n="${r.n}" class="${r.o === patchSel ? 'sel' : ''} ${r.err ? 'bad' : ''}" title="${esc(r.err)}"><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>${esc(r.zone)}</td><td>${r.b ? esc(r.b.userData.term.id) : '—'}${r.manual ? ' ✎' : ''}</td><td>${r.c || '—'}${r.pc ? `<small style="color:#889">/${r.pc}</small>` : ''}</td><td>${dmxTxt(r)}${r.dmxManual ? ' ✎' : ''}<small style="color:#889"> ${r.ch}c</small></td><td>${powerOf(r.o)}</td></tr>`).join('');
   const r = rows.find(r => r.o === patchSel);
   if (r) { const boxes = (tg?.children || []).filter(b => b.userData.term.kind === 'BECL').map(b => b.userData.term.id).sort((a, b) => a.localeCompare(b, 'fr', { numeric:true }));
     $('patchEd').innerHTML = `<div class="row"><span class="pnum" style="background:${FXCOL[r.o.userData.kind]}">${r.n}</span><b>${esc(r.o.name)}</b></div>`
       + `<div class="row">Position : ${esc(r.zone)}${r.bar ? ` à ${fr(r.o.position.y - fy, 2)} m` : ''}</div>`
       + `<div class="row">Boîtier <select id="peBox"><option value="">auto (le plus proche)</option>${boxes.map(id => `<option ${r.o.userData.patch?.box === id ? 'selected' : ''}>${id}</option>`).join('')}</select>`
       + ` Circuit <input type="number" id="peC" min="0" max="24" value="${r.o.userData.patch?.c || 0}" style="width:52px" title="0 = premier circuit libre"></div>`
+      + `<div class="row">DMX univers <input type="number" id="peU" min="1" max="64" value="${r.o.userData.dmx?.u || r.u}" style="width:46px"> adresse <input type="number" id="peA" min="0" max="512" value="${r.o.userData.dmx?.a || 0}" style="width:56px" title="0 = adresse auto (suite du patch)"> <span style="color:#778">${r.dmxManual ? '' : `auto ${dmxTxt(r)}`}</span></div>`
+      + `<div class="row">Canaux <input type="number" id="peCh" min="1" max="512" value="${r.ch}" style="width:56px" title="Empreinte DMX du mode utilisé"> <span style="color:#778">${r.u}/${r.a} → ${r.u}/${r.a + r.ch - 1}</span></div>`
       + `<div class="row">Puissance <input type="number" id="peW" step="100" min="0" value="${powerOf(r.o)}" style="width:72px"> W <button id="peDel" style="margin-left:auto">Supprimer</button></div>`
       + (r.err ? `<div class="warn">⚠ ${esc(r.err)}</div>` : `<div style="color:#178a3c">→ ${esc(r.b.userData.term.id)}, circuit ${r.c}${r.b.userData.term.detail?.loc ? ` (${esc(r.b.userData.term.detail.loc.toLowerCase())})` : ''}</div>`);
     const setP = () => { pushUndo(); const box = $('peBox').value, c = Math.max(0, Math.round(+$('peC').value) || 0); r.o.userData.patch = box || c ? { box, c } : undefined; drawPatch(); };
     $('peBox').onchange = $('peC').onchange = setP;
+    $('peU').onchange = $('peA').onchange = $('peCh').onchange = () => { pushUndo(); const ch = Math.max(1, Math.round(+$('peCh').value) || 1), a = Math.max(0, Math.round(+$('peA').value) || 0);
+      r.o.userData.dmx = { u:Math.max(1, Math.round(+$('peU').value) || 1), a, ch:ch === DMX_CH[r.o.userData.kind] ? 0 : ch }; drawPatch(); };
     $('peW').onchange = () => { pushUndo(); r.o.userData.power = Math.max(0, +$('peW').value || 0); drawPatch(); };
     $('peDel').onclick = () => { pushUndo(); props.remove(r.o); patchSel = null; drawPatch(); };
   } else if (patchSel) { patchSel = null; }
@@ -1109,7 +1123,8 @@ $('patchFit').onclick = () => { patchVB = null; drawPatch(); };
 $('patchSvg').onwheel = e => { e.preventDefault(); const q = svgPt(e), k = Math.exp(e.deltaY * 0.0015), [x, y, w, h] = patchVB; // zoom autour du curseur
   const nw = THREE.MathUtils.clamp(w * k, 2, 60), r = nw / w; patchVB = [q.x - (q.x - x) * r, q.y - (q.y - y) * r, nw, h * r]; drawPatch(); };
 $('patchClose').onclick = () => $('patch').close();
-$('patchAuto').onclick = () => { if (!confirm('Revenir au patch automatique (boîtier le plus proche, premier circuit libre) pour tous les projecteurs ?')) return; pushUndo(); for (const o of props.children) delete o.userData.patch; drawPatch(); };
+$('patchAuto').onclick = () => { if (!confirm('Revenir au patch automatique (boîtier le plus proche, premier circuit libre, adresses DMX à la suite) pour tous les projecteurs ? Les empreintes DMX modifiées sont gardées.')) return;
+  pushUndo(); for (const o of props.children) { delete o.userData.patch; if (o.userData.dmx) o.userData.dmx = { ch:o.userData.dmx.ch }; } drawPatch(); };
 $('patchTab').onclick = e => { const tr = e.target.closest('tr[data-n]'); if (!tr) return; patchSel = patchRowByN(tr.dataset.n)?.o || null; drawPatch(); };
 // glisser un projecteur : le long de sa porteuse s'il est accroché, librement au plateau
 const svgPt = e => { const p = $('patchSvg').createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform($('patchSvg').getScreenCTM().inverse()); };
@@ -1658,12 +1673,12 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch })), moved, view };
+  return { salle, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; setSalle(cfg.salle || 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;

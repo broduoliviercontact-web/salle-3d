@@ -130,6 +130,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   - un clic ouvre son panneau : boîtier (auto = le plus proche), circuit (0 = premier libre), puissance, suppression ;
   - le tableau de patch liste N°, appareil, équipe, boîtier, circuit / prises du boîtier, puissance ; en rouge : circuit en double, circuit au-delà des prises 16 A du boîtier, appareil sans boîtier ;
   - molette : zoom, glisser le fond : déplacer, « Recadrer » ; « Patch auto » oublie les choix manuels ; « Imprimer » sort le plan et le tableau sur une page A4 paysage.
+  - **DMX** : chaque projecteur a son univers / adresse (ex. 1/154) et son empreinte en canaux : affichés sur le plan (« Lyre déc. · 1/154 »), dans le tableau et à l'impression. Adressage auto à la suite du patch (univers 1, sans chevauchement, univers suivant après 512) ; une adresse saisie à la main est gardée et les autres l'évitent. Empreintes par défaut : PC / découpes 1 canal (gradateur), lyre découpe 46 (Robe Esprite mode 1), lyre 16, PAR LED 8, Atomic 3000 4, Unique 2.1 2 — modifiables par appareil. En rouge : adresses qui se chevauchent, dépassement de 512.
   Le patch est enregistré avec les setups. Circuit = n° de prise 16 A dans le boîtier : les repères d'armoire (ADC-xx-Px) du carnet ne sont pas lisibles (images).
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
