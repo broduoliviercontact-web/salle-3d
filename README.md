@@ -137,7 +137,8 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   - glisser un projecteur le déplace : il s'accroche à la porteuse la plus proche (à ≤ 0,6 m), sinon il se pose au sol ; la 3D suit ;
   - une flèche montre le sens du faisceau ; orientation au panneau : face, contre, latéral jardin / cour ;
   - clic sur une porteuse : sa hauteur (dans sa course), sa charge / CMU et son nombre de projecteurs ;
-  - clavier : Suppr supprime, D duplique (0,6 m plus loin sur la même porteuse), Échap désélectionne ;
+  - **sélection multiple** : Maj / ⌘ + clic (plan ou tableau), Maj + glisser le fond (cadre), ⌘A (tout) ; un clic sur le fond désélectionne. Glisser un projecteur sélectionné déplace tout le groupe du même décalage (chacun s'accroche à sa porteuse la plus proche : un groupe passe de F1 à F2 en gardant son espacement). Panneau groupé : orientation, boîtier (circuits libres), DMX à la suite depuis une adresse (dans l'ordre du patch, univers suivant après 512), canaux, Auto (patch et DMX automatiques), Espacer régulièrement (par porteuse, extrêmes fixes), Dupliquer, Supprimer ;
+  - clavier : Suppr supprime, D duplique (0,6 m plus loin sur la même porteuse), Échap désélectionne — sur toute la sélection ;
   - un clic ouvre son panneau : boîtier (auto = le plus proche), circuit (0 = premier libre), puissance, suppression ;
   - le tableau de patch liste N°, appareil, équipe, boîtier, circuit / prises du boîtier, puissance ; en rouge : circuit en double, circuit au-delà des prises 16 A du boîtier, appareil sans boîtier ;
   - molette : zoom, glisser le fond : déplacer, « Recadrer » ; « Patch auto » oublie les choix manuels ; « Imprimer » sort le plan et le tableau sur une page A4 paysage.
