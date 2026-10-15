@@ -10,6 +10,7 @@ import fitz, json, os, re, sys, glob
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 A04, AXE = -82.74, 2.9
 BARS = {"S1": -3.5, "F1": 0.77, "F2": 3.32, "F3": 6.38}  # équipes portant des boîtiers (distance au cadre vers le lointain)
+LVL_IMG = {"BECL-30": "R1", "BECL-31": "R1"}  # niveaux lus sur les images du carnet (folio BECL T1) : lisses verticales jardin / cour
 NIV = {"R0": 1.86, "R1": 4.81, "R2": 8.24}  # plateau (niv. 53,57) ; ML_R1 56,52 et ML_R2 59,95 NGF -> y = NGF − 51,71
 TAG = re.compile(r"(BAV|BECL|HP)(-[A-Z]+)?-\d+$")   # boîtiers AV, boîtiers éclairage, enceintes (HP, HP-ROE, HP-RS)
 SYM = re.compile(r"(BAV|BECL|HP|hp)$")               # texte dans le symbole lui-même
@@ -89,7 +90,7 @@ def carnet(path):
         for b, t in L:
             if not re.fullmatch(r"(BECL|BAV|HP)-(PMS(-\d+)?|\d+)", t): continue
             locs = [(c[0] - b[0], u) for c, u in L if 3 < c[0] - b[0] < 30 and 0 < b[1] - c[1] < 140 and re.fullmatch(r"[A-ZÉÈ' ]{4,}", u) and re.search(r"LISSE|PLATEAU|R[ÉE]GIE|LOGE|GRADIN|FOYER|SALLE|CADRE|COULISSE|LOGGIA|PASSERELLE|SC[ÈE]NE", u)]
-            lv = [u for c, u in L if abs(c[0] - b[0]) < 12 and c[1] < b[1] and re.fullmatch(r"R[0-3]", u)]
+            lv = [u for c, u in L if abs(c[0] - b[0]) < 12 and 0 < b[1] - c[1] < 250 and re.fullmatch(r"R[0-3]", u)]  # même bloc de tableau seulement
             out[t] = dict(type=title, loc=min(locs)[1] if locs else "", lvl=lv[0] if lv else "", prises=pr, data=data)
     return out
 bk = glob.glob(os.path.join(src, "*0606*.pdf"))
@@ -97,7 +98,10 @@ if bk:
     det = carnet(bk[0])
     for o in res:
         k = o["id"].replace("BAV-PMS-0", "BAV-PMS-")
-        if k in det and o["kind"] != "HP": o["detail"] = det[k]  # dans le carnet, HP-01… sont des sorties enceintes d'un boîtier, pas des boîtiers
+        if k in det and o["kind"] != "HP":
+            o["detail"] = det[k]  # dans le carnet, HP-01… sont des sorties enceintes d'un boîtier, pas des boîtiers
+            lv = det[k]["lvl"] or LVL_IMG.get(k, "")
+            if lv in NIV and lv != o["lvl"] and "bar" not in o: o.update(lvl=lv, y=NIV[lv])  # niveau du carnet (ex. BECL-30/31 sur les lisses verticales en R1)
     print(sum("detail" in o for o in res), "boîtiers décrits par le carnet")
 res.sort(key=lambda o: (o["kind"], int(re.findall(r"\d+", o["id"])[-1])))
 json.dump(res, open(os.path.join(ROOT, "terminaux_au.json"), "w"), indent=0, ensure_ascii=False)
