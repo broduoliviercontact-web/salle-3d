@@ -1118,12 +1118,28 @@ function patchRows() {
   for (const r of rows) { const m = r.o.userData.dmx || {}; r.ch = m.ch || DMX_CH[r.o.userData.kind] || 1; r.u = m.a ? m.u || 1 : 0; r.a = m.a || 0; r.dmxManual = !!m.a; }
   const occ = (u, a, ch, self) => rows.some(q => q !== self && q.a && q.u === u && a <= q.a + q.ch - 1 && q.a <= a + ch - 1);
   for (const r of rows) if (!r.a) { let u = 1, a = 1; while (occ(u, a, r.ch, r) || a + r.ch - 1 > 512) { a++; if (a + r.ch - 1 > 512) { u++; a = 1; } } r.u = u; r.a = a; }
+  const becl = term.filter(b => b.userData.term.kind === 'BECL');
+  for (const r of rows) { r.src = DIMMED.has(r.o.userData.kind) ? 'grad' : dmxSource(r, becl);
+    if (!r.err && !r.src) r.err = `DMX U${r.u} : aucune sortie DMX ${r.bar ? 'sur cette porteuse' : 'au plateau'} ne porte cet univers`; }
   for (const r of rows) if (!r.err) r.err = r.a + r.ch - 1 > 512 ? `DMX : dépasse 512 (${r.a} + ${r.ch} canaux)` : occ(r.u, r.a, r.ch, r) ? 'DMX : adresses qui se chevauchent' : '';
   return rows;
 }
 // empreinte DMX par défaut (canaux) ; ponytail: modes les plus courants, modifiable par appareil dans l'éditeur
 // trad. (PC, découpes) : 1 circuit de gradateur ; Ayrton Rivale Profile mode Standard : 42 (Extended : 65, charte DMX V117) ; Martin Atomic 3000 : 4 ; Look Unique 2.1 : 2
+// sorties DMX des boîtiers (DMX-01, DMX-02… d'après le carnet) : univers porté par chacune (défaut : DMX-0k -> Uk), enregistré dans le setup
+let DMXMAP = {};
+const dmxPorts = b => Array.from({ length:b.userData.term.detail?.data?.DMX || 0 }, (_, k) => ({ name:`DMX-0${k + 1}`, u:DMXMAP[b.userData.term.id]?.[k] ?? k + 1 }));
+const DIMMED = new Set(['pc1k', 'sx713', 'sx654']); // traditionnels : pilotés par le gradateur, pas de câble DMX jusqu'à l'appareil
+// arrivée DMX d'un appareil : son boîtier s'il porte l'univers, sinon un boîtier de la même porteuse, sinon (au sol) le boîtier de plateau le plus proche
+function dmxSource(r, boxes) {
+  const has = b => dmxPorts(b).find(p => p.u === r.u), barName = r.bar && typeof r.bar.userData.dims[3] === 'string' ? r.bar.userData.dims[3] : null;
+  if (r.b && has(r.b)) return { b:r.b, port:has(r.b).name };
+  const cand = boxes.filter(b => has(b) && (barName ? b.userData.term.bar === barName : !b.userData.term.bar && b.userData.term.lvl === 'R0'));
+  if (!cand.length) return null;
+  const b = cand.reduce((a, c) => c.position.distanceTo(r.o.position) < a.position.distanceTo(r.o.position) ? c : a); return { b, port:has(b).name };
+}
 const DMX_CH = { pc1k:1, sx713:1, sx654:1, lyreprof:42, lyre:16, par:8, atomic:4, fog:2 };
+const srcTxt = r => r.src === 'grad' ? 'gradateur' : r.src ? `${r.src.b.userData.term.id} ${r.src.port}` : '—';
 const dmxTxt = r => `${r.u}/${String(r.a).padStart(3, '0')}`;
 const boxHue = id => `hsl(${[...id].reduce((h, c) => h * 31 + c.charCodeAt(0) >>> 0, 7) % 360} 65% 38%)`;
 function drawPatch() {
@@ -1174,7 +1190,7 @@ function drawPatch() {
   const us = [...new Set(rows.map(r => r.u))].sort((a, b) => a - b), last = u => Math.max(...rows.filter(r => r.u === u).map(r => r.a + r.ch - 1));
   $('patchSum').innerHTML = `${rows.length} projecteurs · ${fr(W / 1000)} kW · ${new Set(rows.map(r => r.b)).size} boîtiers · DMX ${us.map(u => `U${u} : ${last(u)} canaux`).join(', ') || '—'}` + (bad ? ` · <span class="warn">${bad} à corriger</span>` : ' · patch OK');
   $('patchTab').innerHTML = '<tr><th>N°</th><th>Appareil</th><th>Où</th><th>Boîtier</th><th>Circuit</th><th>DMX</th><th>W</th></tr>' + rows.map(r =>
-    `<tr data-n="${r.n}" class="${patchSet.has(r.o) ? 'sel' : ''} ${r.err ? 'bad' : ''}" title="${esc(r.err)}"><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>${esc(r.zone)}</td><td>${r.b ? esc(r.b.userData.term.id) : '—'}${r.manual ? ' ✎' : ''}</td><td>${r.b ? esc(r.cn) : '—'}</td><td>${dmxTxt(r)}${r.dmxManual ? ' ✎' : ''}<small style="color:#889"> ${r.ch}c</small></td><td>${powerOf(r.o)}</td></tr>`).join('');
+    `<tr data-n="${r.n}" class="${patchSet.has(r.o) ? 'sel' : ''} ${r.err ? 'bad' : ''}" title="${esc(r.err)}"><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>${esc(r.zone)}</td><td>${r.b ? esc(r.b.userData.term.id) : '—'}${r.manual ? ' ✎' : ''}</td><td>${r.b ? esc(r.cn) : '—'}</td><td><span title="Arrivée DMX : ${esc(srcTxt(r))}">${dmxTxt(r)}</span>${r.dmxManual ? ' ✎' : ''}<small style="color:#889"> ${r.ch}c</small></td><td>${powerOf(r.o)}</td></tr>`).join('');
   for (const o of [...patchSet]) if (!rows.some(r => r.o === o)) patchSet.delete(o); // supprimés entre-temps
   const selRows = rows.filter(r => patchSet.has(r.o)), r = !patchBox && selRows.length === 1 ? selRows[0] : null;
   if (patchBox && tg?.children.includes(patchBox)) { const b = patchBox, t = b.userData.term, list = circs(b), on = rows.filter(q => q.b === b), W = on.reduce((s, q) => s + powerOf(q.o), 0);
@@ -1184,9 +1200,12 @@ function drawPatch() {
           return `<tr style="border-top:1px solid #e3e5ea"><td><b style="color:${boxHue(t.id)}">${esc(n)}</b></td><td>${qs.map(chip).join(' ') || '<span style="color:#aab">libre</span>'}</td><td style="text-align:right;${w > CIRC_W ? 'color:#d0021b;font-weight:700' : ''}">${w || ''}</td></tr>`; }).join('')}
         ${on.filter(q => q.c > list.length).map(q => `<tr><td class="warn">hors circuits</td><td>${chip(q)}</td><td></td></tr>`).join('')}</table>`
       + `<div class="row" style="margin-top:6px;color:#556">${on.length} appareils · ${fr(W / 1000, 2)} kW · ${list.filter((n, k) => !on.some(q => q.c === k + 1)).length} / ${list.length} circuits libres</div>`
+      + (dmxPorts(b).length ? `<div class="row" style="margin-top:4px">${dmxPorts(b).map((p, k) => `${p.name} → U <input type="number" class="pxU" data-k="${k}" min="1" max="64" value="${p.u}" style="width:44px">`).join(' ')}</div>`
+        + `<div class="row" style="color:#556">Alimente en DMX : ${rows.filter(q => q.src && q.src.b === b).map(chip).join(' ') || '<span style="color:#aab">aucun appareil</span>'}</div>` : '<div class="row" style="color:#889">Pas de sortie DMX sur ce boîtier.</div>')
       + `<div class="row"><button id="pxPlate">Plaque et connexions…</button>${selRows.length ? `<button id="pxHere">Patcher ${selRows.length > 1 ? 'les ' + selRows.length + ' projecteurs sélectionnés' : 'le n°' + selRows[0].n} ici</button>` : ''}</div>`
       + '<div style="color:#778;font-size:11px">Astuce : sélectionne des projecteurs puis clique un boîtier pour les y patcher.</div>';
     $('pxPlate').onclick = () => openBox(b);
+    $('patchEd').querySelectorAll('.pxU').forEach(i => i.onchange = () => { pushUndo(); const m = DMXMAP[t.id] = dmxPorts(b).map(p => p.u); m[+i.dataset.k] = Math.max(1, Math.round(+i.value) || 1); drawPatch(); });
     if ($('pxHere')) $('pxHere').onclick = () => { pushUndo(); selRows.forEach(q => q.o.userData.patch = { box:t.id, c:0 }); drawPatch(); };
   } else if (r) { const boxes = (tg?.children || []).filter(b => b.userData.term.kind === 'BECL').map(b => b.userData.term.id).sort((a, b) => a.localeCompare(b, 'fr', { numeric:true }));
     $('patchEd').innerHTML = `<div class="row"><span class="pnum" style="background:${FXCOL[r.o.userData.kind]}">${r.n}</span><b>${esc(r.o.name)}</b></div>`
@@ -1194,6 +1213,7 @@ function drawPatch() {
       + `<div class="row">Boîtier <select id="peBox"><option value="">auto (le plus proche)</option>${boxes.map(id => `<option ${r.o.userData.patch?.box === id ? 'selected' : ''}>${id}</option>`).join('')}</select>`
       + `</div><div class="row">Circuit <select id="peC"><option value="0">auto (premier libre)</option>${(r.b ? circs(r.b) : []).map((n, k) => `<option value="${k + 1}" ${r.o.userData.patch?.c === k + 1 ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`
       + `<div class="row">DMX univers <input type="number" id="peU" min="1" max="64" value="${r.o.userData.dmx?.u || r.u}" style="width:46px"> adresse <input type="number" id="peA" min="0" max="512" value="${r.o.userData.dmx?.a || 0}" style="width:56px" title="0 = adresse auto (suite du patch)"> <span style="color:#778">${r.dmxManual ? '' : `auto ${dmxTxt(r)}`}</span></div>`
+      + `<div class="row" style="color:#556">Arrivée DMX : <b>&nbsp;${esc(srcTxt(r))}</b>${r.src && r.src !== 'grad' ? ` (U${r.u})` : r.src === 'grad' ? ' (circuit gradué)' : ''}</div>`
       + `<div class="row">Canaux <input type="number" id="peCh" min="1" max="512" value="${r.ch}" style="width:56px" title="Empreinte DMX du mode utilisé"> <span style="color:#778">${r.u}/${r.a} → ${r.u}/${r.a + r.ch - 1}</span></div>`
       + `<div class="row">Type <select id="peKind">${Object.entries(SHORT).map(([k, t]) => `<option value="${k}" ${k === r.o.userData.kind ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`
       + `<div class="row">Orientation <select id="peRot">${ORIENT.map(([t, v]) => `<option value="${v}" ${Math.abs(Math.atan2(Math.sin(r.o.rotation.y - v), Math.cos(r.o.rotation.y - v))) < 0.3 ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`
@@ -1866,11 +1886,12 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc })), moved, view };
+  return { salle, dmxMap:DMXMAP, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
+  DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
   cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; setSalle(cfg.salle || 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
@@ -2213,7 +2234,7 @@ $('ficheAU').onclick = async () => {
     <p class="note">Établie d'après les plans d'exécution (lot 22 audiovisuel et éclairage scénique — INEO ; lot 23 machinerie — TAMBE), le synoptique audio et les fiches produits. Charges, CMU et puissances à valider par la régie générale avant toute exploitation.</p>
     ${prows.length ? `<section class="patch"><h2>Patch lumière${setupName ? ' — ' + esc(setupName) : ''}</h2>
       <div class="note">${prows.length} projecteurs · ${fr(prows.reduce((t, r) => t + powerOf(r.o), 0) / 1000, 1)} kW · ${new Set(prows.map(r => r.b)).size} boîtiers · DMX ${[...new Set(prows.map(r => r.u))].sort((a, b) => a - b).map(u => `U${u} : ${Math.max(...prows.filter(r => r.u === u).map(r => r.a + r.ch - 1))} canaux`).join(', ')} · circuits 3 kW (gradateurs RVE)${prows.some(r => r.err) ? ` · <span class="warn">${prows.filter(r => r.err).length} à corriger</span>` : ''}</div>
-      <table><tr><th>N°</th><th>Appareil</th><th>Où</th><th>Haut.</th><th>Boîtier</th><th>Circuit</th><th>DMX</th><th>Canaux</th><th>W</th></tr>${prows.map(r => `<tr${r.err ? ' class="warn"' : ''}>${td('<b>' + r.n + '</b>')}${td(esc(LABELS[r.o.userData.kind] || r.o.userData.kind))}${td(esc(r.zone))}${td(r.bar ? fr(r.o.position.y - pfy, 2) + ' m' : 'sol')}${td(r.b ? esc(r.b.userData.term.id) : '—')}${td(r.b ? esc(r.cn) : '—')}${td(dmxTxt(r))}${td(r.ch)}${td(powerOf(r.o))}</tr>`).join('')}</table>
+      <table><tr><th>N°</th><th>Appareil</th><th>Où</th><th>Haut.</th><th>Boîtier</th><th>Circuit</th><th>DMX</th><th>Arrivée DMX</th><th>Canaux</th><th>W</th></tr>${prows.map(r => `<tr${r.err ? ' class="warn"' : ''}>${td('<b>' + r.n + '</b>')}${td(esc(LABELS[r.o.userData.kind] || r.o.userData.kind))}${td(esc(r.zone))}${td(r.bar ? fr(r.o.position.y - pfy, 2) + ' m' : 'sol')}${td(r.b ? esc(r.b.userData.term.id) : '—')}${td(r.b ? esc(r.cn) : '—')}${td(dmxTxt(r))}${td(esc(srcTxt(r)))}${td(r.ch)}${td(powerOf(r.o))}</tr>`).join('')}</table>
       ${prows.some(r => r.err) ? `<div class="warn">${prows.filter(r => r.err).map(r => `n°${r.n} : ${esc(r.err)}`).join(' · ')}</div>` : ''}</section>
     <div class="plan"><h2>Plan de feu — patch</h2>${psvg}</div>` : ''}
     <div class="plan"><h2>Plan du plateau et de la salle${setupName ? ' — ' + esc(setupName) : ''}</h2>${svg.replace(/^<svg [^>]*?width="[^"]+" height="[^"]+"/, m => m.replace(/ width="[^"]+" height="[^"]+"/, ''))}</div>
@@ -2255,7 +2276,7 @@ $('fiche').onclick = async () => {
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
 const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
-const DXF_COLOR = { SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
+const DXF_COLOR = { TERMINAUX_AU:3, SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
 function exportDxf() {
@@ -2289,6 +2310,11 @@ function exportDxf() {
     for (const g of agora.children) { const pl = g.userData.pilier; if (!pl) continue; const c = toDwg([pl.x, pl.z]);
       put(0, 'CIRCLE', 8, 'AGORA_AXE', 10, n(c[0]), 20, n(c[1]), 40, n(0.3)); text('AGORA_AXE', [c[0], c[1] + (pl.z < AXE_AGORA ? -0.8 : 0.8)], 0.3, g.userData.txt || pl.n); }
   }
+  // boîtiers de l'auditorium (BAV, BECL, enceintes) relevés sur les plans des terminaux : carré 30 cm + repère (+ porteuse ou niveau)
+  const tgx = termGroup();
+  if (tgx && shown(tgx)) for (const b of tgx.children) { const t = b.userData.term, [cx, cy] = toDwg([b.position.x, b.position.z]);
+    poly('TERMINAUX_AU', [[-0.15, -0.15], [0.15, -0.15], [0.15, 0.15], [-0.15, 0.15]].map(([a, d]) => [cx + a, cy + d]));
+    text('TERMINAUX_AU', [cx, cy - 0.35], 0.18, `${t.id}${t.bar ? ' (' + t.bar + ')' : t.lvl !== 'R0' ? ' (' + t.lvl + ')' : ''}`); }
   // trappes de sol relevées sur le PDF (absentes du DWG) : cercle + carré 50 cm + repère
   const traps = venue.children.find(o => o.name === 'Trappes de sol (PDF)');
   if (traps) for (const g of traps.children) {
