@@ -64,7 +64,7 @@
   #boxDlg h3 { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#556; margin:0 0 6px; } #boxDlg table { border-collapse:collapse; width:100%; font-size:12px; }
   #boxDlg td, #boxDlg th { border-bottom:1px solid #e3e5ea; padding:3px 5px; text-align:left; } #boxDlg .note { color:#778; font-size:11px; margin-top:6px; }
   #patchPal { display:flex; gap:4px; flex-wrap:wrap; } #patchPal button { padding:3px 8px; font-size:12px; } #patchPal button i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; vertical-align:middle; }
-  #patchSvg.adding { cursor:crosshair; }
+  #patchSvg.adding, #patchSvg.aiming { cursor:crosshair; }
   .pnum { display:inline-block; min-width:22px; text-align:center; border-radius:11px; color:#fff; font-weight:700; padding:0 4px; }
 </style>
 </head>
@@ -123,7 +123,7 @@
   <div class="row"><button id="salleAgora" class="on" title="Tout le bâtiment, setups de l'Agora">Bâtiment / Agora</button><button id="salleAudi" title="Uniquement l'auditorium, sièges transparents, setups de l'auditorium">Auditorium seul</button></div>
   <div class="row" id="audiRow" hidden>Sièges <input type="range" id="seatOp" min="0" max="100" value="25" class="grow" title="Opacité des sièges"><label class="cb"><input type="checkbox" id="seatMov" checked> Sièges amovibles</label></div>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button><button id="vPublic" title="Clique ensuite un point de la salle : vue à hauteur d'yeux vers la scène">Vue public (V)</button></div>
-  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button id="termLab" data-salle="audi" hidden title="Afficher les repères de tous les boîtiers (sinon seulement celui sélectionné)">Repères</button><button class="on" id="termBtn" data-salle="audi" hidden title="Boîtiers AV (bleu), boîtiers d'éclairage scénique (rouge) et enceintes (gris) des plans des terminaux audiovisuels">Boîtiers AV / lumière</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button></div>
+  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button id="termLab" data-salle="audi" hidden title="Afficher les repères de tous les boîtiers (sinon seulement celui sélectionné)">Repères</button><button class="on" id="termBtn" data-salle="audi" hidden title="Boîtiers AV (bleu), boîtiers d'éclairage scénique (rouge) et enceintes (gris) des plans des terminaux audiovisuels">Boîtiers AV / lumière</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button><button id="beamBtn" title="Faisceaux des projecteurs : cône jusqu'au sol et tache ; rouge si coupé par la conque, l'écran ou la patience">Faisceaux</button></div>
   <div class="row" data-salle="agora">Enceintes piliers à <input type="number" id="delayH" value="4" step="0.5" style="width:52px"> m <span style="opacity:.7">(délai / L2D)</span></div>
   <div class="row"><button id="measure">Mesurer (M)</button><button id="clearMeasure">Effacer mesures</button></div>
 
@@ -161,7 +161,7 @@
   <div class="ph"><b>Patch lumière — Auditorium</b><span id="patchSum"></span>
     <button id="patchUndo" title="Annuler (⌘Z)">↶</button><button id="patchRedo" title="Rétablir (⌘⇧Z)">↷</button><button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchDxf" title="Plan de feu et liste du patch en DXF (R12), dans le repère du DWG du bâtiment">Export DXF</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
   <div class="ptool"><span>Pose :</span><span id="patchMode"><button data-m="auto" class="on" title="Accroché si on clique sur une porteuse, sinon au sol">Auto</button><button data-m="sol" title="Toujours au sol (aussi : ⌥ Alt + clic)">Au sol</button><button data-m="perche" title="Toujours sur la porteuse la plus proche (≤ 2 m)">Porteuse</button></span>
-    <span style="color:#778">● accroché ■ au sol</span><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
+    <span style="color:#778">● accroché ■ au sol</span><label class="cb"><input type="checkbox" id="patchBeams"> Faisceaux</label><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
   <div class="pb"><svg id="patchSvg"></svg>
     <div class="pside"><h3>Projecteur</h3><div id="patchEd"><span style="color:#778">Clique un projecteur sur le plan ou dans la liste. Glisse-le pour le déplacer (le long de sa porteuse s'il est accroché).</span></div>
       <h3>Patch</h3><table id="patchTab"></table></div></div>
@@ -1085,6 +1085,8 @@ $('gcBtn').onclick = () => {
     const o = makeProp(kind, DEFAULT[kind]); o.userData.gc = true;
     if (b) { const p = bar(b); o.position.set(p.position.x, p.position.y - 0.06, AXE_AU + dz); o.rotation.set(0, rot, Math.PI); } // tête en bas sous la porteuse
     else { o.position.set(A04 - d, fy, AXE_AU + dz); o.rotation.y = rot ?? (dz > 0 ? Math.PI : 0); }
+    const ax = { S1:2.5, F1:1.5, F2:3.3, F3:3.5 }[b] ?? (rot == null ? d : 2.5); // point visé (m derrière le cadre) ; latéraux : vers l'axe
+    if (kind !== 'fog') setAim(o, A04 - ax, rot == null ? AXE_AU + dz * 0.15 : AXE_AU + dz * (b === 'S1' ? 0.6 : 0.8));
   }
 };
 // --- fenêtre d'un boîtier : plaque et tableau de circuits découpés dans le carnet de détails (noms exacts, cf. tools/boitiers.py) + ce qui y est branché
@@ -1137,6 +1139,7 @@ const FXCOL = { pc1k:'#d97706', sx713:'#2563eb', sx654:'#0891b2', lyreprof:'#7c3
 const ZONES = ['S1', 'F1', 'F2', 'C2', 'C1', 'F3', 'LJ', 'LC'];
 const patchSet = new Set(); // projecteurs sélectionnés (Maj / ⌘ clic, cadre Maj + glisser)
 const selOnly = o => { patchSet.clear(); if (o) patchSet.add(o); };
+let patchAim = null; // appareils en attente d'un point visé (clic suivant sur le plan)
 let patchRaf = 0; const drawPatchSoon = () => patchRaf ||= requestAnimationFrame(() => { patchRaf = 0; drawPatch(); }); // pendant un glisser : un dessin par image
 let patchDrag = null, patchVB = null, patchAdd = null, patchBar = null, patchLasso = null, patchMode = 'auto', patchBox = null;
 const modeOf = e => e?.altKey ? 'sol' : patchMode; // ⌥ Alt : toujours au sol // viewBox courant (zoom / déplacement)
@@ -1209,6 +1212,14 @@ function drawPatch() {
     const u = usedB.has(b), col = u ? boxHue(t.id) : '#b8bec8', p = b.position;
     out.push(`<g data-box="${tg.children.indexOf(b)}" style="cursor:pointer">${b === patchBox ? `<rect x="${f(X(p) - 0.3)}" y="${f(Y(p) - 0.3)}" width="0.6" height="0.6" rx="0.08" fill="#ffd27a"/>` : ''}<rect x="${f(X(p) - 0.35)}" y="${f(Y(p) - 0.35)}" width="0.7" height="0.7" fill="transparent"/><rect x="${f(X(p) - 0.15)}" y="${f(Y(p) - 0.15)}" width="0.3" height="0.3" fill="${u ? col : '#fff'}" stroke="${col}" stroke-width="0.04"/></g>`
       + `<text x="${f(X(p))}" y="${f(Y(p) + 0.42)}" font-size="${u ? 0.2 : 0.15}" text-anchor="middle" font-weight="${u ? 700 : 400}" fill="${col}">${esc(t.id.replace('BECL-', 'B'))}</text>`); }
+  // faisceaux (bouton Faisceaux, ou appareils sélectionnés) : trait vers le point visé et tache au sol
+  for (const r of rows) { if (!BEAM[r.o.userData.kind] || !(beamsOn || patchSet.has(r.o))) continue;
+    const L0 = lensOf(r.o), T = aimOf(r.o), d = T.clone().sub(L0), fyv = floorAt(T), len = d.y < -0.05 ? (L0.y - fyv) / -d.clone().normalize().y : L0.distanceTo(T), dir = d.clone().normalize();
+    const hit = L0.clone().addScaledVector(dir, len), rad = len * Math.tan(THREE.MathUtils.degToRad(beamAngle(r.o) / 2)), el = 1 / Math.max(0.15, -dir.y), ang = Math.atan2(hit.x - L0.x, -(hit.z - L0.z)) * 180 / Math.PI; // axe du faisceau dans le plan (X = axe − z, Y = x)
+    const col = r.o.userData.beamCut ? '#d0021b' : FXCOL[r.o.userData.kind] || '#999';
+    out.push(`<line x1="${X(r.o.position)}" y1="${Y(r.o.position)}" x2="${f(AXE_AU - T.z)}" y2="${f(T.x)}" stroke="${col}" stroke-width="0.03" stroke-dasharray="0.2 0.1" opacity="0.8"/>`
+      + (dir.y < -0.05 ? `<ellipse cx="${f(AXE_AU - hit.z)}" cy="${f(hit.x)}" rx="${f(rad * el)}" ry="${f(rad)}" transform="rotate(${f(ang)} ${f(AXE_AU - hit.z)} ${f(hit.x)})" fill="${col}" fill-opacity="0.05" stroke="${col}" stroke-width="0.025" stroke-opacity="0.45"/>` : '') // tache seulement si le faisceau touche le sol
+      + `<circle cx="${f(AXE_AU - T.z)}" cy="${f(T.x)}" r="0.07" fill="${col}"/>`); }
   // câbles de patch puis projecteurs (numéro dans la pastille, type + boîtier·circuit en étiquette, une sur deux au-dessus / au-dessous)
   for (const r of rows) if (r.b) out.push(`<line x1="${X(r.o.position)}" y1="${Y(r.o.position)}" x2="${X(r.b.position)}" y2="${Y(r.b.position)}" stroke="${boxHue(r.b.userData.term.id)}" stroke-width="0.035" stroke-dasharray="0.12 0.08" opacity="0.55"/>`);
   const side = new Map(); // accroché : étiquette côté lointain, sol : côté salle ; deux voisins à < 1,4 m sur une porteuse : le second passe dessous
@@ -1226,7 +1237,7 @@ function drawPatch() {
       + `<text x="${x}" y="${f(ly + (up > 0 ? 0.36 : -0.05))}" font-size="0.2" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text></g>`); });
   if (patchLasso) { const [a, b] = patchLasso; out.push(`<rect x="${f(Math.min(a.x, b.x))}" y="${f(Math.min(a.y, b.y))}" width="${f(Math.abs(a.x - b.x))}" height="${f(Math.abs(a.y - b.y))}" fill="rgba(240,165,58,.12)" stroke="#f0a53a" stroke-width="0.04" stroke-dasharray="0.15 0.1"/>`); }
   if (!rows.length) out.push(`<text x="0" y="${f((L + C) / 2)}" font-size="0.36" text-anchor="middle" fill="#6b7280">Aucun projecteur : choisis un appareil dans la palette en haut,</text><text x="0" y="${f((L + C) / 2 + 0.5)}" font-size="0.36" text-anchor="middle" fill="#6b7280">puis clique sur une porteuse (accroché) ou au plateau (au sol).</text>`);
-  patchVB ??= [AXE_AU - J - 1.6, L - 0.9, J - Co + 3.2, -75.6 - L + 0.9]; svg.setAttribute('viewBox', patchVB.map(f).join(' ')); svg.classList.toggle('adding', !!patchAdd);
+  patchVB ??= [AXE_AU - J - 1.6, L - 0.9, J - Co + 3.2, -75.6 - L + 0.9]; svg.setAttribute('viewBox', patchVB.map(f).join(' ')); svg.classList.toggle('adding', !!patchAdd); svg.classList.toggle('aiming', !!patchAim);
   $('patchPal').innerHTML = Object.entries(SHORT).map(([k, t]) => `<button data-k="${k}" class="${patchAdd === k ? 'on' : ''}"><i style="background:${FXCOL[k]}"></i>${t}</button>`).join('');
   svg.innerHTML = out.join('');
   // résumé, tableau, éditeur
@@ -1260,6 +1271,8 @@ function drawPatch() {
       + `<div class="row" style="color:#556">Arrivée DMX : <b>&nbsp;${esc(srcTxt(r))}</b>${r.src && r.src !== 'grad' ? ` (U${r.u})` : r.src === 'grad' ? ' (circuit gradué)' : ''}</div>`
       + `<div class="row">Canaux <input type="number" id="peCh" min="1" max="512" value="${r.ch}" style="width:56px" title="Empreinte DMX du mode utilisé"> <span style="color:#778">${r.u}/${r.a} → ${r.u}/${r.a + r.ch - 1}</span></div>`
       + `<div class="row">Type <select id="peKind">${Object.entries(SHORT).map(([k, t]) => `<option value="${k}" ${k === r.o.userData.kind ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`
+      + (BEAM[r.o.userData.kind] ? `<div class="row">Ouverture <input type="range" id="peZoom" min="${BEAM[r.o.userData.kind][0]}" max="${BEAM[r.o.userData.kind][1]}" value="${beamAngle(r.o)}" class="grow"${BEAM[r.o.userData.kind][0] === BEAM[r.o.userData.kind][1] ? ' disabled' : ''}><span style="width:34px">${beamAngle(r.o)}°</span></div>`
+        + `<div class="row"><button id="peAim" class="${patchAim ? 'on' : ''}" title="Puis clique le point visé sur le plan">Viser…</button> à <input type="number" id="peAimH" step="0.1" min="0" max="10" value="${r.o.userData.aim?.[2] ?? 1.5}" style="width:52px"> m du plateau${r.o.userData.beamCut ? ' <span class="warn">⚠ faisceau coupé</span>' : ''}</div>` : '')
       + `<div class="row">Orientation <select id="peRot">${ORIENT.map(([t, v]) => `<option value="${v}" ${Math.abs(Math.atan2(Math.sin(r.o.rotation.y - v), Math.cos(r.o.rotation.y - v))) < 0.3 ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`
       + `<div class="row">Puissance <input type="number" id="peW" step="100" min="0" value="${powerOf(r.o)}" style="width:72px"> W <button id="peDup" style="margin-left:auto" title="D">Dupliquer</button><button id="peDel" title="Suppr">Supprimer</button></div>`
       + (r.err ? `<div class="warn">⚠ ${esc(r.err)}</div>` : `<div style="color:#178a3c">→ ${esc(r.b.userData.term.id)}, circuit ${esc(r.cn)}${r.b.userData.term.detail?.loc ? ` (${esc(r.b.userData.term.detail.loc.toLowerCase())})` : ''}</div>`);
@@ -1270,7 +1283,10 @@ function drawPatch() {
     $('peW').onchange = () => { pushUndo(); r.o.userData.power = Math.max(0, +$('peW').value || 0); drawPatch(); };
     $('peDel').onclick = () => { pushUndo(); props.remove(r.o); selOnly(null); drawPatch(); };
     $('peDup').onclick = () => patchDup(r.o);
-    $('peRot').onchange = () => { pushUndo(); r.o.rotation.y = +$('peRot').value; drawPatch(); };
+    $('peRot').onchange = () => { pushUndo(); r.o.rotation.y = +$('peRot').value; delete r.o.userData.aim; drawPatch(); };
+    if ($('peZoom')) { $('peZoom').onpointerdown = () => pushUndo(); $('peZoom').oninput = () => { r.o.userData.zoom = +$('peZoom').value; beamT = 0; drawPatch(); };
+      $('peAim').onclick = () => { patchAim = patchAim ? null : [r.o]; drawPatch(); };
+      $('peAimH').onchange = () => { pushUndo(); const a = aimOf(r.o); setAim(r.o, a.x, a.z, Math.max(0, +$('peAimH').value || 0)); beamT = 0; drawPatch(); }; }
     $('peFloor').onclick = () => { const p = r.o.position; // accroché -> au sol à l'aplomb ; au sol -> porteuse la plus proche (≤ 3 m)
       if (!r.bar && !nearBar(p.x, p.z, 3)) return alert('Aucune porteuse à moins de 3 m.');
       pushUndo(); placeFx(r.o, p.x, p.z, r.bar ? 'sol' : 'perche'); drawPatch(); };
@@ -1279,6 +1295,7 @@ function drawPatch() {
     const kinds = [...new Set(selRows.map(q => SHORT[q.o.userData.kind] || q.o.userData.kind))], W = selRows.reduce((t, q) => t + powerOf(q.o), 0);
     $('patchEd').innerHTML = `<div class="row"><b>${selRows.length} projecteurs</b> <span style="color:#778">(${selRows.map(q => q.n).join(', ')})</span></div><div class="row" style="color:#556">${esc(kinds.join(', '))} · ${fr(W / 1000)} kW</div>`
       + `<div class="row">Type <select id="pmKind"><option value="">—</option>${Object.entries(SHORT).map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></div>`
+      + `<div class="row"><button id="pmAim" class="${patchAim ? 'on' : ''}" title="Puis clique le point visé sur le plan : tous les appareils sélectionnés y convergent">Viser un même point…</button></div>`
       + `<div class="row">Orientation <select id="pmRot"><option value="">—</option>${ORIENT.map(([t, v]) => `<option value="${v}">${t}</option>`).join('')}</select></div>`
       + `<div class="row">Boîtier <select id="pmBox"><option value="">—</option><option value="auto">auto (le plus proche)</option>${boxes.map(id => `<option>${id}</option>`).join('')}</select> <span style="color:#778">circuits libres</span></div>`
       + `<div class="row">DMX à la suite depuis U <input type="number" id="pmU" min="1" max="64" value="${selRows[0].u}" style="width:44px"> / <input type="number" id="pmA" min="1" max="512" value="${selRows[0].a}" style="width:54px"><button id="pmDmx">Adresser</button></div>`
@@ -1286,7 +1303,8 @@ function drawPatch() {
       + `<div class="row"><button id="pmFloor">Poser au sol</button><button id="pmHang" title="Sur la porteuse la plus proche (≤ 3 m)">Accrocher</button></div>`
       + `<div class="row"><button id="pmSpread" title="Sur chaque porteuse : garde les deux extrêmes, répartit les autres à intervalles égaux">Espacer régulièrement</button><button id="pmDup" title="D">Dupliquer</button><button id="pmDel" title="Suppr">Supprimer</button></div>`;
     const each = fn => { pushUndo(); selRows.forEach(fn); drawPatch(); };
-    $('pmRot').onchange = () => $('pmRot').value !== '' && each(q => q.o.rotation.y = +$('pmRot').value);
+    $('pmRot').onchange = () => $('pmRot').value !== '' && each(q => { q.o.rotation.y = +$('pmRot').value; delete q.o.userData.aim; });
+    $('pmAim').onclick = () => { patchAim = patchAim ? null : selRows.map(q => q.o).filter(o => BEAM[o.userData.kind]); drawPatch(); };
     $('pmKind').onchange = () => { const k = $('pmKind').value; if (!k) return; pushUndo(); const out = selRows.map(q => changeKind(q.o, k)); patchSet.clear(); out.forEach(c => patchSet.add(c)); drawPatch(); };
     $('pmBox').onchange = () => { const v = $('pmBox').value; if (v) each(q => q.o.userData.patch = v === 'auto' ? undefined : { box:v, c:0 }); };
     $('pmDmx').onclick = () => { let u = Math.max(1, Math.round(+$('pmU').value) || 1), a = Math.max(1, Math.round(+$('pmA').value) || 1); // dans l'ordre du patch
@@ -1360,13 +1378,14 @@ const patchHist = k => { $(k > 0 ? 'redo' : 'undo').onclick(); drawPatch(); }; /
 $('patchUndo').onclick = () => patchHist(-1); $('patchRedo').onclick = () => patchHist(1);
 $('patch').addEventListener('keydown', e => { if (/INPUT|SELECT/.test(e.target.tagName)) return;
   if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y')) { e.preventDefault(); return patchHist(e.key.toLowerCase() === 'y' || e.shiftKey ? 1 : -1); } // ⌘Z / ⌘⇧Z / Ctrl+Y
-  if (e.key === 'Escape' && (patchAdd || patchSet.size || patchBar || patchBox)) { e.preventDefault(); patchAdd = patchBar = patchBox = null; patchSet.clear(); drawPatch(); }
+  if (e.key === 'Escape' && (patchAdd || patchAim || patchSet.size || patchBar || patchBox)) { e.preventDefault(); patchAdd = patchBar = patchBox = patchAim = null; patchSet.clear(); drawPatch(); }
   else if ((e.key === 'Delete' || e.key === 'Backspace') && patchSet.size) { e.preventDefault(); pushUndo(); patchSet.forEach(o => props.remove(o)); patchSet.clear(); drawPatch(); }
   else if (e.key.toLowerCase() === 'a' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); patchRows().forEach(r => patchSet.add(r.o)); patchBar = null; drawPatch(); }
   else if (e.key.toLowerCase() === 'd' && !e.metaKey && !e.ctrlKey && patchSet.size) { e.preventDefault(); patchSet.size === 1 ? patchDup([...patchSet][0]) : patchDupAll(); } });
 // glisser un projecteur : il s'accroche à la porteuse la plus proche, sinon il se pose au sol
 const svgPt = e => { const p = $('patchSvg').createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform($('patchSvg').getScreenCTM().inverse()); };
 $('patchSvg').onpointerdown = e => { const g = e.target.closest('g[data-n]');
+  if (patchAim && !e.target.closest('g[data-n]')) { const q = svgPt(e); pushUndo(); patchAim.forEach(o => setAim(o, q.y, AXE_AU - q.x)); patchAim = null; beamT = 0; drawPatch(); return; } // point visé
   if (!g && patchAdd) { // ajout : sur une porteuse (posée ou en pointillé) ou au plateau
     const q = svgPt(e), x = q.y, z = AXE_AU - q.x; pushUndo();
     if (modeOf(e) !== 'sol' && !props.children.some(o => o.userData.grp === 'Cintres auditorium') && EQUIPES_AU.some(([, d, L, , , , dz = 0, alongX]) => alongX ? Math.abs(z - AXE_AU - dz) < 0.6 && Math.abs(x - A04 + d) < L / 2 : Math.abs(x - A04 + d) < 0.6 && Math.abs(z - AXE_AU) < L / 2)) placeCintres();
@@ -1388,7 +1407,7 @@ $('patchSvg').onpointermove = e => { if (!patchDrag) return; const q = svgPt(e);
     if (Math.hypot(e.clientX - cx, e.clientY - cy) > 3) patchDrag.moved = true; patchVB = [x - (e.clientX - cx) * k, y - (e.clientY - cy) * k, w, h]; drawPatchSoon(); return; }
   const dx = q.y - patchDrag.start.x, dz = AXE_AU - q.x - patchDrag.start.z; // même décalage pour tous ; chacun s'accroche à sa porteuse la plus proche
   const m = modeOf(e); // en Auto, un projecteur au sol reste au sol et un accroché passe d'une porteuse à l'autre
-  for (const [o, x0, z0] of patchDrag.from) placeFx(o, x0 + dx, z0 + dz, m !== 'auto' ? m : flipped(o) ? 'perche' : 'sol'); patchDrag.moved = true; drawPatchSoon(); };
+  for (const [o, x0, z0] of patchDrag.from) { const ox = o.position.x, oz = o.position.z; placeFx(o, x0 + dx, z0 + dz, m !== 'auto' ? m : flipped(o) ? 'perche' : 'sol'); if (o.userData.aim) setAim(o, o.userData.aim[0], o.userData.aim[1]); } beamT = 0; patchDrag.moved = true; drawPatchSoon(); }; // le point visé reste en place, l'appareil se retourne vers lui
 $('patchSvg').onpointerup = () => {
   if (patchDrag?.lasso) { const [a, b] = patchLasso, x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x), y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
     for (const r of patchRows()) { const X = AXE_AU - r.o.position.z, Y = r.o.position.x; if (X >= x0 && X <= x1 && Y >= y0 && Y <= y1) patchSet.add(r.o); }
@@ -2003,14 +2022,14 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc })), moved, view };
+  return { salle, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
   CUES = Array.isArray(cfg.conduite) ? JSON.parse(JSON.stringify(cfg.conduite)).filter(c => c && typeof c.h === 'object').map(c => ({ ...c, name:String(c.name || 'Mémoire').slice(0, 80) })) : []; renderCues?.();
   DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; setSalle(cfg.salle || 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
@@ -2568,7 +2587,45 @@ function navigate(dt) {
   }
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); // hors connexion après une 1ʳᵉ visite
-renderer.setAnimationLoop(t => { updateDelays(t); syncHandles(); syncChains(); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
+// --- faisceaux 3D : ouverture réglable dans la plage de l'appareil, point visé (aim : [x, z, hauteur au-dessus du plateau]) ; cône jusqu'au sol + tache elliptique
+// ponytail: ouvertures des fiches constructeurs (PC à lentille 8–64°, 713 SX 29–50°, 654 SX 15–40°, Rivale Profile 4–52°), sans réglage de couteaux ni de gobo
+const BEAM = { pc1k:[8, 64, 30, 0xffd29a], sx713:[29, 50, 35, 0xffdcab], sx654:[15, 40, 25, 0xffdcab], lyreprof:[4, 52, 25, 0xeef3ff], lyre:[5, 40, 20, 0xeef3ff], par:[25, 25, 25, 0xeef3ff], atomic:[90, 90, 90, 0xffffff] };
+const beams = new THREE.Group(); beams.name = 'faisceaux'; scene.add(beams); let beamsOn = false;
+const coneGeo = new THREE.ConeGeometry(1, 1, 28, 1, true).translate(0, -0.5, 0).rotateX(-Math.PI / 2), spotGeo = new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2);
+const beamAngle = o => { const b = BEAM[o.userData.kind]; return b ? THREE.MathUtils.clamp(o.userData.zoom ?? b[2], b[0], b[1]) : 0; };
+const lensOf = o => new THREE.Vector3(o.position.x, o.position.y + (flipped(o) ? -0.35 : 0.35), o.position.z);
+function aimOf(o) { // point visé (monde) : réglé, sinon devant l'appareil, à 1,5 m du plateau (hauteur d'un visage)
+  const fy = floorAt(o.position), a = o.userData.aim;
+  if (a) return new THREE.Vector3(a[0], fy + (a[2] ?? 1.5), a[1]);
+  const h = Math.max(1, o.position.y - fy), d = flipped(o) ? h * 0.8 : 3, y = o.rotation.y;
+  return new THREE.Vector3(o.position.x + Math.sin(y) * d, fy + 1.5, o.position.z + Math.cos(y) * d);
+}
+function setAim(o, x, z, h = o.userData.aim?.[2] ?? 1.5) { o.userData.aim = [+x.toFixed(2), +z.toFixed(2), h]; o.rotation.y = Math.atan2(x - o.position.x, z - o.position.z); } // l'appareil se tourne vers le point visé
+let beamBlockers = null, beamT = 0;
+function syncBeams(t) {
+  beams.visible = beamsOn; if (!beamsOn || t - beamT < 100) return; beamT = t; // 10 fois par seconde
+  const fx = props.children.filter(o => o.visible && BEAM[o.userData.kind]), have = new Map(beams.children.map(c => [c.userData.o, c]));
+  for (const [o, c] of have) if (!fx.includes(o)) { beams.remove(c); c.traverse(m => m.material?.dispose()); }
+  const block = []; const cq = conque(); if (cq) block.push(cq.node);
+  for (const o of props.children) if (o.visible && /^(polichinelle|patience)$/.test(o.userData.kind)) block.push(o);
+  for (const o of fx) {
+    let g = have.get(o); if (!g) { const col = BEAM[o.userData.kind][3];
+      g = new THREE.Group(); g.userData.o = o;
+      const cone = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.035, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide }));
+      const spot = new THREE.Mesh(spotGeo, new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.11, depthWrite:false, blending:THREE.AdditiveBlending }));
+      g.add(cone, spot); beams.add(g); }
+    const [cone, spot] = g.children, L0 = lensOf(o), T = aimOf(o), dir = T.clone().sub(L0).normalize(), fy = floorAt(T), half = THREE.MathUtils.degToRad(beamAngle(o) / 2);
+    const len = dir.y < -0.05 ? (L0.y - fy) / -dir.y : Math.max(3, L0.distanceTo(T) * 1.5); // jusqu'au sol (ou 1,5 × la distance si on vise vers le haut)
+    cone.position.copy(L0); cone.lookAt(L0.clone().add(dir)); const r = len * Math.tan(half); cone.scale.set(r, r, len);
+    const hit = L0.clone().addScaledVector(dir, len); spot.visible = dir.y < -0.05; spot.position.set(hit.x, fy + 0.012, hit.z);
+    spot.rotation.y = Math.atan2(dir.x, dir.z); spot.scale.set(r, 1, r / Math.max(0.15, -dir.y)); // ellipse : allongée dans l'axe du faisceau
+    ray.set(L0, dir); ray.far = L0.distanceTo(T); const cut = block.length && ray.intersectObjects(block, true).some(h => h.object.visible); ray.far = Infinity;
+    o.userData.beamCut = !!cut; for (const m of [cone, spot]) m.material.color.set(cut ? 0xff3030 : BEAM[o.userData.kind][3]);
+  }
+}
+$('patchBeams').onchange = () => $('beamBtn').onclick();
+$('beamBtn').onclick = () => { beamsOn = !beamsOn; $('beamBtn').classList.toggle('on', beamsOn); $('patchBeams').checked = beamsOn; beamT = 0; if ($('patch').open) drawPatch(); };
+renderer.setAnimationLoop(t => { syncBeams(t); updateDelays(t); syncHandles(); syncChains(); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
 </script>
 </body>
 </html>
