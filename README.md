@@ -114,6 +114,10 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
 
   Cotes et poids des fiches Fohhn (fohhn.com) : DLI-230 133 × 2 308 × 128 mm, 15,5 kg ; DLI-430 133 × 4 316 × 128 mm, 29,3 kg ; AS-40 506 × 772 × 606 mm, 40 kg, 18" ; AT-40 381 × 591 × 421 mm, 24 kg, 12" + 1,4" ; XT-1 196 × 381 × 240 mm, 7 kg ; XT-22 323 × 511 × 291 mm, 13 kg, posé en retour à 55°. Hauteur de la DLI-430 non cotée sur les plans (bas posé à 2,5 m). Toutes sont aussi au catalogue (Son).
 - **Équipement de cage** (avec les cintres) : écran polichinelle (image 9,6 × 6 m, de 2 à 8 m, à 5,87 m du cadre) et patience motorisée d'avant-scène (rail à 9,57 m, à 0,43 m, rideaux massés). La conque de scène 1 (1 290 kg) est comptée pour moitié sur C1 et sur C2 ; la conque 2 et les 3 réflecteurs de salle pendent sur câbles fixes (déjà dans la maquette IFC).
+- **Machinerie vivante** (mode auditorium) :
+  - la conque de scène 1 (maquette IFC) suit C1 / C2 (leur hauteur moyenne) et arrête leur descente à 0,3 m du plateau ;
+  - la patience s'ouvre et se ferme, l'écran polichinelle (enrouleur à 9,5 m) descend et s'enroule : curseur dans « Sélection » ; leur état est enregistré dans le setup.
+- **Conduite machinerie** (mode auditorium) : mémoires « Tableau 1, 2… » = hauteur de chaque équipe, patience, écran. ▶ rappelle une mémoire en animant chaque élément à sa vitesse réelle (×1 à ×30), ⟳ remplace, ✎ renomme, ↑ réordonne, ✕ supprime ; temps de manœuvre réel entre mémoires (élément le plus long) ; alertes : charge à moins de 0,3 m du plateau, tube d'une équipe dans les projecteurs d'une voisine (< 0,6 m), équipe voisine de la conque (F2 est à 0,24 m de son bord). « Imprimer » sort la conduite (hauteurs, changements en gras, états, temps, alertes). Vitesses : équipes 0,15 m/s (C1 / C2 0,08), patience 1 m/s, écran 0,2 m/s (à confirmer). La conduite est enregistrée dans le setup.
 - **Conques d'orchestre** : les 6 décors d'orchestre mobiles (1,46 × 4,52 m) en configuration concert, 3 de chaque côté, ouverts à ≈ 31° vers la salle.
 - **Plan de feu Gaspar Claus** : proposition d'implantation de la liste de location (V.2) :
   | Où | Appareils |

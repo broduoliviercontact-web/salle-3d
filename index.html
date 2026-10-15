@@ -101,8 +101,13 @@
   <div class="row" data-salle="agora"><button id="fipBtn" class="grow" title="Cercle de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4">FIP 360</button>Ø <input type="number" id="fipD" value="20" step="1" min="12" max="25"> m</div>
   <div id="charges" style="font-size:11px;opacity:.8"></div>
 
+  <h2 data-salle="audi" hidden>Conduite machinerie</h2>
+  <div class="row" data-salle="audi" hidden><button id="cueAdd" class="grow" title="Mémorise la hauteur de chaque équipe, la patience et l'écran">＋ Mémoriser l'état</button><button id="cuePrint" title="Conduite à imprimer : hauteurs, états, temps de manœuvre, alertes">Imprimer</button>
+    <select id="cueAcc" title="Vitesse de la simulation (les temps de manœuvre affichés sont réels)"><option value="1">×1</option><option value="5">×5</option><option value="10" selected>×10</option><option value="30">×30</option></select></div>
+  <ul id="cueList" data-salle="audi" hidden></ul>
   <h2>Sélection</h2>
   <div id="sel">—</div>
+  <div class="row" id="stateRow" hidden><span id="stateLab"></span><input type="range" id="stateV" min="0" max="100" class="grow"><span id="stateTxt" style="width:72px"></span></div>
   <div class="row" id="liftRow" hidden><span id="liftLab">Hauteur sous pont</span> <input type="number" id="liftH" step="0.1" style="width:60px"> m <button id="liftDown" title="Descendre (clic : 10 cm, maintenir : continu)">▼</button><button id="liftUp" title="Monter (clic : 10 cm, maintenir : continu)">▲</button></div>
   <div class="row" id="sizeRow" hidden>L <input type="number" id="sW" step="0.5" min="0.5"> P <input type="number" id="sD" step="0.5" min="0.5"> H <input type="number" id="sH" step="0.1" min="0.1"> m</div>
   <div class="row" id="grpRow" hidden><span id="grpInfo" class="grow info"></span><button id="unlink" title="Retire cet élément du groupe : il se déplacera seul">Délier</button></div>
@@ -345,9 +350,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { truss30t:0xc9ced6, truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a, patience:0x7a1420, conque:0xb08a5a, dli230:0x111214, dli430:0x111214, as40:0x111214, at40:0x111214, xt1:0x111214, xt22:0x111214 };
-const LABELS = { truss30t:'Pont alu triangulaire 290', truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne', patience:'Patience motorisée (rideau d\'avant-scène)', conque:'Décor d\'orchestre mobile (conque)', dli230:'Fohhn DLI-230 mobile (15,5 kg)', dli430:'Fohhn DLI-430 (29,3 kg)', as40:'Fohhn AS-40 sub 18" (40 kg)', at40:'Fohhn AT-40 point central (24 kg)', xt1:'Fohhn XT-1 nez de scène (7 kg)', xt22:'Fohhn XT-22 retour (13 kg)' };
-const DEFAULT = { truss30t:[3, 0.29, 0.29], tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29, 2], tcorner40:[0.39, 0.39, 0.39, 2], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8], patience:[13.8, 0.3, 9.5], conque:[1.46, 0.6, 4.52], dli230:[0.45, 0.45, 2.36], dli430:[0.133, 0.128, 4.316], as40:[0.506, 0.606, 0.772], at40:[0.381, 0.421, 0.591], xt1:[0.196, 0.24, 0.381], xt22:[0.323, 0.291, 0.511] };
+const COLORS = { truss30t:0xc9ced6, truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a, patience:0x7a1420, polichinelle:0xf2f2f2, conque:0xb08a5a, dli230:0x111214, dli430:0x111214, as40:0x111214, at40:0x111214, xt1:0x111214, xt22:0x111214 };
+const LABELS = { truss30t:'Pont alu triangulaire 290', truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne', patience:'Patience motorisée (rideau d\'avant-scène)', polichinelle:'Écran polichinelle 9,6 × 6 m', conque:'Décor d\'orchestre mobile (conque)', dli230:'Fohhn DLI-230 mobile (15,5 kg)', dli430:'Fohhn DLI-430 (29,3 kg)', as40:'Fohhn AS-40 sub 18" (40 kg)', at40:'Fohhn AT-40 point central (24 kg)', xt1:'Fohhn XT-1 nez de scène (7 kg)', xt22:'Fohhn XT-22 retour (13 kg)' };
+const DEFAULT = { truss30t:[3, 0.29, 0.29], tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29, 2], tcorner40:[0.39, 0.39, 0.39, 2], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8], patience:[13.8, 0.3, 9.5, 1], polichinelle:[9.6, 0.1, 6, 1], conque:[1.46, 0.6, 4.52], dli230:[0.45, 0.45, 2.36], dli430:[0.133, 0.128, 4.316], as40:[0.506, 0.606, 0.772], at40:[0.381, 0.421, 0.591], xt1:[0.196, 0.24, 0.381], xt22:[0.323, 0.291, 0.511] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -658,7 +663,18 @@ function termInfo(o) {
   return [d.loc && ` · ${d.loc.replace(/\s+/g, ' ').toLowerCase()}`, d.type && ` · type ${d.type}`, Object.keys(d.prises).length && `\nPrises : ${list(d.prises)}`, Object.keys(d.data).length && `\nConnecteurs : ${list(d.data)}`].filter(Boolean).join('');
 }
 let termLabels = false;
-function syncTerm() { // boîtiers des porteuses : sous leur équipe si elle est posée, sinon au point haut (9,20 m du plateau)
+let CQ = null;
+function conque() { // { node, base (position monde d'origine), bottom (monde, état courant) }
+  if (CQ === null) { CQ = false; venue.traverse(o => { if (!CQ && /^inc2845/i.test(o.name)) { const b = new THREE.Box3().setFromObject(o); CQ = { node:o, base:o.getWorldPosition(new THREE.Vector3()), drop:b.min.y - o.getWorldPosition(new THREE.Vector3()).y, bottom:b.min.y }; } }); }
+  return CQ || null;
+}
+function syncConque() {
+  const cq = conque(); if (!cq) return; const c = ['C1', 'C2'].map(n => props.children.find(o => o.userData.kind === 'perche' && o.userData.dims[3] === n));
+  const dy = c[0] && c[1] ? (c[0].position.y + c[1].position.y) / 2 - (plateauAU() + 9.2) : 0; // sans cintres posés : position de la maquette
+  const w = cq.base.clone().setY(cq.base.y + dy); if (Math.abs(cq.node.getWorldPosition(new THREE.Vector3()).y - w.y) < 1e-3) return;
+  cq.node.position.copy(cq.node.parent.worldToLocal(w)); cq.bottom = w.y + cq.drop;
+}
+function syncTerm() { syncConque(); // boîtiers des porteuses : sous leur équipe si elle est posée, sinon au point haut (9,20 m du plateau)
   const g = termGroup(); if (!g || !g.visible) return; const bars = {};
   for (const o of props.children) if (o.userData.kind === 'perche' && typeof o.userData.dims[3] === 'string') bars[o.userData.dims[3]] = o.position.y;
   for (const b of g.children) { const t = b.userData.term; if (t.bar) b.position.y = bars[t.bar] ?? 1.86 + 9.2; b.children[1].visible = termLabels || selected === b; } // repère : tous (bouton) ou celui sélectionné
@@ -671,12 +687,28 @@ function syncChains() { syncTerm();
     a.needsUpdate = true; c.geometry.computeBoundingSphere(); c.userData.len = len; }
 }
 // patience motorisée d'avant-scène (plan TAMBE 0615) : rail Trumpf + 2 rideaux de velours massés de chaque côté (ouverte)
-function buildPatience([L, d, H]) {
+function buildPatience([L, d, H, ouv = 1]) { // ouv : 1 = ouverte (massée), 0 = fermée
   const rail = new THREE.Mesh(new THREE.BoxGeometry(L, 0.08, 0.1), dark(0x222222)); rail.position.y = H + 0.04;
-  const vel = new THREE.MeshStandardMaterial({ color:0x7a1420, roughness:0.95 }), out = [rail];
-  for (const sx of [-1, 1]) for (let i = 0; i < 7; i++) { // plis : demi-cylindres serrés sur 1,43 m (massé)
-    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, H, 8, 1, false, 0, Math.PI), vel); p.position.set(sx * (L / 2 - 0.1 - i * 0.2), H / 2, 0); out.push(p); }
+  const vel = new THREE.MeshStandardMaterial({ color:0x7a1420, roughness:0.95 }), out = [rail], Wc = L / 2 + 0.5; // fermée : chaque rideau couvre la moitié + 0,5 m de recouvrement
+  for (const sx of [-1, 1]) { const half = new THREE.Group(); half.position.x = sx * L / 2; half.userData.half = Wc; half.scale.x = (1.43 + (Wc - 1.43) * (1 - ouv)) / Wc;
+    const fond = new THREE.Mesh(new THREE.PlaneGeometry(Wc, H).translate(-sx * Wc / 2, H / 2, -0.02), new THREE.MeshStandardMaterial({ color:0x5e0f18, roughness:1, side:THREE.DoubleSide })); half.add(fond); // fond opaque derrière les plis
+    for (let i = 0, n = Math.round(Wc / 0.2); i < n; i++) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, H, 8, 1, false, 0, Math.PI), vel); p.position.set(-sx * (0.1 + i * Wc / n), H / 2, 0); half.add(p); }
+    out.push(half); }
   return out;
+}
+// polichinelle (écran de projection, plan TAMBE 0610) : enrouleur à 9,5 m, toile 9,6 m (bordure noire 1,5 m + image 6 m, de 8 à 2 m) ; desc : 1 = descendue, 0 = enroulée
+function buildPolichinelle([W, d, H, desc = 1]) {
+  const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, W + 0.3, 16).rotateZ(Math.PI / 2), dark(0x1b1c1f)); roll.position.y = 9.5;
+  const toile = new THREE.Group(); toile.position.y = 9.5; toile.userData.toile = true;
+  const bord = new THREE.Mesh(new THREE.PlaneGeometry(W, 1.5).translate(0, -0.75, 0), new THREE.MeshStandardMaterial({ color:0x111111, side:THREE.DoubleSide }));
+  const img = new THREE.Mesh(new THREE.PlaneGeometry(W, H).translate(0, -1.5 - H / 2, 0), new THREE.MeshStandardMaterial({ color:0xf2f2f2, side:THREE.DoubleSide }));
+  toile.add(bord, img); toile.scale.y = Math.max(0.01, desc);
+  return [roll, toile];
+}
+// état d'un élément de machinerie (patience : ouverture, polichinelle : descente), gardé dans dims[3] (enregistré avec le setup)
+function applyMach(o, v) {
+  v = THREE.MathUtils.clamp(v, 0, 1); o.userData.dims[3] = +v.toFixed(3);
+  o.traverse(c => { if (c.userData.half) c.scale.x = (1.43 + (c.userData.half - 1.43) * (1 - v)) / c.userData.half; if (c.userData.toile) c.scale.y = Math.max(0.01, v); });
 }
 // décor d'orchestre mobile (plans TAMBE 0614 / 1614) : panneau frêne 1,46 × 4,52 m sur structure alu + bracons
 function buildConque([w, d, h]) {
@@ -702,7 +734,7 @@ function buildHP([w, d, h], wedge) {
   if (wedge) { const a = Math.PI / 2 - 55 * Math.PI / 180; g.rotation.x = -a; g.position.y = (h * Math.cos(a) + d * Math.sin(a)) / 2; } // retour : position moniteur à 55°
   return [g];
 }
-const BUILD = { as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -943,11 +975,22 @@ function liftTarget(o) {
   return { g, run, y:s0.position.y - (tw ? tw.position.y : floorAt(s0.position)) }; // ground support : depuis le pied des tours
 }
 function syncLift(o = selected) { const t = liftTarget(o); $('liftRow').hidden = !t; if (t) $('liftLab').textContent = t.perche ? 'Hauteur de la perche' : 'Hauteur sous pont'; if (t && document.activeElement !== $('liftH')) $('liftH').value = t.y.toFixed(2); }
+const MACH_TXT = { patience:['Patience', v => v > 0.98 ? 'ouverte' : v < 0.02 ? 'fermée' : Math.round(v * 100) + ' %'], polichinelle:['Écran', v => v > 0.98 ? 'descendu' : v < 0.02 ? 'enroulé' : Math.round(v * 100) + ' %'] };
+function syncState(o = selected) { const m = o && MACH_TXT[o.userData.kind]; $('stateRow').hidden = !m; if (!m) return; const v = o.userData.dims[3] ?? 1;
+  $('stateLab').textContent = m[0]; $('stateV').value = Math.round(v * 100); $('stateTxt').textContent = m[1](v); }
+$('stateV').onpointerdown = () => pushUndo();
+$('stateV').oninput = () => { if (!selected || !MACH_TXT[selected.userData.kind]) return; applyMach(selected, +$('stateV').value / 100); syncState(); };
+// lève une équipe de dy (m), bornée par sa course, et arrêtée quand sa charge la plus basse (ou la conque de C1/C2) arrive à 0,3 m du sol ; renvoie le déplacement fait
+function liftPerche(o, dy, rig = percheRig()) {
+  const [,,,, , lo = 0.3, hi = Infinity] = o.userData.dims, y = o.position.y - floorAt(o.position), ld = rig.find(r => r.o === o)?.loads || [];
+  let room = Math.min(Infinity, ...ld.map(q => bottomOf(q) - floorAt(q.position) - 0.3));
+  const cq = conque(); if (cq && /^C[12]$/.test(o.userData.dims[3])) room = Math.min(room, cq.bottom - plateauAU() - 0.3);
+  dy = Math.max(THREE.MathUtils.clamp(y + dy, lo, hi) - y, Math.min(0, -room)); for (const q of [o, ...ld]) q.position.y += dy; if (dy && /^C[12]$/.test(o.userData.dims[3])) syncConque(); return dy;
+}
 // monte / descend tout le pont : ponts, cubes, moteurs (crochets), charges accrochées dessous ; en ground support, les manchons glissent sur les tours
 function liftBy(dy) {
   const t = liftTarget(selected); if (!t) return;
-  if (t.perche) { const [,,,, , lo = 0.3, hi = Infinity] = t.perche.userData.dims; const ld = percheRig().find(r => r.o === t.perche)?.loads || [], room = Math.min(Infinity, ...ld.map(q => bottomOf(q) - floorAt(q.position) - 0.3)); // la charge la plus basse s'arrête à 0,3 m du sol
-    dy = Math.max(THREE.MathUtils.clamp(t.y + dy, lo, hi) - t.y, Math.min(0, -room)); /* course de l'équipe */ for (const o of [t.perche, ...ld]) o.position.y += dy; syncLift(); return; }
+  if (t.perche) { liftPerche(t.perche, dy); syncLift(); return; }
   const towers = props.children.filter(o => o.userData.grp === t.g && o.userData.kind === 'tower');
   const maxY = towers.length ? Math.min(...towers.map(o => o.userData.dims[2] - 1)) : Infinity; // le cadre reste sous la tête des tours
   dy = THREE.MathUtils.clamp(t.y + dy, 0.3, maxY) - t.y; if (Math.abs(dy) < 1e-4) return;
@@ -988,12 +1031,12 @@ function percheName(d) { return typeof d[3] === 'string' ? `Équipe ${d[3]}` : `
 const plateauAU = () => floorAt(new THREE.Vector3(A04 - 3, 0, AXE_AU));
 function placeCintres() { // équipes + équipement fixe de cage : écran polichinelle (0610 : image 9,6 × 6 m, de 2 à 8 m, à 5,87 m du cadre) et patience (0615 : rail à 9,57 m, à 0,43 m)
   select(null);
-  for (const o of props.children.filter(o => o.userData.grp === 'Cintres auditorium' || o.userData.kind === 'patience' || (o.userData.kind === 'ecran' && Math.abs(o.position.x - (A04 - 5.87)) < 0.3))) props.remove(o);
+  for (const o of props.children.filter(o => o.userData.grp === 'Cintres auditorium' || o.userData.kind === 'patience' || o.userData.kind === 'polichinelle' || (o.userData.kind === 'ecran' && Math.abs(o.position.x - (A04 - 5.87)) < 0.3))) props.remove(o);
   const fy = plateauAU();
   for (const [n, d, L, cap, lo, hi, dz = 0, alongX, fix = 0] of EQUIPES_AU) { const p = makeProp('perche', [L, 0.05, 0.05, n, cap, lo, hi, fix]); p.userData.grp = 'Cintres auditorium';
     p.position.set(A04 - d, fy + hi, AXE_AU + dz); p.rotation.y = alongX ? 0 : Math.PI / 2; p.userData.top = fy + GRIL_AU; } // rangées au point haut
-  const e = makeProp('ecran', [9.6, 0.1, 6]); e.position.set(A04 - 5.87, fy + 0.5, AXE_AU); e.rotation.y = Math.PI / 2; // bas d'écran à 1,5 m au-dessus de l'origine
-  const pa = makeProp('patience', [13.8, 0.3, 9.57]); pa.position.set(A04 - 0.43, fy, AXE_AU); pa.rotation.y = Math.PI / 2;
+  const e = makeProp('polichinelle', [9.6, 0.1, 6, 1]); e.position.set(A04 - 5.87, fy, AXE_AU); e.rotation.y = Math.PI / 2; // descendu : image de 2 à 8 m
+  const pa = makeProp('patience', [13.8, 0.3, 9.57, 1]); pa.position.set(A04 - 0.43, fy, AXE_AU); pa.rotation.y = Math.PI / 2;
 }
 $('audiCintres').onclick = () => { pushUndo(); placeCintres(); };
 // façade son (synoptique audio 8001) : par côté une DLI-430 (fixe, sur support mural WS-6) et une DLI-230 mobile, aux points de raccordement HP du plan R0
@@ -1369,6 +1412,79 @@ function boxUsage() { // par boîtier, d'après le patch : appareils, puissance,
   for (const r of patchRows()) { if (!r.b) continue; const e = m.get(r.b) || { b:r.b, n:0, W:0, used:new Set(), err:0, pc:r.pc }; e.n++; e.W += powerOf(r.o); e.used.add(r.c); if (r.err) e.err++; m.set(r.b, e); }
   return [...m.values()].sort((a, b) => a.b.userData.term.id.localeCompare(b.b.userData.term.id, 'fr', { numeric:true }));
 }
+// --- conduite machinerie : mémoires (hauteur des équipes / plateau, patience, écran), rappel animé aux vitesses réelles (accéléré), temps de manœuvre, alertes de contact
+// ponytail: vitesses patience 1 m/s (fiche TAMBE) et enrouleur de l'écran 0,2 m/s (supposée) ; contact = deux équipes à moins de 0,7 m dont les volumes (tube + charges) se croisent en hauteur
+let CUES = [], cueAnim = null;
+const nextFrame = cb => document.hidden ? setTimeout(() => cb(performance.now()), 50) : requestAnimationFrame(cb); // onglet caché : le navigateur suspend requestAnimationFrame
+const PAT_V = 1 / 5.7, ECR_V = 0.2 / 7.5; // fraction d'ouverture / de descente par seconde
+const namedBars = () => props.children.filter(o => o.userData.kind === 'perche' && typeof o.userData.dims[3] === 'string');
+function machState() {
+  const fy = plateauAU(), h = {}; for (const o of namedBars()) h[o.userData.dims[3]] = +(o.position.y - fy).toFixed(2);
+  const pa = props.children.find(o => o.userData.kind === 'patience'), po = props.children.find(o => o.userData.kind === 'polichinelle');
+  return { h, patience:pa ? pa.userData.dims[3] ?? 1 : null, ecran:po ? po.userData.dims[3] ?? 1 : null };
+}
+function cueTime(a, b) { // durée réelle d'une manœuvre a -> b (s) : l'élément le plus long
+  let t = 0; for (const [n, h] of Object.entries(b.h)) if (a.h[n] != null) t = Math.max(t, Math.abs(h - a.h[n]) / (VIT[n] || 0.15));
+  if (a.patience != null && b.patience != null) t = Math.max(t, Math.abs(b.patience - a.patience) / PAT_V);
+  if (a.ecran != null && b.ecran != null) t = Math.max(t, Math.abs(b.ecran - a.ecran) / ECR_V); return t;
+}
+const dur = t => t < 1 ? '—' : t < 60 ? `${Math.round(t)} s` : `${Math.floor(t / 60)} min ${String(Math.round(t % 60)).padStart(2, '0')}`;
+function cueWarnings(st) { // avec les charges actuelles : point le plus bas sous chaque tube, conque de scène portée par C1 / C2
+  const rig = percheRig(), fy = plateauAU(), bars = namedBars(), cq = conque(), out = [], nm = o => o.userData.dims[3];
+  const low = o => { let m = -0.05; for (const q of rig.find(r => r.o === o)?.loads || []) m = Math.min(m, bottomOf(q) - o.position.y); return m; };
+  const H = o => st.h[nm(o)] ?? (o.position.y - fy), band = o => [H(o) + low(o), H(o)];
+  for (const o of bars) { const [b] = band(o); if (b < 0.3) out.push(`${nm(o)} : charge à ${fr(Math.max(0, b), 2)} m du plateau`); }
+  // deux équipes à moins de 0,6 m : le tube de l'une passe dans la zone des projecteurs de l'autre
+  for (const A of bars) for (const B of bars) { if (A === B || Math.abs(A.position.x - B.position.x) > 0.6 || Math.abs(A.position.z - B.position.z) > 6 || (nm(A)[0] === 'C' && nm(B)[0] === 'C')) continue;
+    const [a0, a1] = band(A), hB = H(B); if (hB > a0 && hB < a1 - 0.05) out.push(`${nm(B)} passe dans les projecteurs de ${nm(A)}`); }
+  // conque de scène (≈ 1,1 m de haut, de 3,56 à 5,46 m du cadre) : équipes voisines à moins de 0,4 m de son bord
+  if (cq && st.h.C1 != null && st.h.C2 != null) { const b0 = cq.base.y + cq.drop - fy + ((st.h.C1 + st.h.C2) / 2 - 9.2), b1 = b0 + 1.12, xa = A04 - 5.46, xb = A04 - 3.56;
+    for (const o of bars) { if (nm(o)[0] === 'C') continue; const dx = Math.max(xa - o.position.x, o.position.x - xb, 0); if (dx > 0.4) continue;
+      const [l0, l1] = band(o); if (l0 < b1 && b0 < l1) out.push(`${nm(o)} / conque : risque de contact (${fr(dx, 2)} m du bord)`); } }
+  return [...new Set(out)];
+}
+function goCue(i) {
+  const c = CUES[i]; if (!c) return; pushUndo(); cancelAnimationFrame(cueAnim?.raf || 0); clearTimeout(cueAnim?.raf || 0);
+  let last = performance.now(); const acc = +$('cueAcc').value || 10, fy = plateauAU();
+  const step = now => { const dt = Math.min(0.1, (now - last) / 1000) * acc; last = now; let moving = false; const rig = percheRig();
+    for (const o of namedBars()) { const tgt = c.h[o.userData.dims[3]]; if (tgt == null) continue; const rem = tgt - (o.position.y - fy);
+      if (Math.abs(rem) > 0.005) { const d = liftPerche(o, Math.sign(rem) * Math.min(Math.abs(rem), (VIT[o.userData.dims[3]] || 0.15) * dt), rig); if (Math.abs(d) > 1e-4) moving = true; } }
+    for (const [k, v, sp] of [['patience', c.patience, PAT_V], ['polichinelle', c.ecran, ECR_V]]) { const o = props.children.find(q => q.userData.kind === k); if (!o || v == null) continue;
+      const cur = o.userData.dims[3] ?? 1, rem = v - cur; if (Math.abs(rem) > 0.002) { applyMach(o, cur + Math.sign(rem) * Math.min(Math.abs(rem), sp * dt)); moving = true; } }
+    syncLift(); syncState(); cueAnim = moving ? { i, raf:nextFrame(step) } : null; renderCues(); };
+  cueAnim = { i, raf:nextFrame(step) }; renderCues();
+}
+function renderCues() {
+  const cur = machState();
+  $('cueList').innerHTML = CUES.map((c, i) => { const w = cueWarnings(c), from = i ? CUES[i - 1] : c;
+    return `<li class="cfg"><span title="${esc(w.join('\n'))}">${cueAnim?.i === i ? '▶ ' : ''}<b>${i + 1}</b> · ${esc(c.name)} <small style="color:var(--mute)">${i ? '← ' + dur(cueTime(from, c)) : ''}</small>${w.length ? ' <span class="warn">⚠</span>' : ''}</span>`
+      + `<button data-a="go" data-i="${i}" title="Aller à cette mémoire (depuis l'état actuel : ${dur(cueTime(cur, c))})">▶</button><button data-a="upd" data-i="${i}" title="Remplacer par l'état actuel">⟳</button><button data-a="ren" data-i="${i}" title="Renommer">✎</button><button data-a="up" data-i="${i}" title="Monter">↑</button><button data-a="del" data-i="${i}" title="Supprimer">✕</button></li>`; }).join('')
+    || '<li style="color:var(--mute);font-size:11px">Règle les équipes (mode moteurs), la patience et l\'écran, puis « Mémoriser l\'état ».</li>';
+}
+renderCues();
+$('cueAdd').onclick = () => { if (!namedBars().length) return alert('Pose d\'abord les cintres motorisés de l\'auditorium.'); const n = prompt('Nom de la mémoire :', `Tableau ${CUES.length + 1}`)?.trim(); if (!n) return; pushUndo(); CUES.push({ name:n, ...machState() }); renderCues(); };
+$('cueList').onclick = e => { const b = e.target.closest('button[data-a]'); if (!b) return; const i = +b.dataset.i, c = CUES[i];
+  if (b.dataset.a === 'go') return goCue(i);
+  pushUndo();
+  if (b.dataset.a === 'upd') CUES[i] = { name:c.name, ...machState() };
+  if (b.dataset.a === 'ren') { const n = prompt('Nom de la mémoire :', c.name)?.trim(); if (n) c.name = n; }
+  if (b.dataset.a === 'up' && i) [CUES[i - 1], CUES[i]] = [CUES[i], CUES[i - 1]];
+  if (b.dataset.a === 'del' && confirm(`Supprimer la mémoire « ${c.name} » ?`)) CUES.splice(i, 1);
+  renderCues(); };
+$('cuePrint').onclick = () => {
+  if (!CUES.length) return alert('Aucune mémoire dans la conduite.');
+  const names = [...new Set(CUES.flatMap(c => Object.keys(c.h)))].sort((a, b) => ['S1', 'F1', 'F2', 'C2', 'C1', 'F3', 'LJ', 'LC'].indexOf(a) - ['S1', 'F1', 'F2', 'C2', 'C1', 'F3', 'LJ', 'LC'].indexOf(b));
+  const st = (v, a, b) => v == null ? '—' : v > 0.98 ? a : v < 0.02 ? b : Math.round(v * 100) + ' %';
+  const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour imprimer la conduite.');
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Conduite machinerie — Auditorium</title><style>@page { size:A4 landscape; margin:10mm } body { font:11px Helvetica, Arial, sans-serif; margin:0 }
+    h1 { font-size:17px; margin:0 0 4px } table { border-collapse:collapse; width:100% } td, th { border:1px solid #bbb; padding:3px 5px; text-align:center } th { background:#eee } td.l { text-align:left } .warn { color:#c00; text-align:left } .note { color:#555; margin-top:6px }</style></head><body>
+    <h1>Conduite machinerie — Auditorium${setupName ? ' · ' + esc(setupName) : ''}</h1><div>${CUES.length} mémoires · ${new Date().toLocaleDateString('fr')} · hauteurs en m au-dessus du plateau (tube de l'équipe)</div>
+    <table><tr><th>N°</th><th>Mémoire</th>${names.map(n => `<th>${n}</th>`).join('')}<th>Patience</th><th>Écran</th><th>Manœuvre</th><th>Alertes</th></tr>
+    ${CUES.map((c, i) => `<tr><td>${i + 1}</td><td class="l"><b>${esc(c.name)}</b></td>${names.map(n => { const p = i ? CUES[i - 1].h[n] : null, v = c.h[n]; return `<td${p != null && Math.abs(p - v) > 0.005 ? ' style="font-weight:700;background:#fff4d6"' : ''}>${v == null ? '—' : fr(v, 2)}</td>`; }).join('')}
+      <td>${st(c.patience, 'ouverte', 'fermée')}</td><td>${st(c.ecran, 'descendu', 'enroulé')}</td><td>${i ? dur(cueTime(CUES[i - 1], c)) : '—'}</td><td class="warn">${esc(cueWarnings(c).join(' · '))}</td></tr>`).join('')}</table>
+    <div class="note">En gras : valeurs qui changent depuis la mémoire précédente. Temps de manœuvre réels : équipes à leur vitesse (0,15 m/s, C1 / C2 0,08 m/s), patience 1 m/s, écran 0,2 m/s (à confirmer). Alertes calculées avec les charges actuellement accrochées.</div></body></html>`);
+  w.document.close(); setTimeout(() => w.print(), 400);
+};
 // --- gril ground support : 4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour
 $('gsBtn').onclick = () => {
   pushUndo();
@@ -1505,7 +1621,7 @@ const CATALOG = [
   ['Scène et praticables', ['scene', 'prat', 'regie', 'conque', 'patience']],
   ['Son', ['dli230', 'dli430', 'as40', 'at40', 'xt1', 'xt22', 'l2d', 'kara2', 'ks28', 'ks28x2', 'x15', 'x15p', 'syva', 'vch30', 'vch30x2', 'vtl218', 'enceinte']],
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
-  ['Vidéo', ['led', 'ecran']],
+  ['Vidéo', ['led', 'ecran', 'polichinelle']],
   ['Sécurité et circulation', ['vauban', 'crash', 'defender']],
   ['Structures et levage', ['truss30', 'truss40', 'truss30t', 'tcorner30', 'tower', 'hoist', 'perche']],
   ['Divers', ['perso']],
@@ -1565,7 +1681,7 @@ function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) + termInfo(o) + (salle === 'audi' && boxFor(o) ? ` → ${boxFor(o).userData.term.id}` : '') : '—';
   if (o?.userData.term && !$('boxDlg').open) openBox(o); // boîtier : fenêtre de ses connexions
-  const isProp = !!o && props.children.includes(o); syncLift(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
+  const isProp = !!o && props.children.includes(o); syncLift(o); syncState(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
   if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.slice(0, 3).map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40', 'truss30t'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
@@ -1887,11 +2003,12 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, dmxMap:DMXMAP, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc })), moved, view };
+  return { salle, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
+  CUES = Array.isArray(cfg.conduite) ? JSON.parse(JSON.stringify(cfg.conduite)).filter(c => c && typeof c.h === 'object').map(c => ({ ...c, name:String(c.name || 'Mémoire').slice(0, 80) })) : []; renderCues?.();
   DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
   cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
@@ -2293,7 +2410,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
+const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
 const DXF_COLOR = { TERMINAUX_AU:3, SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
