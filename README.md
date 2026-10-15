@@ -99,6 +99,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   - ceux montés sur les porteuses (BECL-02 à 29, BAV-06) suivent leur équipe S1, F1, F2 ou F3 quand on la lève ou la descend ;
   - ils sortent sur le plan 2D de l'auditorium avec leur repère et la légende.
   Relevé automatique (tools/terminaux.py) : chaque étiquette du PDF est suivie le long de sa ligne de rappel jusqu'au symbole, puis calée sur les axes a05 / a04 et ae / ad (précision ≈ 10–20 cm).
+  À l'affichage, chaque boîtier mural est collé au mur le plus proche de la maquette (≤ 1,2 m) ; ceux des porteuses suivent leur équipe.
   Un clic sur un boîtier donne son contenu d'après le carnet de détails (0606) : localisation (« lisse face scène », « plateau face jardin »…), type, prises (32 A tri / mono, 16 A, 16 A direct commandée) et connecteurs (DMX, Art-Net, RJ45, XLR, fibre, SDI). Les numéros de circuit (ADC-02-P1…) sont des images dans le PDF : non repris.
 - **Repères** (mode auditorium, Vue) : les étiquettes des boîtiers sont masquées par défaut (un boîtier sélectionné montre la sienne) ; le bouton les affiche toutes. Les niveaux du carnet sont repris (BECL-30 / 31 sur les lisses verticales, R+1).
 - **Système son Fohhn** (mode auditorium) : d'après le synoptique audio (8001) et le plan des terminaux R2 (+ coupe) :
