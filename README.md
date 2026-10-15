@@ -112,6 +112,14 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   | Plateau | 4 × 654 SX en latéraux, 1 × 654 SX en contre, 4 × lyres découpe au lointain, Atomic 3000, brouillard en coulisse jardin |
 
   Les appareils des porteuses sont accrochés tête en bas et suivent leur équipe. Chacun est relié au boîtier BECL le plus proche (de sa porteuse, sinon au plateau) : la sélection affiche « → BECL-05 », et le dossier technique liste par boîtier le nombre d'appareils, la puissance et les prises 16 A utilisées / disponibles.
+- **Éditeur de patch 2D** (mode auditorium, Installations) : plan de feu de dessus, lointain en haut, jardin à gauche, sur fond blanc :
+  - chaque projecteur est une pastille numérotée (couleur par type) avec son type et « boîtier · circuit » (ex. B05 · C2), et un trait pointillé vers son boîtier ;
+  - les équipes portent leur nom et leur hauteur ; les boîtiers utilisés sont en couleur, les autres en gris ;
+  - glisser un projecteur le déplace (le long de sa porteuse s'il est accroché, librement au plateau) ; la 3D suit ;
+  - un clic ouvre son panneau : boîtier (auto = le plus proche), circuit (0 = premier libre), puissance, suppression ;
+  - le tableau de patch liste N°, appareil, équipe, boîtier, circuit / prises du boîtier, puissance ; en rouge : circuit en double, circuit au-delà des prises 16 A du boîtier, appareil sans boîtier ;
+  - molette : zoom, glisser le fond : déplacer, « Recadrer » ; « Patch auto » oublie les choix manuels ; « Imprimer » sort le plan et le tableau sur une page A4 paysage.
+  Le patch est enregistré avec les setups. Circuit = n° de prise 16 A dans le boîtier : les repères d'armoire (ADC-xx-Px) du carnet ne sont pas lisibles (images).
 - Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
 - **Coupe** en longueur, en largeur ou en hauteur.
 - Liste **Maquettes et calques** (repliée par défaut) : chaque niveau et chaque calque se masque.

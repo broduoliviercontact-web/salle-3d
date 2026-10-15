@@ -41,6 +41,19 @@
   li.ev { margin-top:8px; color:var(--acc); font-weight:600; } li.ev small { color:var(--mute); font-weight:400; } li button { padding:3px 5px; font-size:12px; }
   li.cfg { flex-wrap:wrap; row-gap:2px; padding-bottom:4px; border-bottom:1px solid var(--line); } li.cfg span { flex:1 1 calc(100% - 26px); } li.cfg button { flex:1; } /* setup : nom en entier, actions dessous */
   li span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* éditeur de patch 2D (auditorium) : plan clair, lisible comme un plan de feu imprimé */
+  #patch { width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:0; border:0; background:#f4f5f7; color:#111; }
+  #patch .ph { display:flex; gap:8px; align-items:center; padding:8px 12px; background:var(--panel); color:var(--fg); }
+  #patch .ph b { font-size:15px; margin-right:8px; } #patchSum { flex:1; color:var(--mute); }
+  #patch .pb { display:grid; grid-template-columns:1fr 340px; height:calc(100vh - 48px); }
+  #patchSvg { width:100%; height:100%; background:#fff; touch-action:none; user-select:none; }
+  #patch .pside { overflow-y:auto; padding:10px 12px; border-left:1px solid #ccd; background:#fafbfc; }
+  #patch .pside h3 { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#556; margin:10px 0 6px; }
+  #patch .pside button, #patch .pside select, #patch .pside input { background:#fff; color:#111; border-color:#bbc; }
+  #patchEd { padding:8px; border:1px solid #ccd; border-radius:8px; background:#fff; min-height:44px; }
+  #patchTab { width:100%; border-collapse:collapse; font-size:12px; } #patchTab th, #patchTab td { padding:3px 5px; border-bottom:1px solid #e3e5ea; text-align:left; }
+  #patchTab th { position:sticky; top:0; background:#fafbfc; } #patchTab tr { cursor:pointer; } #patchTab tr.sel { background:#fff1d6; } #patchTab tr.bad td { color:#d0021b; font-weight:600; }
+  .pnum { display:inline-block; min-width:22px; text-align:center; border-radius:11px; color:#fff; font-weight:700; padding:0 4px; }
 </style>
 </head>
 <body>
@@ -65,6 +78,7 @@
   <div class="row" data-salle="agora"><button id="concertBtn" class="grow">Système concert 05/12 (L-Acoustics)</button></div>
   <div class="row"><button id="gsBtn" class="grow" title="4 tours, cadre de ponts entre les manchons, moteur en tête de chaque tour ; se pose au centre de la vue">Gril ground support</button><select id="gsSeries"><option value="truss30">290</option><option value="truss40">390</option></select></div>
   <div class="row">Ponts <input type="number" id="gsW" value="10" step="0.5" style="width:48px"> × <input type="number" id="gsD" value="8" step="0.5" style="width:48px"> m, cadre à <input type="number" id="gsH" value="6" step="0.5" style="width:48px"> m</div>
+  <div class="row" data-salle="audi" hidden><button id="patchBtn" class="grow on" title="Plan 2D lisible : chaque projecteur, son boîtier et son circuit ; déplacer, re-patcher, imprimer">Éditeur de patch 2D</button></div>
   <div class="row" data-salle="audi" hidden><button id="conqueBtn" class="grow" title="Les 6 décors d'orchestre mobiles en configuration concert (rangés sinon sur le mur du lointain)">Conques d'orchestre</button><button id="gcBtn" class="grow" title="Proposition d'implantation de la liste lumière Gaspar Claus (24 projecteurs + brouillard) sur F1, F2, F3, S1 et au plateau, reliée aux boîtiers BECL ; pose aussi les cintres s'ils manquent">Plan de feu Gaspar Claus</button></div>
   <div class="row" data-salle="audi" hidden><button id="audiCintres" class="grow" title="Les 8 équipes motorisées des plans TAMBE (F1–F3, C1–C2, S1, LJ, LC) avec leur CMU et leur course ; remplace celles déjà posées">Cintres motorisés de l'auditorium</button></div>
   <div class="row"><button id="percheBtn" class="grow" title="Perches parallèles au nez de la dernière scène posée (sinon au centre de la vue), numérotées du nez vers le lointain">Perches en série</button></div>
@@ -123,6 +137,13 @@
   <div class="cat-head"><b>Ajouter un élément</b><input id="catSearch" class="grow" placeholder="Rechercher (ex : sub, barrière, LED…)"><button id="catClose" title="Fermer (Échap)">✕</button></div>
   <div id="catBody"></div>
   <div class="cat-foot">Clic sur un élément pour le poser au centre de la vue. Ses dimensions se règlent ensuite avec L / P / H dans « Sélection ».</div>
+</dialog>
+<dialog id="patch">
+  <div class="ph"><b>Patch lumière — Auditorium</b><span id="patchSum"></span>
+    <button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
+  <div class="pb"><svg id="patchSvg"></svg>
+    <div class="pside"><h3>Projecteur</h3><div id="patchEd"><span style="color:#778">Clique un projecteur sur le plan ou dans la liste. Glisse-le pour le déplacer (le long de sa porteuse s'il est accroché).</span></div>
+      <h3>Patch</h3><table id="patchTab"></table></div></div>
 </dialog>
 <div id="drop">Dépose un fichier .glb</div>
 <div id="hint">Clic : sélectionner · Double-clic : centrer la vue ici · Glisser : orbiter · Clic droit : panoramique · Molette : zoom vers le curseur<br>ZQSD / WASD : avancer · A/E : tourner la vue · ↑↓ : incliner · G/B ou → ← : monter/descendre · Maj : rapide · T/R : déplacer/tourner · H : masquer · M : mesurer · P : tracer des passe-câbles · V : vue public · C : centrer · Suppr · Échap</div>
@@ -946,9 +967,9 @@ const GC_PLAN = [
   ['lyreprof', 'F3', 0, [-3, 0, 3], CONTRE],             // lyres découpe en contre
   ['sx654', null, 2, [6.2, -6.2], null],                 // latéraux au sol (jardin / cour), face au milieu
   ['sx654', null, 4.5, [6.2, -6.2], null],
-  ['sx654', null, 6.6, [-0.7], CONTRE],                  // contre au sol
-  ['lyreprof', null, 6.3, [-3.6, -1.2, 1.2, 3.6], CONTRE], // lyres au sol, ligne de lointain
-  ['atomic', null, 6.6, [0.7], CONTRE],
+  ['sx654', null, 5.7, [-0.7], CONTRE],                  // contre au sol
+  ['lyreprof', null, 5.4, [-3.6, -1.2, 1.2, 3.6], CONTRE], // lyres au sol, ligne de lointain (hors de l'aplomb de F3 pour la lisibilité du plan)
+  ['atomic', null, 5.7, [0.7], CONTRE],
   ['fog', null, 6.3, [6.2], Math.PI],                    // brouillard en coulisse jardin
 ];
 $('gcBtn').onclick = () => {
@@ -966,10 +987,119 @@ $('gcBtn').onclick = () => {
 const LIGHTS = new Set(['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']);
 function boxFor(o) {
   const g = termGroup(); if (!g || !LIGHTS.has(o.userData.kind)) return null;
+  if (o.userData.patch?.box) { const m = g.children.find(b => b.userData.term.id === o.userData.patch.box); if (m) return m; } // boîtier choisi dans l'éditeur de patch
   const pr = percheRig().find(r => r.loads.includes(o)), b = pr && typeof pr.o.userData.dims[3] === 'string' ? pr.o.userData.dims[3] : null;
   const cand = g.children.filter(c => c.userData.term.kind === 'BECL' && (b ? c.userData.term.bar === b : !c.userData.term.bar && c.userData.term.lvl === 'R0'));
   return cand.length ? cand.reduce((a, c) => c.position.distanceTo(o.position) < a.position.distanceTo(o.position) ? c : a) : null;
 }
+// --- éditeur de patch 2D : vue de dessus façon plan de feu (lointain en haut, jardin à gauche), unités en mètres
+// X = AXE_AU − z (jardin à gauche), Y = x (lointain en haut) ; circuit = n° de prise 16 A du boîtier (les repères ADC-xx du carnet sont des images)
+const SHORT = { pc1k:'PC 1 kW', sx713:'713 SX', sx654:'654 SX', lyreprof:'Lyre déc.', lyre:'Lyre', par:'PAR LED', atomic:'Atomic', fog:'Brouillard' };
+const FXCOL = { pc1k:'#d97706', sx713:'#2563eb', sx654:'#0891b2', lyreprof:'#7c3aed', lyre:'#9333ea', par:'#16a34a', atomic:'#475569', fog:'#64748b' };
+const ZONES = ['S1', 'F1', 'F2', 'C2', 'C1', 'F3', 'LJ', 'LC'];
+let patchSel = null, patchDrag = null, patchVB = null; // viewBox courant (zoom / déplacement)
+function patchRows() {
+  const term = termGroup()?.children || [], byId = id => term.find(b => b.userData.term.id === id), pr = percheRig();
+  const rows = props.children.filter(o => o.visible && LIGHTS.has(o.userData.kind) && AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z))).map(o => {
+    const bar = pr.find(r => r.loads.includes(o))?.o, zone = bar && typeof bar.userData.dims[3] === 'string' ? bar.userData.dims[3] : bar ? 'Perche' : 'Plateau';
+    const m = o.userData.patch, b = (m?.box && byId(m.box)) || boxFor(o);
+    return { o, bar, zone, b, c:m?.c || 0, manual:!!m?.box || !!m?.c };
+  });
+  const zi = r => { const i = ZONES.indexOf(r.zone); return i < 0 ? 99 : i; };
+  rows.sort((a, b) => zi(a) - zi(b) || b.o.position.z - a.o.position.z || a.o.position.x - b.o.position.x); // par équipe, de jardin à cour
+  rows.forEach((r, i) => r.n = i + 1);
+  const used = new Set(rows.filter(r => r.b && r.c).map(r => r.b.userData.term.id + '/' + r.c));
+  for (const r of rows) if (r.b && !r.c) { let c = 1; while (used.has(r.b.userData.term.id + '/' + c)) c++; r.c = c; used.add(r.b.userData.term.id + '/' + c); } // premier circuit libre
+  const cnt = {}; rows.forEach(r => { if (r.b) { const k = r.b.userData.term.id + '/' + r.c; cnt[k] = (cnt[k] || 0) + 1; } });
+  for (const r of rows) { const pc = r.b ? (r.b.userData.term.detail?.prises?.['PC 16A direct commandée'] || 0) + (r.b.userData.term.detail?.prises?.['PC 16A mono'] || 0) : 0;
+    r.pc = pc; r.err = !r.b ? 'sans boîtier' : cnt[r.b.userData.term.id + '/' + r.c] > 1 ? 'circuit en double' : pc && r.c > pc ? `le boîtier n'a que ${pc} prises 16 A` : ''; }
+  return rows;
+}
+const boxHue = id => `hsl(${[...id].reduce((h, c) => h * 31 + c.charCodeAt(0) >>> 0, 7) % 360} 65% 38%)`;
+function drawPatch() {
+  const svg = $('patchSvg'), rows = patchRows(), f = v => +v.toFixed(3), X = p => f(AXE_AU - p.z), Y = p => f(p.x), out = [];
+  const L = -89.67, C = A04 + 0.1, J = 9.83, Co = -4.07; // mur du lointain, cadre, murs de cage (IFC)
+  out.push(`<rect x="${f(AXE_AU - J)}" y="${L}" width="${f(J - Co)}" height="${f(C - L)}" fill="#f7f3ec" stroke="#555" stroke-width="0.08"/>`);
+  out.push(`<line x1="${f(AXE_AU - J - 0.6)}" y1="${f(A04)}" x2="${f(AXE_AU - Co + 0.6)}" y2="${f(A04)}" stroke="#555" stroke-width="0.06" stroke-dasharray="0.3 0.2"/>`);
+  out.push(`<text x="0" y="${f(L + 0.45)}" font-size="0.32" text-anchor="middle" fill="#99a">LOINTAIN</text><text x="0" y="${f(A04 + 0.55)}" font-size="0.28" text-anchor="middle" fill="#99a">CADRE DE SCÈNE · SALLE ↓</text>`);
+  out.push(`<text x="${f(AXE_AU - J - 0.3)}" y="${f((L + C) / 2)}" font-size="0.32" fill="#99a" text-anchor="middle" transform="rotate(-90 ${f(AXE_AU - J - 0.3)} ${f((L + C) / 2)})">JARDIN</text><text x="${f(AXE_AU - Co + 0.3)}" y="${f((L + C) / 2)}" font-size="0.32" fill="#99a" text-anchor="middle" transform="rotate(90 ${f(AXE_AU - Co + 0.3)} ${f((L + C) / 2)})">COUR</text>`);
+  // équipes (porteuses) avec leur hauteur
+  const fy = plateauAU();
+  for (const o of props.children) { if (o.userData.kind !== 'perche' || !o.visible || !AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z))) continue;
+    const { a, b } = segEnds(o), nm = typeof o.userData.dims[3] === 'string' ? o.userData.dims[3] : 'P' + (o.userData.dims[3] || '');
+    out.push(`<line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke="#8a93a3" stroke-width="0.07"/>`);
+    const e = X(a) < X(b) ? a : b; out.push(`<text x="${f(X(e) - 0.15)}" y="${f(Y(e) + 0.1)}" font-size="0.26" text-anchor="end" font-weight="700" fill="#4b5563">${esc(nm)} <tspan font-weight="400">${fr(o.position.y - fy, 2)} m</tspan></text>`); }
+  // boîtiers d'éclairage (les boîtiers utilisés en gras, à leur couleur)
+  const usedB = new Set(rows.map(r => r.b)); const tg = termGroup();
+  if (tg) for (const b of tg.children) { const t = b.userData.term; if (t.kind !== 'BECL' || !AUDI.containsPoint(new THREE.Vector3(b.position.x, 2, b.position.z))) continue;
+    const u = usedB.has(b), col = u ? boxHue(t.id) : '#b8bec8', p = b.position;
+    out.push(`<rect x="${f(X(p) - 0.13)}" y="${f(Y(p) - 0.13)}" width="0.26" height="0.26" fill="${u ? col : '#fff'}" stroke="${col}" stroke-width="0.04"/>`
+      + `<text x="${f(X(p))}" y="${f(Y(p) + 0.42)}" font-size="${u ? 0.2 : 0.15}" text-anchor="middle" font-weight="${u ? 700 : 400}" fill="${col}">${esc(t.id.replace('BECL-', 'B'))}</text>`); }
+  // câbles de patch puis projecteurs (numéro dans la pastille, type + boîtier·circuit en étiquette, une sur deux au-dessus / au-dessous)
+  for (const r of rows) if (r.b) out.push(`<line x1="${X(r.o.position)}" y1="${Y(r.o.position)}" x2="${X(r.b.position)}" y2="${Y(r.b.position)}" stroke="${boxHue(r.b.userData.term.id)}" stroke-width="0.035" stroke-dasharray="0.12 0.08" opacity="0.55"/>`);
+  const side = new Map(); // accroché : étiquette côté lointain, sol : côté salle ; deux voisins à < 1,4 m sur une porteuse : le second passe dessous
+  for (const r of [...rows].sort((a, b) => a.o.position.z - b.o.position.z || a.o.position.x - b.o.position.x)) {
+    const prev = [...side.keys()].reverse().find(q => q.bar && q.bar === r.bar);
+    side.set(r, !r.bar ? 1 : prev && prev.o.position.distanceTo(r.o.position) < 1.4 && side.get(prev) < 0 ? 1.35 : -1); }
+  rows.forEach((r, i) => { const p = r.o.position, x = X(p), y = Y(p), col = FXCOL[r.o.userData.kind] || '#333', up = Math.sign(side.get(r)), sel = r.o === patchSel;
+    const ly = y + side.get(r) * 0.45, t2 = r.b ? `${r.b.userData.term.id.replace('BECL-', 'B')} · C${r.c}` : '—';
+    out.push(`<g data-n="${r.n}" style="cursor:grab">`
+      + (sel ? `<circle cx="${x}" cy="${y}" r="0.46" fill="#ffd27a"/>` : '') + (r.err ? `<circle cx="${x}" cy="${y}" r="0.38" fill="none" stroke="#d0021b" stroke-width="0.08"/>` : '')
+      + `<circle cx="${x}" cy="${y}" r="0.27" fill="${col}" stroke="#fff" stroke-width="0.04"/><text x="${x}" y="${f(y + 0.1)}" font-size="0.27" text-anchor="middle" font-weight="700" fill="#fff">${r.n}</text>`
+      + `<text x="${x}" y="${f(ly + (up > 0 ? 0.12 : -0.3))}" font-size="0.2" text-anchor="middle" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</text>`
+      + `<text x="${x}" y="${f(ly + (up > 0 ? 0.38 : -0.04))}" font-size="0.25" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text></g>`); });
+  patchVB ??= [AXE_AU - J - 1.6, L - 0.9, J - Co + 3.2, -75.6 - L + 0.9]; svg.setAttribute('viewBox', patchVB.map(f).join(' '));
+  svg.innerHTML = out.join('');
+  // résumé, tableau, éditeur
+  const bad = rows.filter(r => r.err).length, W = rows.reduce((s, r) => s + powerOf(r.o), 0);
+  $('patchSum').innerHTML = `${rows.length} projecteurs · ${fr(W / 1000)} kW · ${new Set(rows.map(r => r.b)).size} boîtiers` + (bad ? ` · <span class="warn">${bad} à corriger</span>` : ' · patch OK');
+  $('patchTab').innerHTML = '<tr><th>N°</th><th>Appareil</th><th>Où</th><th>Boîtier</th><th>Circ.</th><th>W</th></tr>' + rows.map(r =>
+    `<tr data-n="${r.n}" class="${r.o === patchSel ? 'sel' : ''} ${r.err ? 'bad' : ''}" title="${esc(r.err)}"><td><span class="pnum" style="background:${FXCOL[r.o.userData.kind] || '#333'}">${r.n}</span></td><td>${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)}</td><td>${esc(r.zone)}</td><td>${r.b ? esc(r.b.userData.term.id) : '—'}${r.manual ? ' ✎' : ''}</td><td>${r.c || '—'}${r.pc ? `<small style="color:#889">/${r.pc}</small>` : ''}</td><td>${powerOf(r.o)}</td></tr>`).join('');
+  const r = rows.find(r => r.o === patchSel);
+  if (r) { const boxes = (tg?.children || []).filter(b => b.userData.term.kind === 'BECL').map(b => b.userData.term.id).sort((a, b) => a.localeCompare(b, 'fr', { numeric:true }));
+    $('patchEd').innerHTML = `<div class="row"><span class="pnum" style="background:${FXCOL[r.o.userData.kind]}">${r.n}</span><b>${esc(r.o.name)}</b></div>`
+      + `<div class="row">Position : ${esc(r.zone)}${r.bar ? ` à ${fr(r.o.position.y - fy, 2)} m` : ''}</div>`
+      + `<div class="row">Boîtier <select id="peBox"><option value="">auto (le plus proche)</option>${boxes.map(id => `<option ${r.o.userData.patch?.box === id ? 'selected' : ''}>${id}</option>`).join('')}</select>`
+      + ` Circuit <input type="number" id="peC" min="0" max="24" value="${r.o.userData.patch?.c || 0}" style="width:52px" title="0 = premier circuit libre"></div>`
+      + `<div class="row">Puissance <input type="number" id="peW" step="100" min="0" value="${powerOf(r.o)}" style="width:72px"> W <button id="peDel" style="margin-left:auto">Supprimer</button></div>`
+      + (r.err ? `<div class="warn">⚠ ${esc(r.err)}</div>` : `<div style="color:#178a3c">→ ${esc(r.b.userData.term.id)}, circuit ${r.c}${r.b.userData.term.detail?.loc ? ` (${esc(r.b.userData.term.detail.loc.toLowerCase())})` : ''}</div>`);
+    const setP = () => { pushUndo(); const box = $('peBox').value, c = Math.max(0, Math.round(+$('peC').value) || 0); r.o.userData.patch = box || c ? { box, c } : undefined; drawPatch(); };
+    $('peBox').onchange = $('peC').onchange = setP;
+    $('peW').onchange = () => { pushUndo(); r.o.userData.power = Math.max(0, +$('peW').value || 0); drawPatch(); };
+    $('peDel').onclick = () => { pushUndo(); props.remove(r.o); patchSel = null; drawPatch(); };
+  } else if (patchSel) { patchSel = null; }
+}
+const patchRowByN = n => patchRows().find(r => r.n === +n);
+$('patchBtn').onclick = () => { patchSel = null; patchVB = null; drawPatch(); $('patch').showModal(); };
+$('patchFit').onclick = () => { patchVB = null; drawPatch(); };
+$('patchSvg').onwheel = e => { e.preventDefault(); const q = svgPt(e), k = Math.exp(e.deltaY * 0.0015), [x, y, w, h] = patchVB; // zoom autour du curseur
+  const nw = THREE.MathUtils.clamp(w * k, 2, 60), r = nw / w; patchVB = [q.x - (q.x - x) * r, q.y - (q.y - y) * r, nw, h * r]; drawPatch(); };
+$('patchClose').onclick = () => $('patch').close();
+$('patchAuto').onclick = () => { if (!confirm('Revenir au patch automatique (boîtier le plus proche, premier circuit libre) pour tous les projecteurs ?')) return; pushUndo(); for (const o of props.children) delete o.userData.patch; drawPatch(); };
+$('patchTab').onclick = e => { const tr = e.target.closest('tr[data-n]'); if (!tr) return; patchSel = patchRowByN(tr.dataset.n)?.o || null; drawPatch(); };
+// glisser un projecteur : le long de sa porteuse s'il est accroché, librement au plateau
+const svgPt = e => { const p = $('patchSvg').createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform($('patchSvg').getScreenCTM().inverse()); };
+$('patchSvg').onpointerdown = e => { const g = e.target.closest('g[data-n]');
+  if (!g) { patchDrag = { pan:[e.clientX, e.clientY, ...patchVB] }; $('patchSvg').setPointerCapture(e.pointerId); return; } /* fond : déplacer le plan */ const r = patchRowByN(g.dataset.n); if (!r) return;
+  patchSel = r.o; pushUndo(); patchDrag = { r, moved:false }; $('patchSvg').setPointerCapture(e.pointerId); drawPatch(); };
+$('patchSvg').onpointermove = e => { if (!patchDrag) return; const q = svgPt(e);
+  if (patchDrag.pan) { const [cx, cy, x, y, w, h] = patchDrag.pan, el = $('patchSvg'), k = Math.max(w / el.clientWidth, h / el.clientHeight); // m par pixel (preserveAspectRatio « meet »)
+    patchVB = [x - (e.clientX - cx) * k, y - (e.clientY - cy) * k, w, h]; drawPatch(); return; }
+  const { r } = patchDrag, o = r.o; let x = q.y, z = AXE_AU - q.x;
+  if (r.bar) { const { a, d, L } = segEnds(r.bar), t = THREE.MathUtils.clamp((x - a.x) * d.x + (z - a.z) * d.z, 0.2, L - 0.2); x = a.x + d.x * t; z = a.z + d.z * t; } // reste sur sa porteuse
+  o.position.x = Math.round(x * 20) / 20; o.position.z = Math.round(z * 20) / 20; patchDrag.moved = true; drawPatch(); };
+$('patchSvg').onpointerup = () => { patchDrag = null; };
+// impression : plan + tableau sur une page A4 paysage
+$('patchPrint').onclick = () => {
+  const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour imprimer le patch.');
+  const svg = $('patchSvg').outerHTML.replace('id="patchSvg"', 'style="width:100%;height:178mm"');
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Patch lumière — ${esc(setupName || 'Auditorium')}</title><style>@page { size:A4 landscape; margin:8mm } body { font:10px Helvetica, Arial, sans-serif; margin:0 }
+    h1 { font-size:15px; margin:0 0 4px } .g { display:grid; grid-template-columns:1fr 92mm; gap:6mm } table { border-collapse:collapse; width:100% } td, th { border-bottom:1px solid #ccc; padding:1.5px 3px; text-align:left }
+    .pnum { display:inline-block; min-width:16px; text-align:center; border-radius:8px; color:#fff; font-weight:700 } tr.bad td { color:#d0021b } small { color:#888 } tr { break-inside:avoid }</style></head><body>
+    <h1>Patch lumière — Auditorium${setupName ? ' · ' + esc(setupName) : ''}</h1><div>${$('patchSum').textContent} · ${new Date().toLocaleDateString('fr')}</div>
+    <div class="g"><div>${svg}</div><table>${$('patchTab').innerHTML.replace(/ ✎/g, '')}</table></div></body></html>`);
+  w.document.close(); setTimeout(() => w.print(), 400);
+};
 function boxUsage() { // appareils, puissance et prises par boîtier (prises 16 A : direct commandée + 230 V)
   const m = new Map();
   for (const o of props.children) { if (!o.visible || salle !== 'audi') continue; const b = boxFor(o); if (!b) continue;
@@ -1391,7 +1521,7 @@ $('dup').onclick = () => { if (selected) pushUndo();
   c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
 };
 addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
+  if (e.target.tagName === 'INPUT' || $('patch').open || $('catalog').open) return; // raccourcis 3D coupés pendant le patch et le catalogue
   if (e.metaKey || e.ctrlKey) { // ⌘Z / Ctrl+Z : annuler ; ⌘⇧Z / Ctrl+Y : rétablir ; les autres raccourcis ⌘ restent au navigateur
     const k = e.key.toLowerCase();
     if (k === 'z') { e.preventDefault(); $(e.shiftKey ? 'redo' : 'undo').click(); }
@@ -1493,12 +1623,12 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top })), moved, view };
+  return { salle, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; setSalle(cfg.salle || 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
@@ -1901,7 +2031,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 const keys = new Set(), clock = new THREE.Clock();
 // A / E (lettres, quel que soit le clavier) : tourner la vue à gauche / à droite ; les autres touches de déplacement suivent leur position physique
 const TURN = { a:'TurnLeft', e:'TurnRight' };
-addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) keys.add(TURN[e.key.toLowerCase()] || e.code); });
+addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey && !$('patch').open) keys.add(TURN[e.key.toLowerCase()] || e.code); });
 addEventListener('keyup', e => { keys.delete(e.code); keys.delete(TURN[e.key.toLowerCase()]); if (e.key === 'Meta' || e.key === 'Control') keys.clear(); });
 addEventListener('blur', () => keys.clear());
 const MOVE = { KeyW:[0, 1], KeyZ:[0, 1], KeyS:[0, -1], KeyA:[-1, 0], KeyD:[1, 0] }; // flèches : ← → descendre / monter, ↑ ↓ incliner le regard (cf. navigate)
