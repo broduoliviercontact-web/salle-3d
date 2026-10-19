@@ -110,6 +110,7 @@
   <div class="row" id="stateRow" hidden><span id="stateLab"></span><input type="range" id="stateV" min="0" max="100" class="grow"><span id="stateTxt" style="width:72px"></span></div>
   <div class="row" id="liftRow" hidden><span id="liftLab">Hauteur sous pont</span> <input type="number" id="liftH" step="0.1" style="width:60px"> m <button id="liftDown" title="Descendre (clic : 10 cm, maintenir : continu)">▼</button><button id="liftUp" title="Monter (clic : 10 cm, maintenir : continu)">▲</button></div>
   <div class="row" id="sizeRow" hidden>L <input type="number" id="sW" step="0.5" min="0.5"> P <input type="number" id="sD" step="0.5" min="0.5"> H <input type="number" id="sH" step="0.1" min="0.1"> m</div>
+  <div class="row" id="asdRow" hidden><button id="asdBtn" class="grow" title="Ouvre le configurateur de praticables ASD avec les dimensions de cette scène (L = profondeur, P = ouverture, H = hauteur) : garde-corps, escaliers, jupes, poids et nomenclature, puis « Envoyer vers Salle 3D » la remplace ici">Détailler en praticables ASD ↗</button></div>
   <div class="row" id="grpRow" hidden><span id="grpInfo" class="grow info"></span><button id="unlink" title="Retire cet élément du groupe : il se déplacera seul">Délier</button></div>
   <div class="row" id="linkRow" hidden>Trappe <select id="trapSel"></select><input type="number" id="powerW" step="100" min="0" style="width:72px" title="Puissance électrique de l'élément"> W</div>
   <div class="row"><button id="mTrans" class="on">Déplacer (T)</button><button id="mRot">Tourner (R)</button></div>
@@ -341,7 +342,7 @@ function demoHall() {
   venue.add(g); refreshModels();
 }
 const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
-fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openShared(); }))) : demoHall()).catch(demoHall);
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openShared(); openAsdLink(); }))) : demoHall()).catch(demoHall);
 $('file').onchange = e => loadFiles(e.target.files);
 addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
 addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });
@@ -475,7 +476,7 @@ const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData
 const MOD = 1.005, modules = o => Math.max(1, Math.round(o.userData.dims[0] / MOD)); // passe-câbles Defender Mini : modules de 1 005 mm, 6 kg
 const flipped = q => Math.abs(q.rotation.z) > 1.5 || Math.abs(q.rotation.x) > 1.5; // projecteur accroché tête en bas : la platine (origine) est en haut
 const topOf = q => flipped(q) ? q.position.y : q.position.y + (q.userData.dims[2] || 0), bottomOf = q => flipped(q) ? q.position.y - (q.userData.dims[2] || 0) : q.position.y;
-const weightOf = o => TRUSS[o.userData.kind] ? o.userData.dims[0] * TRUSS[o.userData.kind].kgm : o.userData.kind === 'perche' ? o.userData.dims[0] * 3.6 + (+o.userData.dims[7] || 0) : o.userData.kind === 'led' ? dalles(o) * 8 : o.userData.kind === 'defender' ? modules(o) * 6 : o.userData.kind === 'defender_c' ? 3 : WEIGHT[o.userData.kind] || 0; // angle C : ≈ 3 kg (non précisé)
+const weightOf = o => o.userData.asd ? +o.userData.asd.kg || 0 : TRUSS[o.userData.kind] ? o.userData.dims[0] * TRUSS[o.userData.kind].kgm : o.userData.kind === 'perche' ? o.userData.dims[0] * 3.6 + (+o.userData.dims[7] || 0) : o.userData.kind === 'led' ? dalles(o) * 8 : o.userData.kind === 'defender' ? modules(o) * 6 : o.userData.kind === 'defender_c' ? 3 : WEIGHT[o.userData.kind] || 0; // angle C : ≈ 3 kg (non précisé)
 const isFlown = o => o.position.y - floorAt(o.position) > 2.5; // ponytail: accroché = à plus de 2,5 m du sol (Agora ≈ 0, plateau de l'auditorium 1,86 m)
 function charges() {
   let up = 0, down = 0;
@@ -1606,6 +1607,7 @@ function pratLayout(W, D) {
 const PRAT_KINDS = new Set(['scene', 'scene_m', 'scene_fip', 'regie']); // éléments montés sur praticables 2 × 1
 function pratInfo(o) {
   if (!PRAT_KINDS.has(o?.userData.kind)) return '';
+  if (o.userData.asd) { const a = o.userData.asd, ns = (a.stairs || []).length; return ` · ASD : ${a.plats.length} plateaux, ${ns} escalier${ns > 1 ? 's' : ''} · ≈ ${Math.round(+a.kg || 0)} kg${a.charge ? ` · ${a.charge} kg/m²` : ''}`; }
   const [w, d] = o.userData.dims, n = pratLayout(w, d).length, extra = n * 2 - w * d;
   return ` · ${n} praticables 2×1` + (extra > 0.01 ? ` (${fr(extra)} m² en trop : à recouper ou compléter en 1×1)` : '');
 }
@@ -1615,6 +1617,66 @@ function pratLines(W, D, h) {
   for (const [x, z, w, d] of pratLayout(W, D)) { const x0 = x - W / 2, z0 = z - D / 2, x1 = x0 + w, z1 = z0 + d;
     p.push(x0, y, z0, x1, y, z0, x1, y, z0, x1, y, z1, x1, y, z1, x0, y, z1, x0, y, z1, x0, y, z0); }
   return new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(p, 3)), new THREE.LineBasicMaterial({ color:0xd9b98c }));
+}
+// --- scènes ASD détaillées, venues du configurateur de praticables (https://configurateur-praticables.vercel.app) ---
+// coordonnées du configurateur : mètres depuis le coin arrière gauche, public vers +z ; ici : nez de scène vers +x local, ouverture le long de z (L = profondeur, P = ouverture)
+const ASD_ORIGIN = 'https://configurateur-praticables.vercel.app';
+const fin = v => Number.isFinite(+v);
+function validAsd(p) {
+  return !!p && typeof p === 'object' && [p.W, p.D, p.H].every(v => fin(v) && +v > 0 && +v < 200) && Array.isArray(p.plats) && p.plats.length > 0 && p.plats.length <= 3000
+    && p.plats.every(q => Array.isArray(q?.p) && q.p.length >= 3 && q.p.every(v => Array.isArray(v) && fin(v[0]) && fin(v[1])) && fin(q.h))
+    && ['gc', 'stairs', 'skirts', 'bom'].every(k => p[k] == null || Array.isArray(p[k]));
+}
+function buildAsd(p) {
+  const out = [], W = +p.W, D = +p.D, T = 0.1, loc = (x, z) => [z - D / 2, -(x - W / 2)], V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const deckM = new THREE.MeshStandardMaterial({ color:COLORS.scene }), frameM = new THREE.MeshStandardMaterial({ color:0xb9c0c7, metalness:0.5, roughness:0.4 }),
+    legM = new THREE.MeshStandardMaterial({ color:0xcfd5da, metalness:0.5, roughness:0.35 }), gcM = new THREE.MeshStandardMaterial({ color:0x202326 }),
+    stepM = new THREE.MeshStandardMaterial({ color:0x4a5057 }), skM = new THREE.MeshStandardMaterial({ color:0x17181c, roughness:1, side:THREE.DoubleSide });
+  const bar = (a, b, r, m) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 8), m); o.scale.y = a.distanceTo(b); o.position.copy(a).add(b).multiplyScalar(0.5); o.quaternion.setFromUnitVectors(V(0, 1, 0), b.clone().sub(a).normalize()); out.push(o); };
+  const lines = [];
+  for (const q of p.plats) {
+    const h = +q.h, pts = q.p.map(([x, z]) => loc(+x, +z));
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z))), { depth:T, bevelEnabled:false }), [deckM, frameM]);
+    m.rotation.x = -Math.PI / 2; m.position.y = h - T; out.push(m);
+    const cx = pts.reduce((a, v) => a + v[0], 0) / pts.length, cz = pts.reduce((a, v) => a + v[1], 0) / pts.length;
+    for (const [x, z] of pts) { const dx = cx - x, dz = cz - z, k = 0.07 / (Math.hypot(dx, dz) || 1), leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, Math.max(0.02, h - T), 8), legM); leg.position.set(x + dx * k, (h - T) / 2, z + dz * k); out.push(leg); }
+    pts.forEach((a, i) => { const b = pts[(i + 1) % pts.length]; lines.push(a[0], h + 0.004, a[1], b[0], h + 0.004, b[1]); });
+  }
+  out.push(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(lines, 3)), new THREE.LineBasicMaterial({ color:0xd9b98c })));
+  for (const [x1, z1, x2, z2, h, nx = 0, nz = 0] of p.gc || []) { // garde-corps : 2 montants + 3 lisses, 1 m
+    const l = Math.hypot(x2 - x1, z2 - z1) || 1, ux = (x2 - x1) / l, uz = (z2 - z1) / l;
+    const [ax, az] = loc(x1 + ux * 0.06 - nx * 0.03, z1 + uz * 0.06 - nz * 0.03), [bx, bz] = loc(x2 - ux * 0.06 - nx * 0.03, z2 - uz * 0.06 - nz * 0.03);
+    for (const [x, z] of [[ax, az], [bx, bz]]) bar(V(x, h, z), V(x, h + 1, z), 0.017, gcM);
+    for (const y of [1, 0.5, 0.1]) bar(V(ax, h + y, az), V(bx, h + y, bz), y === 1 ? 0.017 : 0.012, gcM);
+  }
+  for (const [x1, z1, x2, z2, nx, nz, h] of p.stairs || []) { // escaliers : marches de 26 cm, contremarches ≤ 20 cm, main courante
+    const n = Math.max(2, Math.ceil(h / 0.2)), rise = h / n, go = 0.26, l = Math.hypot(x2 - x1, z2 - z1) || 1, ux = (x2 - x1) / l, uz = (z2 - z1) / l, rot = -Math.atan2(-ux, uz);
+    for (let i = 0; i < n; i++) { const d = go * (i + 0.5), [x, z] = loc((x1 + x2) / 2 + nx * d, (z1 + z2) / 2 + nz * d), m = new THREE.Mesh(new THREE.BoxGeometry(l - 0.04, rise, go), stepM);
+      m.position.set(x, h - rise * (i + 1) + rise / 2, z); m.rotation.y = rot; out.push(m); }
+    for (const [ex, ez] of [[x1 + ux * 0.04, z1 + uz * 0.04], [x2 - ux * 0.04, z2 - uz * 0.04]]) { const [a, b] = loc(ex, ez), [c, d] = loc(ex + nx * go * n, ez + nz * go * n);
+      bar(V(a, h + 0.95, b), V(c, 0.95, d), 0.015, gcM); bar(V(c, 0, d), V(c, 0.95, d), 0.015, gcM); }
+  }
+  for (const [x1, z1, x2, z2, h] of p.skirts || []) { // jupes
+    const l = Math.hypot(x2 - x1, z2 - z1) || 1, [x, z] = loc((x1 + x2) / 2, (z1 + z2) / 2), hh = Math.max(0.05, h - T), m = new THREE.Mesh(new THREE.BoxGeometry(l, hh, 0.008), skM);
+    m.position.set(x, hh / 2, z); m.rotation.y = -Math.atan2(-(x2 - x1), z2 - z1); out.push(m);
+  }
+  return out;
+}
+function asdify(g, p) {
+  g.userData.asd = p;
+  for (const c of [...g.children]) { g.remove(c); c.traverse(x => x.geometry?.dispose?.()); }
+  buildAsd(p).forEach(o => g.add(o));
+  g.name = `Scène ASD ${p.name ? `« ${String(p.name).slice(0, 60)} » ` : ''}ouverture ${fr(+p.W, 1)} × profondeur ${fr(+p.D, 1)} m`;
+}
+// reçoit une scène du configurateur : remplace la scène d'origine (même place, même orientation) ou se pose au centre de la vue
+function placeAsd(p) {
+  if (!validAsd(p)) return alert('Cette scène ASD est illisible ou incomplète.');
+  pushUndo();
+  let o = p.id ? props.children.find(x => x.userData.sid === p.id) : null;
+  const dims = [+p.D, +p.W, +p.H];
+  if (o) o = rebuildProp(o, dims, o.userData.kind === 'scene_m' ? 'scene' : o.userData.kind);
+  else { o = makeProp('scene', dims); o.position.copy(orbit.target); o.position.y = floorAt(o.position); o.userData.sid = String(p.id || Math.random().toString(36).slice(2, 10)); }
+  asdify(o, p); select(o);
 }
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
@@ -1700,7 +1762,7 @@ function select(o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) + termInfo(o) + (salle === 'audi' && boxFor(o) ? ` → ${boxFor(o).userData.term.id}` : '') : '—';
   if (o?.userData.term && !$('boxDlg').open) openBox(o); // boîtier : fenêtre de ses connexions
-  const isProp = !!o && props.children.includes(o); syncLift(o); syncState(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); if (!isProp) return;
+  const isProp = !!o && props.children.includes(o); syncLift(o); syncState(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); $('asdRow').hidden = !(isProp && PRAT_KINDS.has(o.userData.kind)); if (isProp) $('asdBtn').textContent = o.userData.asd ? 'Modifier la scène ASD ↗' : 'Détailler en praticables ASD ↗'; if (!isProp) return;
   if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.slice(0, 3).map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40', 'truss30t'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
@@ -1724,7 +1786,8 @@ function resizeSelected() {
 // reconstruit un élément avec d'autres dimensions, à la même place et au même rang, en gardant trappe, puissance et groupe
 function rebuildProp(o, dims, kind = o.userData.kind) {
   const n = makeProp(kind, dims), keep = { ...o.userData }; delete keep.kind; delete keep.dims;
-  Object.assign(n.userData, keep); n.position.copy(o.position); n.rotation.copy(o.rotation);
+  Object.assign(n.userData, keep);
+  if (n.userData.asd) { const a = n.userData.asd; if ([a.D, a.W, a.H].every((v, i) => Math.abs(+v - dims[i]) < 1e-6)) asdify(n, a); else delete n.userData.asd; } // redimensionnée : redevient une scène simple n.position.copy(o.position); n.rotation.copy(o.rotation);
   const arr = props.children, i = arr.indexOf(o); props.remove(o); arr.splice(arr.indexOf(n), 1); arr.splice(i, 0, n);
   select(n); return n;
 }
@@ -2022,14 +2085,14 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom })), moved, view };
+  return { salle, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom, sid:g.userData.sid, asd:g.userData.asd })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
   CUES = Array.isArray(cfg.conduite) ? JSON.parse(JSON.stringify(cfg.conduite)).filter(c => c && typeof c.h === 'object').map(c => ({ ...c, name:String(c.name || 'Mémoire').slice(0, 80) })) : []; renderCues?.();
   DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
+  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
   cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
   const v = cfg.view; setSalle(cfg.salle || 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
@@ -2131,6 +2194,26 @@ async function copyLink(btn, name, cfg) {
   catch { prompt('Lien de partage du setup :', url); }
 }
 $('share').onclick = () => copyLink($('share'), $('cfgName').value.trim() || setupName || 'Setup partagé', { ...snapshot(), ...meta() });
+// scène ASD reçue : message du configurateur ouvert depuis ici, ou lien #asd=… (onglet neuf)
+addEventListener('message', e => {
+  if (e.origin !== ASD_ORIGIN || e.data?.type !== 'asd-stage') return;
+  try { e.source?.postMessage({ type:'asd-ack' }, e.origin); } catch {}
+  placeAsd(e.data.payload);
+});
+async function openAsdLink() {
+  const m = location.hash.match(/^#asd=([\w-]+)$/); if (!m) return;
+  try { const p = JSON.parse(new TextDecoder().decode(await pipe(b64u.dec(m[1]), new DecompressionStream('deflate-raw')))); history.replaceState(null, '', location.pathname); placeAsd(p); }
+  catch { alert('Cette scène ASD est illisible ou incomplète.'); }
+}
+// ouvre le configurateur ASD avec les dimensions de la scène sélectionnée (ou sa scène ASD déjà détaillée)
+$('asdBtn').onclick = async () => {
+  const o = selected; if (!o || !PRAT_KINDS.has(o.userData.kind)) return;
+  o.userData.sid ||= Math.random().toString(36).slice(2, 10);
+  const w = open('', 'asd-config'), [L, P, H] = o.userData.dims; // fenêtre ouverte tout de suite (anti pop-up), adresse donnée après la compression
+  const name = o.userData.asd?.name || `${setupName ? setupName + ' · ' : ''}${LABELS[o.userData.kind] || 'Scène'}`;
+  const url = `${ASD_ORIGIN}/#from=${b64u.enc(await pipe(JSON.stringify({ v:1, id:o.userData.sid, kind:o.userData.kind, name, L, P, H, project:o.userData.asd?.project || null }), new CompressionStream('deflate-raw')))}`;
+  if (w) w.location.href = url; else location.href = url;
+};
 async function openShared() {
   const m = location.hash.match(/^#s=([\w-]+)$/); if (!m) return;
   try {
@@ -2237,6 +2320,13 @@ async function planSvg(whole = false) {
       out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="none" stroke="#555" stroke-width="0.03" stroke-dasharray="0.3 0.2"/>`);
       for (const [a, b] of grillLines()) { const [p, q] = [a, b].map(([x, z]) => toPlan(g, x, z)); out.push(`<line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" stroke="#2c3e50" stroke-width="0.12" stroke-opacity="0.8"/>`); }
     } else out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.04"/>`);
+    if (g.userData.asd) { // scène ASD : plateaux, escaliers et garde-corps
+      const a = g.userData.asd, lp = (x, z) => toPlan(g, z - a.D / 2, -(x - a.W / 2)), pts = v => v.map(q => q.map(f).join(',')).join(' ');
+      for (const q of a.plats) out.push(`<polygon points="${pts(q.p.map(([x, z]) => lp(x, z)))}" fill="none" stroke="#3a2a1a" stroke-width="0.02"/>`);
+      for (const [x1, z1, x2, z2, nx, nz, h] of a.stairs || []) { const r = 0.26 * Math.max(2, Math.ceil(h / 0.2));
+        out.push(`<polygon points="${pts([[x1, z1], [x2, z2], [x2 + nx * r, z2 + nz * r], [x1 + nx * r, z1 + nz * r]].map(([x, z]) => lp(x, z)))}" fill="#fff" stroke="#000" stroke-width="0.03"/>`); }
+      for (const [x1, z1, x2, z2] of a.gc || []) { const [p1, p2] = [lp(x1, z1), lp(x2, z2)]; out.push(`<line x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(p2[0])}" y2="${f(p2[1])}" stroke="#000" stroke-width="0.07"/>`); }
+    }
     if (front) out.push(`<polygon points="${front.map(q => q.map(f).join(',')).join(' ')}" fill="#d0021b"/>`);
     if (!SPEAKERS.has(g.userData.kind) && Math.max(w, d) >= 1 && Math.min(w, d) >= 0.5) { // cotes : largeur devant, profondeur à droite (pas sur passe-câbles / barrières)
       cote(out, g, [-w / 2, d / 2], [w / 2, d / 2], [0, 1], w);
@@ -2297,8 +2387,12 @@ $('plan2d').onclick = exportPlan2D;
 // matériel du setup courant : désignation -> quantité, poids unitaire, puissance totale
 function materiel() {
   const mat = new Map();
-  for (const o of props.children) if (o.visible && PRAT_KINDS.has(o.userData.kind)) mat.set(`Praticables 2×1 pour ${o.name}`, { n:pratLayout(...o.userData.dims).length, kg:WEIGHT.prat, W:0 });
-  for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); }
+  for (const o of props.children) if (o.visible && PRAT_KINDS.has(o.userData.kind)) {
+    if (o.userData.asd) for (const [ref, nom, n, kgu, unit] of o.userData.asd.bom || []) { // nomenclature détaillée du configurateur ASD
+      const k = `ASD ${ref ? ref + ' · ' : ''}${nom}${unit ? ` (${unit})` : ''}`, e = mat.get(k) || { n:0, kg:Math.round((+kgu || 0) * 100) / 100, W:0 }; e.n += +n || 0; mat.set(k, e); }
+    else mat.set(`Praticables 2×1 pour ${o.name}`, { n:pratLayout(...o.userData.dims).length, kg:WEIGHT.prat, W:0 });
+  }
+  for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:o.userData.asd ? 0 : weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); } // scène ASD : poids compté ligne par ligne
   return mat;
 }
 // --- comparaison de 2 setups : plans de l'Agora côte à côte + écarts de matériel, jauge, charges, rigging ---
@@ -2411,7 +2505,7 @@ $('fiche').onclick = async () => {
     <h1>${esc(title)} — ${salle === 'audi' ? 'Auditorium' : 'Agora'} — dossier technique</h1>
     <div class="cols"><div>
     <h2>Matériel</h2><table><tr><th>Désignation</th><th>Qté</th><th>Poids unit.</th><th>Poids total</th><th>Puissance</th></tr>
-    ${[...mat].map(([k, e]) => `<tr>${td(esc(k))}${num(e.n)}${num(e.kg ? e.kg + ' kg' : '—')}${num(e.kg ? e.kg * e.n + ' kg' : '—')}${num(e.W ? fr(e.W / 1000) + ' kW' : '—')}</tr>`).join('')}</table>
+    ${[...mat].map(([k, e]) => `<tr>${td(esc(k))}${num(e.n)}${num(e.kg ? fr(e.kg, 2) + ' kg' : '—')}${num(e.kg ? fr(Math.round(e.kg * e.n * 10) / 10, 1) + ' kg' : '—')}${num(e.W ? fr(e.W / 1000) + ' kW' : '—')}</tr>`).join('')}</table>
     <div>${esc(charges())}</div>
     ${j.audi ? `<h2>Jauge</h2><div>Auditorium : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR (72 places sur chaises à plat)</div>` : `<h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}</div>`}
     </div><div>
