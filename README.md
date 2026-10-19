@@ -266,7 +266,12 @@ Puis ouvrir http://localhost:8766.
 
 ## Déploiement
 
-Le site est déployé sur **Vercel** en site statique (`vercel.json` force le builder statique). Le dossier `tools/` est exclu du déploiement (`.vercelignore`). Chaque `git push` sur `main` redéploie le site.
+Le site est déployé sur **Vercel** en site statique. Le dossier `tools/` est exclu du déploiement (`.vercelignore`). Chaque `git push` sur `main` redéploie le site.
+
+**Accès par mot de passe.** `middleware.js` s'exécute avant chaque fichier servi : sans connexion, on obtient une page de mot de passe (et un refus pour la maquette, les plans, les JSON et les photos des boîtiers). Seuls `icon.svg` et `manifest.webmanifest` restent publics. Une fois connecté, l'appareil le reste 60 jours (cookie) ; `/__logout` déconnecte. Les liens `#s=…` et `#asd=…` sont conservés après la connexion.
+- Le mot de passe se règle dans Vercel : *Settings → Environment Variables*, variable `SITE_PASSWORD` (Production et Preview), puis redéployer. Sans cette variable, le site est fermé (503).
+- Changer le mot de passe déconnecte tous les appareils.
+- En local, `python3 -m http.server` sert le site sans mot de passe (le middleware ne tourne que sur Vercel).
 
 ---
 
@@ -275,6 +280,7 @@ Le site est déployé sur **Vercel** en site statique (`vercel.json` force le bu
 | Fichier | Contenu |
 |---|---|
 | `index.html` | le visualiseur (Three.js) |
+| `middleware.js`, `package.json` | accès par mot de passe sur Vercel (voir Déploiement) |
 | `sw.js`, `manifest.webmanifest`, `icon.svg` | mode hors connexion et installation sur tablette |
 | `halle_ifc.glb` | la maquette 3D convertie depuis l'IFC (Draco, environ 4 Mo) |
 | `plan_scene.json` | le plan DXF calé sur la 3D (bâti, scénographie, équipements) |

@@ -1,0 +1,9 @@
+{
+  "name": "salle-3d",
+  "private": true,
+  "type": "module",
+  "description": "Site statique ; package.json sert seulement au middleware d'accès (middleware.js).",
+  "dependencies": {
+    "@vercel/functions": "^3.10.1"
+  }
+}

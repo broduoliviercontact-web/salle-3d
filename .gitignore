@@ -5,3 +5,4 @@ tools/work/
 *.obj
 *.mtl
 salle.glb
+node_modules/
