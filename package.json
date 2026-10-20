@@ -2,8 +2,14 @@
   "name": "salle-3d",
   "private": true,
   "type": "module",
-  "description": "Site statique ; package.json sert seulement au middleware d'accès (middleware.js).",
+  "description": "Site statique. package.json : dépendance du middleware d'accès (middleware.js) et tests des calculs (npm test).",
   "dependencies": {
     "@vercel/functions": "^3.10.1"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

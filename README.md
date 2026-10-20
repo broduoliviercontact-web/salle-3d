@@ -258,6 +258,17 @@ On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre 
 
 ---
 
+## Tests
+
+Les calculs qui touchent à la sécurité sont isolés dans `js/calc.js` (sans Three.js ni DOM) et testés par `tests/calc.test.mjs` :
+calepinage des praticables, flèche des cordons, charges du grill et des ponts, circuits (3 kW, prise double), adresses DMX (chevauchements, 512), durée des manœuvres.
+
+```bash
+npm test   # Node 20+, aucune dépendance à installer
+```
+
+Les tests tournent aussi sur GitHub à chaque push (onglet *Actions*). **Toute modification d'un de ces calculs passe par `js/calc.js` et un test.**
+
 ## Lancer en local
 
 ```bash
@@ -282,6 +293,8 @@ Le site est déployé sur **Vercel** en site statique. Le dossier `tools/` est e
 | Fichier | Contenu |
 |---|---|
 | `index.html` | le visualiseur (Three.js) |
+| `js/calc.js` | les calculs purs (charges, circuits, DMX, praticables…), importés par `index.html` |
+| `tests/` | les tests de ces calculs (`npm test`) |
 | `middleware.js`, `package.json` | accès par mot de passe sur Vercel (voir Déploiement) |
 | `sw.js`, `manifest.webmanifest`, `icon.svg` | mode hors connexion et installation sur tablette |
 | `halle_ifc.glb` | la maquette 3D convertie depuis l'IFC (Draco, environ 4 Mo) |
