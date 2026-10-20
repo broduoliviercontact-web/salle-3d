@@ -82,6 +82,7 @@
   <h2>Ajouter</h2>
   <div class="row"><button id="addBtn" class="grow on" title="Catalogue des éléments 3D">＋ Ajouter un élément…</button></div>
   <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Échap = fin">Tracer Vauban</button></div>
+  <div class="row"><button id="poteletDraw" class="grow" title="Potelets REXO100CHC + cordons chanvre CI2C (2 m). Clic = départ, chaque clic pose une ligne (écart réparti à égalité, au plus l'écart max) ; clic sur le 1er potelet = boucle fermée ; Échap = fin">Tracer potelets</button><label title="Écart maximal entre deux potelets (axe à axe) ; le cordon CI2C fait 2 m">écart ≤ <input type="number" id="potGap" value="2" min="0.5" max="2" step="0.05" style="width:56px"> m</label></div>
   <div class="row"><button id="trussDraw" class="grow" title="Clic = départ puis chaque clic pose un pont (longueurs au 0,5 m, angles à 90° avec cube d'angle) ; Échap = fin">Tracer des ponts</button><select id="trussSeries" title="Série de pont"><option value="truss30">290</option><option value="truss40">390</option><option value="truss30t">290 triangle</option></select> à <input type="number" id="trussH" value="6" step="0.5" min="0" style="width:52px"> m</div>
   <div class="row"><label class="cb"><input type="checkbox" id="hoistAuto" checked> Moteurs auto</label> tous les ≤ <input type="number" id="hoistSpan" value="6" step="0.5" min="2" style="width:48px"> m</div>
   <div class="row">Capacité moteur <input type="number" id="hoistCap" value="500" step="250" min="250" style="width:62px"> kg <button id="hoistBtn" title="Replace les moteurs du pont sélectionné (après l'avoir modifié)">Replacer</button></div>
@@ -351,9 +352,9 @@ addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'n
 // --- éléments de scène ---
 const ray = new THREE.Raycaster();
 const props = new THREE.Group(); props.name = 'props'; scene.add(props);
-const COLORS = { truss30t:0xc9ced6, truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a, patience:0x7a1420, polichinelle:0xf2f2f2, conque:0xb08a5a, dli230:0x111214, dli430:0x111214, as40:0x111214, at40:0x111214, xt1:0x111214, xt22:0x111214 };
-const LABELS = { truss30t:'Pont alu triangulaire 290', truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne', patience:'Patience motorisée (rideau d\'avant-scène)', polichinelle:'Écran polichinelle 9,6 × 6 m', conque:'Décor d\'orchestre mobile (conque)', dli230:'Fohhn DLI-230 mobile (15,5 kg)', dli430:'Fohhn DLI-430 (29,3 kg)', as40:'Fohhn AS-40 sub 18" (40 kg)', at40:'Fohhn AT-40 point central (24 kg)', xt1:'Fohhn XT-1 nez de scène (7 kg)', xt22:'Fohhn XT-22 retour (13 kg)' };
-const DEFAULT = { truss30t:[3, 0.29, 0.29], tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29, 2], tcorner40:[0.39, 0.39, 0.39, 2], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8], patience:[13.8, 0.3, 9.5, 1], polichinelle:[9.6, 0.1, 6, 1], conque:[1.46, 0.6, 4.52], dli230:[0.45, 0.45, 2.36], dli430:[0.133, 0.128, 4.316], as40:[0.506, 0.606, 0.772], at40:[0.381, 0.421, 0.591], xt1:[0.196, 0.24, 0.381], xt22:[0.323, 0.291, 0.511] };
+const COLORS = { truss30t:0xc9ced6, truss30:0xc9ced6, truss40:0xc9ced6, tcorner30:0xc9ced6, tcorner40:0xc9ced6, tower:0xc9ced6, hoist:0x3a3f47, perche:0x8a9099, pc1k:0x30343c, sx713:0x30343c, sx654:0x30343c, lyreprof:0x30343c, atomic:0x30343c, fog:0x30343c, vauban:0xb8bcc2, potelet:0xd9dde2, cordon:0xc8a96e, defender:0xf2c200, defender_c:0xf2c200, syva:0x26282c, scene_fip:0x5b4636, lyre:0x30343c, par:0x30343c, led:0x111318, crash:0x8a9099, ks28:0x26282c, ks28x2:0x26282c, l2d:0x26282c, kara2:0x26282c, x15:0x26282c, x15p:0x26282c, scene_m:0x5b4636, grill:0x8e99a6, vch30:0x2b2d31, vch30x2:0x2b2d31, vtl218:0x2b2d31, scene:0x5b4636, prat:0x6b5440, regie:0x2f5d8a, enceinte:0x222222, ecran:0xeeeeee, perso:0xf0a53a, patience:0x7a1420, polichinelle:0xf2f2f2, conque:0xb08a5a, dli230:0x111214, dli430:0x111214, as40:0x111214, at40:0x111214, xt1:0x111214, xt22:0x111214 };
+const LABELS = { truss30t:'Pont alu triangulaire 290', truss30:'Pont alu carré 290', truss40:'Pont alu carré 390', tcorner30:'Cube d\'angle 290', tcorner40:'Cube d\'angle 390', tower:'Tour ground support (290)', hoist:'Moteur de levage D8+ 500 kg (24 kg)', perche:'Perche / porteuse Ø 48', pc1k:'PC 1 kW (5 kg)', sx713:'Découpe 713 SX (13 kg)', sx654:'Découpe 654 SX (10 kg)', lyreprof:'Lyre découpe Rivale / Esprite / Ghibli (28 kg)', atomic:'Stroboscope Atomic 3000 (6 kg)', fog:'Machine à brouillard Unique 2.1 (18 kg)', vauban:'Barrière Vauban', potelet:'Potelet à corde REXO100CHC', cordon:'Cordon chanvre CI2C 2 m', defender:'Passe-câbles Defender Mini', defender_c:'Angle Defender Mini C', syva:'Syva + Syva Low sur estrade (50 kg)', scene_fip:'Scène FIP 360', lyre:'Lyre (22 kg)', par:'PAR LED (5 kg)', led:'Écran LED', crash:'Barrière crash (35 kg)', ks28:'KS28 (79 kg)', ks28x2:'KS28 ×2 (158 kg)', l2d:'L2D + bumper/bar/clamp (205 kg)', kara2:'Kara II (26 kg)', x15:'X15 HiQ (21 kg)', x15p:'X15 HiQ sur pied (21 kg)', scene_m:'Scène machiniste 11×9', grill:'Grill S500 (machiniste)', vtl218:'PIKIP VTL218 (sub)', vch30:'PIKIP VCH30', vch30x2:'PIKIP VCH30 ×2 (60°)', scene:'Scène', prat:'Praticable Samia', regie:'Régie', enceinte:'Enceinte', ecran:'Écran', perso:'Personne', patience:'Patience motorisée (rideau d\'avant-scène)', polichinelle:'Écran polichinelle 9,6 × 6 m', conque:'Décor d\'orchestre mobile (conque)', dli230:'Fohhn DLI-230 mobile (15,5 kg)', dli430:'Fohhn DLI-430 (29,3 kg)', as40:'Fohhn AS-40 sub 18" (40 kg)', at40:'Fohhn AT-40 point central (24 kg)', xt1:'Fohhn XT-1 nez de scène (7 kg)', xt22:'Fohhn XT-22 retour (13 kg)' };
+const DEFAULT = { truss30t:[3, 0.29, 0.29], tower:[1.6, 1.6, 7, 5.5], truss30:[3, 0.29, 0.29], truss40:[3, 0.39, 0.39], tcorner30:[0.29, 0.29, 0.29, 2], tcorner40:[0.39, 0.39, 0.39, 2], hoist:[0.36, 0.26, 0.55], perche:[12, 0.05, 0.05], pc1k:[0.32, 0.36, 0.45], sx713:[0.36, 0.95, 0.55], sx654:[0.33, 0.8, 0.5], lyreprof:[0.46, 0.34, 0.76], atomic:[0.5, 0.3, 0.32], fog:[0.3, 0.56, 0.3], scene:[8, 8, 1.2], led:[4, 0.1, 2.5], vauban:[2.2, 0.44, 1.1], potelet:[0.32, 0.32, 0.98], cordon:[1.6, 0.03, 0.88], defender_c:[0.3, 0.3, 0.05, 1], defender:[5 * 1.005, 0.29, 0.05], syva:[1, 1, 3.15], lyre:[0.42, 0.3, 0.62], par:[0.25, 0.25, 0.3], crash:[1, 1.1, 1.2], ks28:[1.34, 0.7, 0.55], ks28x2:[1.34, 0.7, 1.1], l2d:[0.95, 0.62, 1.55], kara2:[0.733, 0.482, 0.252], x15:[0.58, 0.43, 0.375], x15p:[0.43, 0.375, 1.88], scene_m:[11, 9, 1.2], grill:[12.06, 10.77, 0.43], vtl218:[1.3, 0.775, 0.57], vch30:[0.68, 0.51, 0.387], vch30x2:[0.79, 0.51, 0.68], prat:[2,1,1], regie:[4,3,1.1], enceinte:[0.6,0.6,1.8], ecran:[6,0.1,3.4], perso:[0.5,0.3,1.8], patience:[13.8, 0.3, 9.5, 1], polichinelle:[9.6, 0.1, 6, 1], conque:[1.46, 0.6, 4.52], dli230:[0.45, 0.45, 2.36], dli430:[0.133, 0.128, 4.316], as40:[0.506, 0.606, 0.772], at40:[0.381, 0.421, 0.591], xt1:[0.196, 0.24, 0.381], xt22:[0.323, 0.291, 0.511] };
 
 // Enceinte PIKIP VCH30 (fiche technique) : coin trapézoïdal 680 l × 510 p, face 387 h, dos 120 h (courbure 30°), pavillon 90°×30°
 const VCH = { w:0.68, d:0.51, hf:0.387, hb:0.12 };
@@ -470,7 +471,7 @@ function buildX15p() {
     leg.position.set(Math.sin(a) * 0.25, 0.22, Math.cos(a) * 0.25); leg.rotation.set(Math.cos(a) * 0.9, 0, -Math.sin(a) * 0.9); out.push(leg); }
   return out;
 }
-const WEIGHT = { dli230:15.5, dli430:29.3, as40:40, at40:24, xt1:7, xt22:13, tower:115, hoist:24, tcorner30:6, tcorner40:9, pc1k:5, sx713:13, sx654:10, lyreprof:28, atomic:6, fog:18, vauban:16, syva:50, ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
+const WEIGHT = { dli230:15.5, dli430:29.3, as40:40, at40:24, xt1:7, xt22:13, tower:115, hoist:24, tcorner30:6, tcorner40:9, pc1k:5, sx713:13, sx654:10, lyreprof:28, atomic:6, fog:18, vauban:16, potelet:6.75, cordon:0.95, syva:50, ks28:79, ks28x2:158, l2d:205, kara2:26, x15:21, x15p:21, lyre:22, par:5, crash:35, prat:30 };
 // écran LED : dalles de 50 × 50 cm, ~8 kg et ~150 W en moyenne chacune (ordre de grandeur, selon le modèle loué)
 const dalles = o => Math.round(o.userData.dims[0] / 0.5) * Math.round(o.userData.dims[2] / 0.5);
 const MOD = 1.005, modules = o => Math.max(1, Math.round(o.userData.dims[0] / MOD)); // passe-câbles Defender Mini : modules de 1 005 mm, 6 kg
@@ -546,6 +547,25 @@ const buildDefenderC = () => [sector(C_RI, C_RO, 0.045, 0x161616), sector(C_RM -
 // barrière Vauban à pieds fixes (fiche HERMEQ MB0033) : cadre Ø 38,1 × 2 175 × 900 mm à 200 mm du sol (1,10 m en tout),
 // 14 barreaux Ø 12 × 820, 2 pieds en V (2 × 275 mm à 135°, empattement 437 mm), crochets mâles d'un côté ; pas d'accroche ≈ 2,20 m
 const VAUBAN_PITCH = 2.2;
+// potelet à corde VISO REXO100CHC (fiche du 06/03/2023) : inox chromé, base lestée Ø 320 × 50 mm, fût Ø 50 mm, 980 mm en tout, tête cylindrique, 6,75 kg
+// cordon VISO CI2C : chanvre torsadé Ø 28 mm, 2 m, mousquetons chromés, 0,95 kg ; accroché sous la tête (≈ 0,90 m)
+const POT_H = 0.98, ROPE_Y = 0.9, ROPE_L = 2;
+const chrome = () => new THREE.MeshStandardMaterial({ color:0xe2e6ec, metalness:0.55, roughness:0.28 }); // sans carte d'environnement, un vrai chrome (métal ≈ 1) rendrait noir
+function buildPotelet() {
+  const m = chrome(), cyl = (r0, r1, h, y, mat = m, seg = 24) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, seg), mat); o.position.y = y + h / 2; return o; };
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.005, 6, 16).rotateX(Math.PI / 2), m); ring.position.y = ROPE_Y;
+  return [cyl(0.158, 0.16, 0.008, 0, new THREE.MeshStandardMaterial({ color:0x1a1a1a, roughness:0.9 })), // caoutchouc
+    cyl(0.14, 0.16, 0.042, 0.008), cyl(0.025, 0.025, POT_H - 0.05 - 0.06, 0.05, m, 16), cyl(0.03, 0.03, 0.06, POT_H - 0.06), ring];
+}
+// flèche d'un cordon de longueur ROPE_L entre 2 accroches distantes de s (approximation parabolique : L ≈ s + 8f²/3s)
+const ropeSag = S => { const s = Math.max(0.05, S - 0.06); return s >= ROPE_L ? 0.01 : Math.min(ROPE_Y - 0.05, Math.sqrt(3 * s * (ROPE_L - s) / 8)); };
+function buildCordon(dims) { // dims[0] = écart axe à axe des 2 potelets ; origine au milieu, cordon le long de x
+  const S = dims[0], s = Math.max(0.05, S - 0.06), f = ropeSag(S), pts = [];
+  for (let i = 0; i <= 24; i++) { const x = -s / 2 + s * i / 24, u = 2 * x / s; pts.push(new THREE.Vector3(x, ROPE_Y - f * (1 - u * u), 0)); }
+  const rope = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.014, 8, false), new THREE.MeshStandardMaterial({ color:0xc8a96e, roughness:0.95 }));
+  const hooks = [-1, 1].map(k => { const h = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.06, 10).rotateZ(Math.PI / 2), chrome()); h.position.set(k * (s / 2 - 0.02), ROPE_Y - 0.01, 0); return h; });
+  return [rope, ...hooks];
+}
 function buildVauban() {
   const steel = new THREE.MeshStandardMaterial({ color:0xb8bcc2, metalness:0.6, roughness:0.4 }), W = 2.175, y0 = 0.2, H = 0.9, R = 0.12, out = [];
   const path = new THREE.CurvePath(), v = (x, y) => new THREE.Vector3(x, y, 0), corner = (cx, cy, a0) => path.add(new THREE.CatmullRomCurve3(new THREE.EllipseCurve(cx, cy, R, R, a0, a0 + Math.PI / 2, false).getPoints(6).map(p => v(p.x, p.y)))); // coins arrondis
@@ -735,7 +755,7 @@ function buildHP([w, d, h], wedge) {
   if (wedge) { const a = Math.PI / 2 - 55 * Math.PI / 180; g.rotation.x = -a; g.position.y = (h * Math.cos(a) + d * Math.sin(a)) / 2; } // retour : position moniteur à 55°
   return [g];
 }
-const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 // axe de l'Agora : à mi-distance des 2 rangées de piliers de la charpente métallique historique (IFC « CharpenteMétalliqueIsolee »,
 // pieds relevés au sol) : côté mezzanine sur le marquage jaune du DXF z = −9,52, côté verrière z = +15,20 ; piliers face à face tous les 10 m
@@ -1681,7 +1701,7 @@ function placeAsd(p) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
+    g.userData = { kind, dims }; g.name = kind === 'cordon' ? `${LABELS.cordon}` : kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -1703,7 +1723,7 @@ const CATALOG = [
   ['Son', ['dli230', 'dli430', 'as40', 'at40', 'xt1', 'xt22', 'l2d', 'kara2', 'ks28', 'ks28x2', 'x15', 'x15p', 'syva', 'vch30', 'vch30x2', 'vtl218', 'enceinte']],
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran', 'polichinelle']],
-  ['Sécurité et circulation', ['vauban', 'crash', 'defender']],
+  ['Sécurité et circulation', ['vauban', 'potelet', 'crash', 'defender']],
   ['Structures et levage', ['truss30', 'truss40', 'truss30t', 'tcorner30', 'tower', 'hoist', 'perche']],
   ['Divers', ['perso']],
 ];
@@ -1822,13 +1842,16 @@ preview.renderOrder = 4; preview.visible = false; scene.add(preview);
 let previewLab = null;
 function setCable(on, kind = 'defender') {
   if (cable?.placed && TRUSS[cable.kind] && $('hoistAuto').checked) placeHoists(cable.grp); // fin d'un tracé de ponts : moteurs auto
-  cable = on ? { start:null, heading:null, kind, grp:(kind === 'vauban' ? 'Ligne Vauban #' : TRUSS[kind] ? 'Ponts #' : 'Passe-câbles #') + Date.now().toString(36) } : null;
-  $('cableDraw').classList.toggle('on', on && kind === 'defender'); $('vaubanDraw').classList.toggle('on', on && kind === 'vauban'); $('trussDraw').classList.toggle('on', !!(on && TRUSS[kind])); ghostCube.visible = false; renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false; ghosts.forEach(g => g.visible = false);
+  cable = on ? { start:null, heading:null, kind, grp:(kind === 'vauban' ? 'Ligne Vauban #' : kind === 'potelet' ? 'Potelets #' : TRUSS[kind] ? 'Ponts #' : 'Passe-câbles #') + Date.now().toString(36) } : null;
+  $('cableDraw').classList.toggle('on', on && kind === 'defender'); $('vaubanDraw').classList.toggle('on', on && kind === 'vauban'); $('poteletDraw').classList.toggle('on', on && kind === 'potelet'); $('trussDraw').classList.toggle('on', !!(on && TRUSS[kind])); ghostCube.visible = false; renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false; ghosts.forEach(g => g.visible = false);
   if (previewLab) { scene.remove(previewLab); previewLab = null; }
   if (on) { setMeasure(false); select(null); }
 }
 $('cableDraw').onclick = () => setCable(cable?.kind !== 'defender');
 $('vaubanDraw').onclick = () => setCable(cable?.kind !== 'vauban', 'vauban');
+$('poteletDraw').onclick = () => setCable(cable?.kind !== 'potelet', 'potelet');
+const potGap = () => THREE.MathUtils.clamp(+$('potGap').value || 2, 0.5, ROPE_L);
+const potClose = p => cable.kind === 'potelet' && cable.first && cable.heading !== null && Math.hypot(p.x - cable.first.x, p.z - cable.first.z) < 0.4; // retour au 1er potelet : boucle
 $('trussDraw').onclick = () => setCable(!TRUSS[cable?.kind], $('trussSeries').value);
 const ghostCube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), preview.material); ghostCube.renderOrder = 4; ghostCube.visible = false; scene.add(ghostCube);
 function floorPoint(e) { // point du sol sous la souris
@@ -1844,7 +1867,8 @@ function segTo(p) {
   const pieces = [];
   const T = TRUSS[cable.kind];
   if (T && cable.heading === null && cable.fromRot != null) { a = cable.fromRot + Math.round((a - cable.fromRot) / (Math.PI / 2)) * (Math.PI / 2); start = s.clone().addScaledVector(heading(a), T.S / 2); } // départ d'un cube : perpendiculaire à ses faces
-  else if (cable.heading === null || cable.kind === 'vauban') { if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
+  else if (cable.kind === 'potelet' && potClose(p)) { p = cable.first; a = Math.atan2(-(p.z - s.z), p.x - s.x); } // fermeture exacte, sans magnétisme
+  else if (cable.heading === null || cable.kind === 'vauban' || cable.kind === 'potelet') { if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
   else if (T) { // ponts : tout droit (raccord) ou angle à 90° avec un cube d'angle entre les 2 ponts
     let d = a - cable.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); k = THREE.MathUtils.clamp(Math.round(d / (Math.PI / 2)), -1, 1); a = cable.heading + k * Math.PI / 2;
     if (k) { const c = s.clone().addScaledVector(heading(cable.heading), T.S / 2); pieces.push({ pos:c, rot:cable.heading, corner:true }); start = c.clone().addScaledVector(heading(a), T.S / 2); }
@@ -1860,20 +1884,24 @@ function segTo(p) {
       }
       start = c.clone().add(r); }
   }
-  const P = cable.kind === 'vauban' ? VAUBAN_PITCH : T ? 0.5 : MOD, dir = heading(a), n = Math.max(1, Math.round(new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir) / P));
+  const dir = heading(a);
+  if (cable.kind === 'potelet') { // longueur libre ; écart réparti à égalité, au plus l'écart max
+    const L = Math.max(0.3, new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir)), n = Math.max(1, Math.ceil(L / potGap() - 1e-6));
+    return { a, n, dir, start, pieces, P:L / n, end:start.clone().addScaledVector(dir, L) }; }
+  const P = cable.kind === 'vauban' ? VAUBAN_PITCH : T ? 0.5 : MOD, n = Math.max(1, Math.round(new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir) / P));
   return { a, n, dir, start, pieces, P, end:start.clone().addScaledVector(dir, n * P) };
 }
 renderer.domElement.addEventListener('pointermove', e => {
   if (!cable?.start) return;
   const p = floorPoint(e); if (!p) return;
-  const { a, n, dir, start, pieces, P } = segTo(p), L = n * P, vb = cable.kind === 'vauban', T = TRUSS[cable.kind], H = T ? trussY() - cable.start.y : 0;
+  const { a, n, dir, start, pieces, P } = segTo(p), L = n * P, pt = cable.kind === 'potelet', vb = cable.kind === 'vauban' || pt, T = TRUSS[cable.kind], H = T ? trussY() - cable.start.y : 0;
   if (T) { preview.scale.set(L, T.S / 0.05, T.S / 0.29); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + H + T.S / 2);
     ghostCube.visible = !!pieces.length; if (pieces.length) { ghostCube.scale.setScalar(T.S); ghostCube.position.copy(pieces[0].pos).setY(cable.start.y + H + T.S / 2); } }
-  else { preview.scale.set(L, vb ? 22 : 1, vb ? 1.5 : 1); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + (vb ? 0.55 : 0.03)); }
+  else { preview.scale.set(L, pt ? 18 : vb ? 22 : 1, pt ? 0.2 : vb ? 1.5 : 1); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + (pt ? 0.45 : vb ? 0.55 : 0.03)); }
   preview.rotation.y = a; preview.visible = true;
   if (!T) while (ghosts.length < pieces.length) { const g = new THREE.Group(); buildDefenderC().forEach(m => { m.material = preview.material; g.add(m); }); g.renderOrder = 4; scene.add(g); ghosts.push(g); }
   if (!T) ghosts.forEach((g, i) => { const pc = pieces[i]; g.visible = !!pc; if (pc) { g.position.copy(pc.pos).setY(cable.start.y + 0.02); g.rotation.y = pc.rot; } });
-  const txt = T ? `${pieces.length ? 'cube d\'angle + ' : ''}pont ${fr(L, 1)} m (${trussPartsTxt(L)}) à ${fr(H, 1)} m` : (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + `${n} ${vb ? 'barrière' : 'module'}${n > 1 ? 's' : ''} · ${fr(L, 2)} m`;
+  const txt = T ? `${pieces.length ? 'cube d\'angle + ' : ''}pont ${fr(L, 1)} m (${trussPartsTxt(L)}) à ${fr(H, 1)} m` : (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + (pt ? `${potClose(p) ? 'boucle · ' : ''}${n} cordon${n > 1 ? 's' : ''} · écart ${fr(P, 2)} m · ${fr(L, 2)} m` : `${n} ${vb ? 'barrière' : 'module'}${n > 1 ? 's' : ''} · ${fr(L, 2)} m`);
   if (previewLab?.userData.txt !== txt) { if (previewLab) scene.remove(previewLab); previewLab = label3d(txt, '#8a6d00', 320); previewLab.userData.txt = txt; scene.add(previewLab); }
   previewLab.position.copy(preview.position).setY(cable.start.y + (vb ? 1.6 : T ? H + T.S + 0.5 : 0.6));
 });
@@ -1927,6 +1955,13 @@ function cableClick(e) {
   if (T) { const o = makeProp(cable.kind, [n * 0.5, T.S, T.S]); o.userData.grp = cable.grp; o.position.copy(start).addScaledVector(dir, n * 0.25).setY(TY); o.rotation.y = a;
     if (cable.joinCube) { bumpCube(cable.joinCube); cable.joinCube = null; select(null); } // le cube de départ gagne une direction
     if (joinEnd) { const c = joinEnd.cube ? joinEnd.cube : splitTruss(joinEnd); mergeGrp(c.userData.grp, cable.grp); c.userData.grp = cable.grp; bumpCube(c); select(null); setCable(false); return; } }
+  else if (cable.kind === 'potelet') { // potelets aux 2 bouts et tous les P, cordon entre chaque paire ; l'angle partage son potelet
+    const close = potClose(p), P = start.distanceTo(end.clone().setY(start.y)) / n;
+    const post = q => { const o = makeProp('potelet', DEFAULT.potelet); o.userData.grp = cable.grp; o.position.copy(q).setY(y); o.rotation.y = a; };
+    if (!cable.first) { cable.first = start.clone().setY(y); post(start); }
+    for (let i = 1; i <= n; i++) { if (i < n || !close) post(start.clone().addScaledVector(dir, i * P));
+      const c = makeProp('cordon', [P, 0.03, ROPE_Y]); c.userData.grp = cable.grp; c.position.copy(start).addScaledVector(dir, (i - 0.5) * P).setY(y); c.rotation.y = a; }
+    if (close) { setCable(false); return; } }
   else if (cable.kind === 'vauban') for (let i = 0; i < n; i++) { // une barrière par pas de 2,20 m
     const o = makeProp('vauban', DEFAULT.vauban); o.userData.grp = cable.grp; o.position.copy(start).addScaledVector(dir, (i + 0.5) * VAUBAN_PITCH).setY(y); o.rotation.y = a; }
   else { const o = makeProp('defender', [n * MOD, 0.29, 0.05]); o.userData.grp = cable.grp;
@@ -2319,7 +2354,9 @@ async function planSvg(whole = false) {
     if (g.userData.kind === 'grill' && MACH) { // grill : axes des poutres + emprise en pointillés, sans remplissage (la scène reste visible dessous)
       out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="none" stroke="#555" stroke-width="0.03" stroke-dasharray="0.3 0.2"/>`);
       for (const [a, b] of grillLines()) { const [p, q] = [a, b].map(([x, z]) => toPlan(g, x, z)); out.push(`<line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" stroke="#2c3e50" stroke-width="0.12" stroke-opacity="0.8"/>`); }
-    } else out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.04"/>`);
+    } else if (g.userData.kind === 'potelet') { const [cx, cy] = toPlan(g, 0, 0); out.push(`<circle cx="${f(cx)}" cy="${f(cy)}" r="0.16" fill="#9aa3b2" stroke="#000" stroke-width="0.03"/>`); continue; }
+    else if (g.userData.kind === 'cordon') { const [p1, p2] = [toPlan(g, -w / 2, 0), toPlan(g, w / 2, 0)]; out.push(`<line x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(p2[0])}" y2="${f(p2[1])}" stroke="#a0783c" stroke-width="0.06"/>`); continue; }
+    else out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.04"/>`);
     if (g.userData.asd) { // scène ASD : plateaux, escaliers et garde-corps
       const a = g.userData.asd, lp = (x, z) => toPlan(g, z - a.D / 2, -(x - a.W / 2)), pts = v => v.map(q => q.map(f).join(',')).join(' ');
       for (const q of a.plats) out.push(`<polygon points="${pts(q.p.map(([x, z]) => lp(x, z)))}" fill="none" stroke="#3a2a1a" stroke-width="0.02"/>`);
@@ -2523,7 +2560,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
+const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', potelet:'SETUP_DIVERS', cordon:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
 const DXF_COLOR = { TERMINAUX_AU:3, SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
