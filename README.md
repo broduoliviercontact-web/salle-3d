@@ -4,7 +4,7 @@ Visualiseur 3D de la halle des Grandes Serres (Pantin), dans le navigateur, pour
 
 **En ligne : https://salle-3d-tools.vercel.app**
 
-Aucune installation : tout tient dans `index.html`, avec Three.js chargé depuis un CDN.
+Aucune installation ni compilation : `index.html` et ses modules (`js/`, `css/`), avec Three.js chargé depuis un CDN.
 
 ---
 
@@ -21,10 +21,10 @@ Aucune installation : tout tient dans `index.html`, avec Three.js chargé depuis
 ### Ajouter des éléments
 Le bouton **＋ Ajouter un élément…** ouvre le **catalogue** : les éléments sont rangés par catégorie (Scène et praticables, Son, Lumière, Vidéo, Sécurité et circulation, Divers), chacun avec une **vignette 3D générée à partir de son modèle**, ses dimensions et son poids. Une recherche filtre la liste (sans tenir compte des accents ; Entrée ajoute le premier résultat). Un clic pose l'élément au centre de la vue ; ses dimensions se règlent ensuite avec L / P / H. Les **tracés** (passe-câbles, Vauban) et les **installations** (setup du machiniste, concert 05/12, FIP 360) restent dans le panneau.
 
-**Ajouter un nouvel objet au catalogue** (dans `index.html`) :
-1. écrire sa fonction de modèle 3D `buildXxx(dims)` (origine au sol, face avant vers +z) et l'ajouter à `BUILD` ;
-2. renseigner `LABELS`, `DEFAULT` (L × P × H en m), et si besoin `COLORS`, `WEIGHT`, `POWER`, `DXF_LAYER`, `COVER` ;
-3. ajouter son identifiant dans `CATALOG`, dans la bonne catégorie. La vignette se génère toute seule.
+**Ajouter un nouvel objet au catalogue** :
+1. dans `js/models.js`, écrire sa fonction de modèle 3D `export function buildXxx(dims)` (origine au sol, face avant vers +z), et renseigner `LABELS`, `DEFAULT` (L × P × H en m), et si besoin `COLORS`, `WEIGHT` ;
+2. dans `index.html`, l'importer (ligne `import … from './js/models.js'`), l'ajouter à `BUILD`, et si besoin à `POWER`, `DXF_LAYER`, `COVER` ;
+3. ajouter son identifiant dans `CATALOG` (`index.html`), dans la bonne catégorie. La vignette se génère toute seule.
 
 **Potelets à corde** : le bouton **Tracer potelets** pose des files de potelets VISO **REXO100CHC** (inox chromé, base Ø 320 mm, 980 mm, 6,75 kg) reliés par des cordons en chanvre **CI2C** (Ø 28 mm, 2 m, 0,95 kg). Clic = départ, puis chaque clic pose une ligne droite de longueur libre : l'écart entre potelets est réparti à égalité sur la ligne, sans dépasser l'**écart max** réglé à côté du bouton (2 m par défaut, la longueur du cordon). Un angle partage son potelet ; cliquer sur le premier potelet ferme la boucle ; Échap termine. Le cordon pend d'autant plus que les potelets sont proches (flèche calculée pour 2 m de corde). Potelets et cordons sont comptés dans la fiche setup, dessinés sur le plan 2D (rond / trait) et exportés dans le DXF (calque `SETUP_DIVERS`). Le potelet seul est aussi dans le catalogue (Sécurité et circulation).
 
@@ -292,7 +292,9 @@ Le site est déployé sur **Vercel** en site statique. Le dossier `tools/` est e
 
 | Fichier | Contenu |
 |---|---|
-| `index.html` | le visualiseur (Three.js) |
+| `index.html` | le visualiseur (Three.js) : interface, scène, outils, exports |
+| `css/app.css` | les styles de l'interface |
+| `js/models.js` | les modèles 3D du catalogue et leurs données (libellés, dimensions, couleurs, poids) |
 | `js/calc.js` | les calculs purs (charges, circuits, DMX, praticables…), importés par `index.html` |
 | `tests/` | les tests de ces calculs (`npm test`) |
 | `middleware.js`, `package.json` | accès par mot de passe sur Vercel (voir Déploiement) |
