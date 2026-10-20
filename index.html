@@ -179,6 +179,7 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
+import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf } from './js/calc.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -549,7 +550,7 @@ const buildDefenderC = () => [sector(C_RI, C_RO, 0.045, 0x161616), sector(C_RM -
 const VAUBAN_PITCH = 2.2;
 // potelet à corde VISO REXO100CHC (fiche du 06/03/2023) : inox chromé, base lestée Ø 320 × 50 mm, fût Ø 50 mm, 980 mm en tout, tête cylindrique, 6,75 kg
 // cordon VISO CI2C : chanvre torsadé Ø 28 mm, 2 m, mousquetons chromés, 0,95 kg ; accroché sous la tête (≈ 0,90 m)
-const POT_H = 0.98, ROPE_Y = 0.9, ROPE_L = 2;
+const POT_H = 0.98; // ROPE_Y, ROPE_L, ropeSag : js/calc.js
 const chrome = () => new THREE.MeshStandardMaterial({ color:0xe2e6ec, metalness:0.55, roughness:0.28 }); // sans carte d'environnement, un vrai chrome (métal ≈ 1) rendrait noir
 function buildPotelet() {
   const m = chrome(), cyl = (r0, r1, h, y, mat = m, seg = 24) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, seg), mat); o.position.y = y + h / 2; return o; };
@@ -557,8 +558,6 @@ function buildPotelet() {
   return [cyl(0.158, 0.16, 0.008, 0, new THREE.MeshStandardMaterial({ color:0x1a1a1a, roughness:0.9 })), // caoutchouc
     cyl(0.14, 0.16, 0.042, 0.008), cyl(0.025, 0.025, POT_H - 0.05 - 0.06, 0.05, m, 16), cyl(0.03, 0.03, 0.06, POT_H - 0.06), ring];
 }
-// flèche d'un cordon de longueur ROPE_L entre 2 accroches distantes de s (approximation parabolique : L ≈ s + 8f²/3s)
-const ropeSag = S => { const s = Math.max(0.05, S - 0.06); return s >= ROPE_L ? 0.01 : Math.min(ROPE_Y - 0.05, Math.sqrt(3 * s * (ROPE_L - s) / 8)); };
 function buildCordon(dims) { // dims[0] = écart axe à axe des 2 potelets ; origine au milieu, cordon le long de x
   const S = dims[0], s = Math.max(0.05, S - 0.06), f = ropeSag(S), pts = [];
   for (let i = 0; i <= 24; i++) { const x = -s / 2 + s * i / 24, u = 2 * x / s; pts.push(new THREE.Vector3(x, ROPE_Y - f * (1 - u * u), 0)); }
@@ -834,7 +833,6 @@ function mainSource(q) {
   const s = props.children.filter(o => o.visible && /^scene/.test(o.userData.kind)).pop();
   return best || (s && s.localToWorld(new THREE.Vector3(s.userData.dims[0] / 2, s.userData.dims[2] + 1.5, 0)));
 }
-const fr = (v, n = 1) => v.toFixed(n).replace('.', ',');
 // délai = distance à la source principale / vitesse du son (sans marge Haas : à ajouter au réglage)
 // ponytail: recalcul toutes les 0,5 s, étiquette regénérée seulement si son texte change
 let lastDelay = 0;
@@ -876,20 +874,12 @@ function measureAt(hit) {
 // À remplacer par le plan d'accroche du machiniste s'il diffère.
 function rigging() {
   const gr = props.children.filter(o => o.visible && o.userData.kind === 'grill').pop(); if (!gr || !MACH) return null;
-  const { xs, zs } = MACH.grill, kgm = +$('trussKg').value || 0, hoist = +$('hoistKg').value || 0, pts = [];
-  const at = (x, z) => { let p = pts.find(q => Math.abs(q.x - x) < 0.01 && Math.abs(q.z - z) < 0.01); if (!p) pts.push(p = { x, z, kg:hoist }); return p; };
-  const X = [xs[0], xs[xs.length >> 1], xs[xs.length - 1]];
-  const lines = [...zs.map(z => X.map(x => at(x, z))), ...[X[0], X[2]].map(x => zs.map(z => at(x, z)))]; // 4 rangées + 2 côtés
-  for (const L of lines) for (let i = 1; i < L.length; i++) { const w = Math.hypot(L[i].x - L[i - 1].x, L[i].z - L[i - 1].z) * kgm / 2; L[i].kg += w; L[i - 1].kg += w; }
+  const { pts, lines } = gridRig(MACH.grill.xs, MACH.grill.zs, +$('trussKg').value || 0, +$('hoistKg').value || 0); // 4 rangées + 2 côtés (js/calc.js)
   // charges accrochées : sur la poutre la plus proche (≤ 1 m), réparties entre ses 2 palans voisins (bras de levier)
   const off = []; gr.updateMatrixWorld();
   for (const o of props.children) if (o.visible && isFlown(o) && weightOf(o) && !RIG_SELF.has(o.userData.kind) && !trussAssigned.has(o)) {
-    const p = gr.worldToLocal(o.getWorldPosition(new THREE.Vector3())); let best = null;
-    for (const L of lines) for (let i = 1; i < L.length; i++) {
-      const a = L[i - 1], b = L[i], dx = b.x - a.x, dz = b.z - a.z, t = THREE.MathUtils.clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz), 0, 1);
-      const d = Math.hypot(a.x + t * dx - p.x, a.z + t * dz - p.z); if (!best || d < best.d) best = { d, a, b, t };
-    }
-    if (best && best.d <= 1) { const w = weightOf(o); best.a.kg += w * (1 - best.t); best.b.kg += w * best.t; } else off.push(o.name);
+    const p = gr.worldToLocal(o.getWorldPosition(new THREE.Vector3()));
+    if (!hangOnGrid(lines, p.x, p.z, weightOf(o))) off.push(o.name);
   }
   pts.forEach((p, i) => { p.n = i + 1; p.world = gr.localToWorld(new THREE.Vector3(p.x, 0, p.z)); });
   return { pts, off, total:pts.reduce((s, p) => s + p.kg, 0), max:+$('pointMax').value || Infinity };
@@ -958,9 +948,8 @@ function trussRig() {
   for (const run of trussRuns().values()) {
     const grp = run.segs[0].userData.grp, hs = props.children.filter(o => o.visible && (o.userData.kind === 'hoist' || o.userData.kind === 'tower') && grp && o.userData.grp === grp);
     if (!hs.length) continue;
-    const pts = hs.map(h => ({ h, kg:0, n:++n, cap:h.userData.kind === 'tower' ? 1000 : cap })), loads = [], S = TRUSS[run.segs[0].userData.kind].S, kgm = TRUSS[run.segs[0].userData.kind].kgm;
-    const share = (q, w) => { const by = pts.map(x => ({ x, d:Math.hypot(x.h.position.x - q.x, x.h.position.z - q.z) })).sort((u, v) => u.d - v.d);
-      if (by.length === 1 || by[0].d < 1e-3) { by[0].x.kg += w; return; } const [u, v] = by; u.x.kg += w * v.d / (u.d + v.d); v.x.kg += w * u.d / (u.d + v.d); };
+    const pts = hs.map(h => ({ h, x:h.position.x, z:h.position.z, kg:0, n:++n, cap:h.userData.kind === 'tower' ? 1000 : cap })), loads = [], S = TRUSS[run.segs[0].userData.kind].S, kgm = TRUSS[run.segs[0].userData.kind].kgm;
+    const share = (q, w) => shareNearest(pts, q.x, q.z, w); // 2 points d'accroche les plus proches (js/calc.js)
     for (const sg of run.segs) { const { a, d, L } = segEnds(sg), k = Math.max(1, Math.round(L / 0.5)); for (let i = 0; i < k; i++) share(a.clone().addScaledVector(d, (i + 0.5) * L / k), kgm * L / k); }
     for (const c of run.corners) share(c.position, weightOf(c));
     for (const o of props.children) { // charges accrochées sous ce pont (à moins de S/2 + 0,6 m de son axe)
@@ -1139,7 +1128,7 @@ $('bxPrev').onclick = () => boxStep(-1); $('bxNext').onclick = () => boxStep(1);
 // boîtier d'éclairage le plus proche : sur sa porteuse pour un appareil accroché (BECL de la même équipe), sinon le plus proche au plateau
 const LIGHTS = new Set(['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']);
 // circuits d'éclairage d'un boîtier : repères ADC lus sur sa plaque (prise double 16 A direct commandée), sinon C1… d'après le carnet
-const CIRC_W = 3000; // gradateur RVE 3D Concept 96 × 3 kW : 3 kW par circuit (la prise 16 A en supporterait 3,68)
+// CIRC_W (js/calc.js) : gradateur RVE 3D Concept 96 × 3 kW : 3 kW par circuit (la prise 16 A en supporterait 3,68)
 function circs(b) {
   const t = b.userData.term; if (t._c) return t._c;
   const named = [...new Set((t.img?.labels || []).map(l => l.t).filter(x => /^ADC-/.test(x)))], pr = t.detail?.prises || {};
@@ -1175,21 +1164,17 @@ function patchRows() {
   rows.sort((a, b) => zi(a) - zi(b) || b.o.position.z - a.o.position.z || a.o.position.x - b.o.position.x); // par équipe, de jardin à cour
   rows.forEach((r, i) => r.n = i + 1);
   // circuits : choix manuels d'abord, puis le premier circuit vide du boîtier, sinon partage d'une prise double (2 appareils, ≤ 3 kW)
-  const load = new Map(), K = (b, c) => b.userData.term.id + '/' + c, add = r => { const e = load.get(K(r.b, r.c)) || { n:0, W:0 }; e.n++; e.W += powerOf(r.o); load.set(K(r.b, r.c), e); };
-  rows.filter(r => r.b && r.c).forEach(add);
-  for (const r of rows) if (r.b && !r.c) { const n = circs(r.b).length, ok = c => { const e = load.get(K(r.b, c)); return !e || (e.n < 2 && e.W + powerOf(r.o) <= CIRC_W); };
-    let c = 1; while (c <= n && load.get(K(r.b, c))) c++; if (c > n) { c = 1; while (c <= n && !ok(c)) c++; } r.c = c; add(r); }
-  for (const r of rows) { const list = r.b ? circs(r.b) : [], e = r.b && load.get(K(r.b, r.c));
-    r.pc = list.length; r.cn = list[r.c - 1] || `C${r.c}`;
-    r.err = !r.b ? 'sans boîtier' : !list.length ? 'boîtier sans circuit connu' : r.c > list.length ? `le boîtier n'a que ${list.length} circuits` : e.n > 2 ? `${e.n} appareils sur ${r.cn} (prise double : 2 max)` : e.W > CIRC_W ? `${r.cn} chargé à ${fr(e.W / 1000, 2)} kW (gradateur 3 kW)` : ''; }
+  for (const r of rows) { r.box = r.b?.userData.term.id || null; r.nc = r.b ? circs(r.b).length : 0; r.W = powerOf(r.o); }
+  const load = assignCircuits(rows, CIRC_W); // js/calc.js
+  for (const r of rows) { const list = r.b ? circs(r.b) : [];
+    r.pc = list.length; r.cn = list[r.c - 1] || `C${r.c}`; r.err = circuitError(r, load, r.cn, CIRC_W); }
   // DMX : adresses manuelles d'abord, puis adressage auto dans l'ordre du patch (univers 1, sans chevauchement, on passe à l'univers suivant à 512)
   for (const r of rows) { const m = r.o.userData.dmx || {}; r.ch = m.ch || DMX_CH[r.o.userData.kind] || 1; r.u = m.a ? m.u || 1 : 0; r.a = m.a || 0; r.dmxManual = !!m.a; }
-  const occ = (u, a, ch, self) => rows.some(q => q !== self && q.a && q.u === u && a <= q.a + q.ch - 1 && q.a <= a + ch - 1);
-  for (const r of rows) if (!r.a) { let u = 1, a = 1; while (occ(u, a, r.ch, r) || a + r.ch - 1 > 512) { a++; if (a + r.ch - 1 > 512) { u++; a = 1; } } r.u = u; r.a = a; }
+  assignDmx(rows); // js/calc.js
   const becl = term.filter(b => b.userData.term.kind === 'BECL');
   for (const r of rows) { r.src = DIMMED.has(r.o.userData.kind) ? 'grad' : dmxSource(r, becl);
     if (!r.err && !r.src) r.err = `DMX U${r.u} : aucune sortie DMX ${r.bar ? 'sur cette porteuse' : 'au plateau'} ne porte cet univers`; }
-  for (const r of rows) if (!r.err) r.err = r.a + r.ch - 1 > 512 ? `DMX : dépasse 512 (${r.a} + ${r.ch} canaux)` : occ(r.u, r.a, r.ch, r) ? 'DMX : adresses qui se chevauchent' : '';
+  for (const r of rows) if (!r.err) r.err = dmxError(rows, r);
   return rows;
 }
 // empreinte DMX par défaut (canaux) ; ponytail: modes les plus courants, modifiable par appareil dans l'éditeur
@@ -1463,11 +1448,7 @@ function machState() {
   const pa = props.children.find(o => o.userData.kind === 'patience'), po = props.children.find(o => o.userData.kind === 'polichinelle');
   return { h, patience:pa ? pa.userData.dims[3] ?? 1 : null, ecran:po ? po.userData.dims[3] ?? 1 : null };
 }
-function cueTime(a, b) { // durée réelle d'une manœuvre a -> b (s) : l'élément le plus long
-  let t = 0; for (const [n, h] of Object.entries(b.h)) if (a.h[n] != null) t = Math.max(t, Math.abs(h - a.h[n]) / (VIT[n] || 0.15));
-  if (a.patience != null && b.patience != null) t = Math.max(t, Math.abs(b.patience - a.patience) / PAT_V);
-  if (a.ecran != null && b.ecran != null) t = Math.max(t, Math.abs(b.ecran - a.ecran) / ECR_V); return t;
-}
+const cueTime = (a, b) => cueTimeOf(a, b, VIT, PAT_V, ECR_V); // durée réelle d'une manœuvre a -> b (s) : l'élément le plus long (js/calc.js)
 const dur = t => t < 1 ? '—' : t < 60 ? `${Math.round(t)} s` : `${Math.floor(t / 60)} min ${String(Math.round(t % 60)).padStart(2, '0')}`;
 function cueWarnings(st) { // avec les charges actuelles : point le plus bas sous chaque tube, conque de scène portée par C1 / C2
   const rig = percheRig(), fy = plateauAU(), bars = namedBars(), cq = conque(), out = [], nm = o => o.userData.dims[3];
@@ -1614,16 +1595,6 @@ $('uiToggle').onclick = () => document.body.classList.toggle('noui');
 if (innerWidth < 760) document.body.classList.add('noui');
 // --- calepinage d'une scène en praticables 2 × 1 m : rangées de 2 m dans un sens, la bande restante dans l'autre ; garde la variante la plus économe ---
 // renvoie les praticables [x, z, largeur, profondeur] depuis le coin de la scène ; ceux de la bande finale peuvent dépasser si la cote n'est pas paire
-function pratLayout(W, D) {
-  const e = 1e-6, fill = (W, D) => {
-    const r = [], nx = Math.floor(W / 2 + e);
-    for (let i = 0; i < nx; i++) for (let z = 0; z < D - e; z++) r.push([i * 2, z, 2, 1]);
-    for (let x = nx * 2; x < W - e; x++) for (let z = 0; z < D - e; z += 2) r.push([x, z, 1, 2]);
-    return r;
-  };
-  const a = fill(W, D), b = fill(D, W).map(([x, z, w, d]) => [z, x, d, w]);
-  return a.length <= b.length ? a : b;
-}
 const PRAT_KINDS = new Set(['scene', 'scene_m', 'scene_fip', 'regie']); // éléments montés sur praticables 2 × 1
 function pratInfo(o) {
   if (!PRAT_KINDS.has(o?.userData.kind)) return '';
