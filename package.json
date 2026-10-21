@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Site statique. package.json : dépendance du middleware d'accès (middleware.js) et tests des calculs (npm test).",
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "@vercel/functions": "^3.10.1"
   },
   "scripts": {
