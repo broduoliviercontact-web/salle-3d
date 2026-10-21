@@ -26,6 +26,8 @@ Le bouton **＋ Ajouter un élément…** ouvre le **catalogue** : les élément
 2. dans `index.html`, l'importer (ligne `import … from './js/models.js'`), l'ajouter à `BUILD`, et si besoin à `POWER`, `DXF_LAYER`, `COVER` ;
 3. ajouter son identifiant dans `CATALOG` (`index.html`), dans la bonne catégorie. La vignette se génère toute seule.
 
+**Barrières Heras sur plots de lestage** : le bouton **Tracer Heras** pose des lignes de panneaux de clôture mobile **3,50 × 2,00 m** (cadre tube Ø 40, grillage soudé ; ≈ 20 kg, dimensions et poids du panneau standard à confirmer avec le loueur) sur des **plots plastique palettisables Heras 18 kg** (fiche D0203 : 767 mm de long, 160 mm de haut ; largeur ≈ 220 mm supposée). Chaque clic pose une ligne au pas de 3,50 m ; un plot à chaque jonction, partagé par les 2 panneaux voisins (et à chaque angle) ; magnétisme d'angle à 45°, Maj = angle libre ; Échap termine. Panneaux et plots sont comptés dans la fiche setup, dessinés sur le plan 2D et exportés dans le DXF (calque `SETUP_DIVERS`) ; le panneau seul et le plot seul sont aussi dans le catalogue.
+
 **Potelets à corde** : le bouton **Tracer potelets** pose des files de potelets VISO **REXO100CHC** (inox chromé, base Ø 320 mm, 980 mm, 6,75 kg) reliés par des cordons en chanvre **CI2C** (Ø 28 mm, 2 m, 0,95 kg). Clic = départ, puis chaque clic pose une ligne droite de longueur libre : l'écart entre potelets est réparti à égalité sur la ligne, sans dépasser l'**écart max** réglé à côté du bouton (2 m par défaut, la longueur du cordon). Un angle partage son potelet ; cliquer sur le premier potelet ferme la boucle ; Échap termine. Le cordon pend d'autant plus que les potelets sont proches (flèche calculée pour 2 m de corde). Potelets et cordons sont comptés dans la fiche setup, dessinés sur le plan 2D (rond / trait) et exportés dans le DXF (calque `SETUP_DIVERS`). Le potelet seul est aussi dans le catalogue (Sécurité et circulation).
 
 Une **scène** (ou un praticable, une régie, un écran, un écran LED, la scène FIP 360) se **redimensionne après coup** : quand elle est sélectionnée, des champs L / P / H apparaissent sous son nom ; elle garde sa place, son orientation, sa trappe et son groupe.
@@ -234,7 +236,7 @@ On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre 
 | Masquer la sélection | H |
 | Mesurer / vue public | M / V |
 | Tracer des passe-câbles | P (Échap pour finir) |
-| Tracer sans magnétisme d'angle (passe-câbles, Vauban, potelets) | maintenir Maj pendant le tracé |
+| Tracer sans magnétisme d'angle (passe-câbles, Vauban, Heras, potelets) | maintenir Maj pendant le tracé |
 | Supprimer | Suppr. Un élément de la maquette est masqué, pas effacé. |
 | Annuler / rétablir | ⌘Z / ⌘⇧Z (Ctrl+Z / Ctrl+Y sur PC) |
 | Désélectionner | Échap |

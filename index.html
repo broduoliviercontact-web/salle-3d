@@ -20,7 +20,7 @@
 
   <h2>Ajouter</h2>
   <div class="row"><button id="addBtn" class="grow on" title="Catalogue des éléments 3D">＋ Ajouter un élément…</button></div>
-  <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer Vauban</button></div>
+  <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer Vauban</button><button id="herasDraw" class="grow" title="Barrières Heras 3,50 × 2,00 m sur plots de lestage (un plot à chaque jonction, partagé par 2 panneaux). Clic = départ, chaque clic pose une ligne de panneaux ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer Heras</button></div>
   <div class="row"><button id="poteletDraw" class="grow" title="Potelets REXO100CHC + cordons chanvre CI2C (2 m). Clic = départ, chaque clic pose une ligne (écart réparti à égalité, au plus l'écart max) ; clic sur le 1er potelet = boucle fermée ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer potelets</button><label title="Écart maximal entre deux potelets (axe à axe) ; le cordon CI2C fait 2 m">écart ≤ <input type="number" id="potGap" value="2" min="0.5" max="2" step="0.05" style="width:56px"> m</label></div>
   <div class="row"><button id="trussDraw" class="grow" title="Clic = départ puis chaque clic pose un pont (longueurs au 0,5 m, angles à 90° avec cube d'angle) ; Échap = fin">Tracer des ponts</button><select id="trussSeries" title="Série de pont"><option value="truss30">290</option><option value="truss40">390</option><option value="truss30t">290 triangle</option></select> à <input type="number" id="trussH" value="6" step="0.5" min="0" style="width:52px"> m</div>
   <div class="row"><label class="cb"><input type="checkbox" id="hoistAuto" checked> Moteurs auto</label> tous les ≤ <input type="number" id="hoistSpan" value="6" step="0.5" min="2" style="width:48px"> m</div>
@@ -119,7 +119,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3 } from './js/calc.js';
-import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA } from './js/models.js'; // modèles 3D du catalogue
+import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH } from './js/models.js'; // modèles 3D du catalogue
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -364,7 +364,7 @@ function applyMach(o, v) {
   v = THREE.MathUtils.clamp(v, 0, 1); o.userData.dims[3] = +v.toFixed(3);
   o.traverse(c => { if (c.userData.half) c.scale.x = (1.43 + (c.userData.half - 1.43) * (1 - v)) / c.userData.half; if (c.userData.toile) c.scale.y = Math.max(0.01, v); });
 }
-const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, heras:buildHeras, plot_heras:buildPlotHeras, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 function placeMach() {
   const dz = AXE_AGORA - MACH.scene.c[1]; // scène recentrée entre les piliers ; le grill suit avec le même décalage
@@ -1301,7 +1301,7 @@ const CATALOG = [
   ['Son', ['dli230', 'dli430', 'as40', 'at40', 'xt1', 'xt22', 'l2d', 'kara2', 'ks28', 'ks28x2', 'x15', 'x15p', 'syva', 'vch30', 'vch30x2', 'vtl218', 'enceinte']],
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran', 'polichinelle']],
-  ['Sécurité et circulation', ['vauban', 'potelet', 'crash', 'defender']],
+  ['Sécurité et circulation', ['vauban', 'heras', 'plot_heras', 'potelet', 'crash', 'defender']],
   ['Structures et levage', ['truss30', 'truss40', 'truss30t', 'tcorner30', 'tower', 'hoist', 'perche']],
   ['Divers', ['perso']],
 ];
@@ -1420,14 +1420,15 @@ preview.renderOrder = 4; preview.visible = false; scene.add(preview);
 let previewLab = null;
 function setCable(on, kind = 'defender') {
   if (cable?.placed && TRUSS[cable.kind] && $('hoistAuto').checked) placeHoists(cable.grp); // fin d'un tracé de ponts : moteurs auto
-  cable = on ? { start:null, heading:null, kind, grp:(kind === 'vauban' ? 'Ligne Vauban #' : kind === 'potelet' ? 'Potelets #' : TRUSS[kind] ? 'Ponts #' : 'Passe-câbles #') + Date.now().toString(36) } : null;
-  $('cableDraw').classList.toggle('on', on && kind === 'defender'); $('vaubanDraw').classList.toggle('on', on && kind === 'vauban'); $('poteletDraw').classList.toggle('on', on && kind === 'potelet'); $('trussDraw').classList.toggle('on', !!(on && TRUSS[kind])); ghostCube.visible = false; renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false; ghosts.forEach(g => g.visible = false);
+  cable = on ? { start:null, heading:null, kind, grp:(kind === 'vauban' ? 'Ligne Vauban #' : kind === 'potelet' ? 'Potelets #' : kind === 'heras' ? 'Ligne Heras #' : TRUSS[kind] ? 'Ponts #' : 'Passe-câbles #') + Date.now().toString(36) } : null;
+  $('cableDraw').classList.toggle('on', on && kind === 'defender'); $('vaubanDraw').classList.toggle('on', on && kind === 'vauban'); $('poteletDraw').classList.toggle('on', on && kind === 'potelet'); $('herasDraw').classList.toggle('on', on && kind === 'heras'); $('trussDraw').classList.toggle('on', !!(on && TRUSS[kind])); ghostCube.visible = false; renderer.domElement.style.cursor = on ? 'crosshair' : ''; preview.visible = false; ghosts.forEach(g => g.visible = false);
   if (previewLab) { scene.remove(previewLab); previewLab = null; }
   if (on) { setMeasure(false); select(null); }
 }
 $('cableDraw').onclick = () => setCable(cable?.kind !== 'defender');
 $('vaubanDraw').onclick = () => setCable(cable?.kind !== 'vauban', 'vauban');
 $('poteletDraw').onclick = () => setCable(cable?.kind !== 'potelet', 'potelet');
+$('herasDraw').onclick = () => setCable(cable?.kind !== 'heras', 'heras');
 const potGap = () => THREE.MathUtils.clamp(+$('potGap').value || 2, 0.5, ROPE_L);
 const potClose = p => cable.kind === 'potelet' && cable.first && cable.heading !== null && Math.hypot(p.x - cable.first.x, p.z - cable.first.z) < 0.4; // retour au 1er potelet : boucle
 $('trussDraw').onclick = () => setCable(!TRUSS[cable?.kind], $('trussSeries').value);
@@ -1446,7 +1447,7 @@ function segTo(p) {
   const T = TRUSS[cable.kind];
   if (T && cable.heading === null && cable.fromRot != null) { a = cable.fromRot + Math.round((a - cable.fromRot) / (Math.PI / 2)) * (Math.PI / 2); start = s.clone().addScaledVector(heading(a), T.S / 2); } // départ d'un cube : perpendiculaire à ses faces
   else if (cable.kind === 'potelet' && potClose(p)) { p = cable.first; a = Math.atan2(-(p.z - s.z), p.x - s.x); } // fermeture exacte, sans magnétisme
-  else if (cable.heading === null || cable.kind === 'vauban' || cable.kind === 'potelet') { if ($('snap').checked && !cable.free) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
+  else if (cable.heading === null || cable.kind === 'vauban' || cable.kind === 'potelet' || cable.kind === 'heras') { if ($('snap').checked && !cable.free) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
   else if (T) { // ponts : tout droit (raccord) ou angle à 90° avec un cube d'angle entre les 2 ponts
     let d = a - cable.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); k = THREE.MathUtils.clamp(Math.round(d / (Math.PI / 2)), -1, 1); a = cable.heading + k * Math.PI / 2;
     if (k) { const c = s.clone().addScaledVector(heading(cable.heading), T.S / 2); pieces.push({ pos:c, rot:cable.heading, corner:true }); start = c.clone().addScaledVector(heading(a), T.S / 2); }
@@ -1466,7 +1467,7 @@ function segTo(p) {
   if (cable.kind === 'potelet') { // longueur libre ; écart réparti à égalité, au plus l'écart max
     const L = Math.max(0.3, new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir)), n = Math.max(1, Math.ceil(L / potGap() - 1e-6));
     return { a, n, dir, start, pieces, P:L / n, end:start.clone().addScaledVector(dir, L) }; }
-  const P = cable.kind === 'vauban' ? VAUBAN_PITCH : T ? 0.5 : MOD, n = Math.max(1, Math.round(new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir) / P));
+  const P = cable.kind === 'vauban' ? VAUBAN_PITCH : cable.kind === 'heras' ? HERAS_PITCH : T ? 0.5 : MOD, n = Math.max(1, Math.round(new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir) / P));
   return { a, n, dir, start, pieces, P, end:start.clone().addScaledVector(dir, n * P) };
 }
 // Maj enfoncée pendant un tracé : angle libre (sans le magnétisme à 45°) ; l'aperçu suit dès qu'on appuie ou relâche Maj
@@ -1478,17 +1479,17 @@ function cableMove(e) {
   if (!cable?.start) return;
   cableLast = { clientX:e.clientX, clientY:e.clientY }; cable.free = e.shiftKey;
   const p = floorPoint(e); if (!p) return;
-  const { a, n, dir, start, pieces, P } = segTo(p), L = n * P, pt = cable.kind === 'potelet', vb = cable.kind === 'vauban' || pt, T = TRUSS[cable.kind], H = T ? trussY() - cable.start.y : 0;
+  const { a, n, dir, start, pieces, P } = segTo(p), L = n * P, pt = cable.kind === 'potelet', hr = cable.kind === 'heras', vb = cable.kind === 'vauban' || pt || hr, T = TRUSS[cable.kind], H = T ? trussY() - cable.start.y : 0;
   if (T) { preview.scale.set(L, T.S / 0.05, T.S / 0.29); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + H + T.S / 2);
     ghostCube.visible = !!pieces.length; if (pieces.length) { ghostCube.scale.setScalar(T.S); ghostCube.position.copy(pieces[0].pos).setY(cable.start.y + H + T.S / 2); } }
-  else { preview.scale.set(L, pt ? 18 : vb ? 22 : 1, pt ? 0.2 : vb ? 1.5 : 1); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + (pt ? 0.45 : vb ? 0.55 : 0.03)); }
+  else { preview.scale.set(L, hr ? 41 : pt ? 18 : vb ? 22 : 1, hr ? 0.5 : pt ? 0.2 : vb ? 1.5 : 1); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + (hr ? 1.05 : pt ? 0.45 : vb ? 0.55 : 0.03)); }
   preview.rotation.y = a; preview.visible = true;
   if (!T) while (ghosts.length < pieces.length) { const g = new THREE.Group(); buildDefenderC().forEach(m => { m.material = preview.material; g.add(m); }); g.renderOrder = 4; scene.add(g); ghosts.push(g); }
   if (!T) ghosts.forEach((g, i) => { const pc = pieces[i]; g.visible = !!pc; if (pc) { g.position.copy(pc.pos).setY(cable.start.y + 0.02); g.rotation.y = pc.rot; } });
-  let txt = T ? `${pieces.length ? 'cube d\'angle + ' : ''}pont ${fr(L, 1)} m (${trussPartsTxt(L)}) à ${fr(H, 1)} m` : (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + (pt ? `${potClose(p) ? 'boucle · ' : ''}${n} cordon${n > 1 ? 's' : ''} · écart ${fr(P, 2)} m · ${fr(L, 2)} m` : `${n} ${vb ? 'barrière' : 'module'}${n > 1 ? 's' : ''} · ${fr(L, 2)} m`);
+  let txt = T ? `${pieces.length ? 'cube d\'angle + ' : ''}pont ${fr(L, 1)} m (${trussPartsTxt(L)}) à ${fr(H, 1)} m` : (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + (pt ? `${potClose(p) ? 'boucle · ' : ''}${n} cordon${n > 1 ? 's' : ''} · écart ${fr(P, 2)} m · ${fr(L, 2)} m` : (hr ? `${n} panneau${n > 1 ? 'x' : ''} Heras · ${n + (cable.heras ? 0 : 1)} plot${n + (cable.heras ? 0 : 1) > 1 ? 's' : ''} · ${fr(L, 2)} m` : `${n} ${vb ? 'barrière' : 'module'}${n > 1 ? 's' : ''} · ${fr(L, 2)} m`));
   if (cable.free && $('snap').checked && !T) txt += ' · angle libre';
   if (previewLab?.userData.txt !== txt) { if (previewLab) scene.remove(previewLab); previewLab = label3d(txt, '#8a6d00', 320); previewLab.userData.txt = txt; scene.add(previewLab); }
-  previewLab.position.copy(preview.position).setY(cable.start.y + (vb ? 1.6 : T ? H + T.S + 0.5 : 0.6));
+  previewLab.position.copy(preview.position).setY(cable.start.y + (hr ? 2.5 : vb ? 1.6 : T ? H + T.S + 0.5 : 0.6));
 }
 // hauteur (dessous) des ponts du tracé : celle du pont rejoint au départ, sinon le réglage
 const trussY = () => cable.Yabs ?? (cable.start.y + (+$('trussH').value || 0));
@@ -1548,6 +1549,11 @@ function cableClick(e) {
     for (let i = 1; i <= n; i++) { if (i < n || !close) post(start.clone().addScaledVector(dir, i * P));
       const c = makeProp('cordon', [P, 0.03, ROPE_Y]); c.userData.grp = cable.grp; c.position.copy(start).addScaledVector(dir, (i - 0.5) * P).setY(y); c.rotation.y = a; }
     if (close) { setCable(false); return; } }
+  else if (cable.kind === 'heras') { // un plot à chaque jonction (partagé par 2 panneaux, et à l'angle), un panneau par pas de 3,50 m
+    const plot = q => { const o = makeProp('plot_heras', DEFAULT.plot_heras); o.userData.grp = cable.grp; o.position.copy(q).setY(y); o.rotation.y = a; };
+    if (!cable.heras) { cable.heras = true; plot(start); }
+    for (let i = 1; i <= n; i++) { plot(start.clone().addScaledVector(dir, i * HERAS_PITCH));
+      const o = makeProp('heras', DEFAULT.heras); o.userData.grp = cable.grp; o.position.copy(start).addScaledVector(dir, (i - 0.5) * HERAS_PITCH).setY(y + 0.06); o.rotation.y = a; } }
   else if (cable.kind === 'vauban') for (let i = 0; i < n; i++) { // une barrière par pas de 2,20 m
     const o = makeProp('vauban', DEFAULT.vauban); o.userData.grp = cable.grp; o.position.copy(start).addScaledVector(dir, (i + 0.5) * VAUBAN_PITCH).setY(y); o.rotation.y = a; }
   else { const o = makeProp('defender', [n * MOD, 0.29, 0.05]); o.userData.grp = cable.grp;
@@ -1955,7 +1961,7 @@ async function planSvg(whole = false) {
       cote(out, g, [-w / 2, d / 2], [w / 2, d / 2], [0, 1], w);
       cote(out, g, [w / 2, d / 2], [w / 2, -d / 2], [1, 0], d);
     }
-    if (['vauban', 'defender_c', 'tcorner30', 'tcorner40', 'hoist'].includes(g.userData.kind)) continue; // une étiquette par barrière / angle surchargerait le plan : la légende les compte
+    if (['vauban', 'heras', 'plot_heras', 'defender_c', 'tcorner30', 'tcorner40', 'hoist'].includes(g.userData.kind)) continue; // une étiquette par barrière / angle surchargerait le plan : la légende les compte
     const [cx, cy] = toPlan(g, 0, 0), fs = f(Math.min(0.4, Math.max(0.18, Math.min(w, d) / 3)));
     out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${fs}" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="${f(fs / 5)}" paint-order="stroke"><tspan x="${f(cx)}" dy="0" font-weight="bold">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w} × ${d} m</tspan></text>`);
   }
@@ -2146,7 +2152,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', potelet:'SETUP_DIVERS', cordon:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
+const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', heras:'SETUP_DIVERS', plot_heras:'SETUP_DIVERS', potelet:'SETUP_DIVERS', cordon:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
 const DXF_COLOR = { TERMINAUX_AU:3, SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
