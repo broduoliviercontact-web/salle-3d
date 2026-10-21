@@ -1,7 +1,7 @@
 // Tests des calculs de sécurité de Salle 3D : `npm test` (Node 20+, aucune dépendance)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pratLayout, ropeSag, gridRig, hangOnGrid, shareNearest, assignCircuits, circuitError, assignDmx, dmxError, cueTime, CIRC_W, LIMITS, cleanDims, cleanProp, cleanDmx, rayToSegments, alignShifts, headingDeg, seatingLayout, PUBLIC_DEFAULTS } from '../js/calc.js';
+import { pratLayout, ropeSag, gridRig, hangOnGrid, shareNearest, assignCircuits, circuitError, assignDmx, dmxError, cueTime, CIRC_W, LIMITS, cleanDims, cleanProp, cleanDmx, rayToSegments, alignShifts, headingDeg, seatingLayout, PUBLIC_DEFAULTS, upFromWidth, widthFromUp, co38, exitCheck } from '../js/calc.js';
 
 const near = (a, b, eps = 1e-6, msg) => assert.ok(Math.abs(a - b) < eps, msg || `${a} ≠ ${b}`);
 const area = l => l.reduce((s, [, , w, d]) => s + w * d, 0);
@@ -194,4 +194,21 @@ test('banquet : tables Ø 1,80 de 10 au pas de 3,30 m ; cabaret : 6 chaises, auc
   assert.equal(C.tables.length, 4); assert.equal(C.seats.length, 24);
   const mine = C.seats.slice(0, 6); assert.ok(mine.every(([, sz]) => sz < tz + 0.9 * (PUBLIC_DEFAULTS.public_cabaret[1] / 2 + 0.3))); // aucune chaise pile côté scène
   assert.ok(mine.every(([sx, sz, a]) => { const fx = Math.sin(a), fz = Math.cos(a); return (tx - sx) * fx + (tz - sz) * fz > 0; })); // tournées vers la table
+});
+
+// --- issues de secours (CO 38, contrôle indicatif) ---
+test('unités de passage : 0,90 m = 1 UP, 1,40 m = 2 UP, puis 0,60 m par UP', () => {
+  assert.deepEqual([0.6, 0.9, 1.2, 1.4, 1.79, 1.8, 2.4, 3].map(upFromWidth), [0, 1, 1, 2, 2, 3, 4, 5]);
+  assert.deepEqual([1, 2, 3, 5].map(widthFromUp), [0.9, 1.4, 1.8, 3]);
+});
+test('CO 38 : nombre d\'issues et d\'UP selon l\'effectif', () => {
+  assert.deepEqual(co38(15), { exits:1, up:1 }); assert.deepEqual(co38(80), { exits:2, up:2 });
+  assert.deepEqual(co38(101), { exits:2, up:3 }); assert.deepEqual(co38(500), { exits:2, up:6 });
+  assert.deepEqual(co38(501), { exits:3, up:6 }); assert.deepEqual(co38(1061), { exits:4, up:11 }); assert.deepEqual(co38(2164), { exits:6, up:22 });
+});
+test('bilan : une issue obstruée ne compte plus', () => {
+  const ex = [{ w:1.8, blocked:false }, { w:1.4, blocked:true }, { w:2.4, blocked:false }];
+  const r = exitCheck(ex, 500); assert.equal(r.exits, 2); assert.equal(r.up, 7); assert.equal(r.blocked, 1); assert.equal(r.ok, true);
+  assert.equal(exitCheck(ex, 900).ok, false); // 3 issues requises
+  assert.equal(exitCheck([{ w:0.6 }, { w:0.6 }], 50).ok, false); // dégagements accessoires seulement
 });

@@ -164,3 +164,23 @@ export function seatingLayout(kind, W, D, p = PUBLIC_DEFAULTS[kind]) {
   }
   return { seats, tables, rows:nz, perRow:nx * nc };
 }
+
+// --- issues de secours et dégagements : règle générale ERP (art. CO 38), contrôle indicatif à valider avec le chargé de sécurité ---
+// unités de passage d'une issue de largeur w (m) : 1 UP = 0,90 m ; 2 UP = 1,40 m ; n UP = n × 0,60 m au-delà ; < 0,90 m : 0 UP (dégagement accessoire)
+export const upFromWidth = w => w >= 1.8 - 1e-9 ? Math.floor(w / 0.6 + 1e-9) : w >= 1.4 - 1e-9 ? 2 : w >= 0.9 - 1e-9 ? 1 : 0;
+export const widthFromUp = n => n <= 0 ? 0 : n === 1 ? 0.9 : n === 2 ? 1.4 : +(n * 0.6).toFixed(2);
+// effectif > 100 : 2 dégagements jusqu'à 500 personnes, + 1 par 500 ou fraction au-delà ; 1 UP par 100 personnes ou fraction, + 1 UP jusqu'à 500 personnes
+// effectif ≤ 100 : 2 dégagements de 1 UP (le cas « 1 de 2 UP + 1 accessoire » n'est pas modélisé)
+export function co38(n) {
+  n = Math.max(0, Math.ceil(n));
+  if (n === 0) return { exits:0, up:0 };
+  if (n <= 19) return { exits:1, up:1 };
+  if (n <= 100) return { exits:2, up:2 };
+  return { exits:2 + (n > 500 ? Math.ceil((n - 500) / 500) : 0), up:Math.ceil(n / 100) + (n <= 500 ? 1 : 0) };
+}
+// bilan : issues [{ w, blocked }] -> issues et UP utilisables (non obstruées) face aux besoins
+export function exitCheck(exits, effectif) {
+  const need = co38(effectif), free = exits.filter(e => !e.blocked), up = free.reduce((s, e) => s + upFromWidth(e.w), 0);
+  const counted = free.filter(e => upFromWidth(e.w) >= 1).length;
+  return { need, exits:counted, up, blocked:exits.filter(e => e.blocked).length, ok:counted >= need.exits && up >= need.up };
+}

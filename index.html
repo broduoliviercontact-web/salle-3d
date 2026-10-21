@@ -89,6 +89,8 @@
   <div id="trussInfo" class="info"></div>
   <div id="percheInfo" class="info"></div>
   <div id="jaugeInfo" class="info"></div>
+  <div class="row" title="Effectif à évacuer pour le contrôle des dégagements ; vide = jauge affichée ci-dessus">Effectif à évacuer <input type="number" id="evacN" min="0" step="10" placeholder="jauge" style="width:80px"> pers.</div>
+  <div id="exitInfo" class="info"></div>
   <div id="elecInfo" class="info"></div>
   <div class="row"><button id="fiche" class="grow">Fiche setup (PDF)</button></div>
 
@@ -127,8 +129,8 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS } from './js/calc.js';
-import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout } from './js/models.js'; // modèles 3D du catalogue
+import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
+import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue } from './js/models.js'; // modèles 3D du catalogue
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -373,7 +375,7 @@ function applyMach(o, v) {
   v = THREE.MathUtils.clamp(v, 0, 1); o.userData.dims[3] = +v.toFixed(3);
   o.traverse(c => { if (c.userData.half) c.scale.x = (1.43 + (c.userData.half - 1.43) * (1 - v)) / c.userData.half; if (c.userData.toile) c.scale.y = Math.max(0.01, v); });
 }
-const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, public_theatre:buildPublic('public_theatre'), public_cabaret:buildPublic('public_cabaret'), public_banquet:buildPublic('public_banquet'), heras:buildHeras, plot_heras:buildPlotHeras, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, issue:buildIssue, public_theatre:buildPublic('public_theatre'), public_cabaret:buildPublic('public_cabaret'), public_banquet:buildPublic('public_banquet'), heras:buildHeras, plot_heras:buildPlotHeras, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 function placeMach() {
   const dz = AXE_AGORA - MACH.scene.c[1]; // scène recentrée entre les piliers ; le grill suit avec le même décalage
@@ -1170,6 +1172,11 @@ function updateDossier() {
   } else $('rigInfo').textContent = '';
   const j = jauge();
   $('jaugeInfo').innerHTML = j.audi ? `<b>Jauge Auditorium</b> : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR <span style="opacity:.7">(maquette 3D : ${j.seats} sièges visibles, dont ${j.mov} amovibles)</span>` : `<b>Jauge Agora</b> : ${fr(AGORA_PUBLIC)} − ${fr(j.occ)} m² occupés = ${fr(j.pub)} m² → <b>${j.n.toLocaleString('fr')} pers.</b> (${fr(j.r)} m²/pers.)` + (j.seated ? `<br><b>Public assis</b> : <b>${j.seated.toLocaleString('fr')} places</b> (zones de public)` : '')
+  const xs = exitSummary(j);
+  $('exitInfo').innerHTML = !xs ? '<span style="opacity:.7">Dégagements : pose les issues de secours (catalogue, Sécurité) pour contrôler leur nombre et leur largeur.</span>'
+    : `<b>Dégagements</b> (CO 38, ${xs.eff.toLocaleString('fr')} pers.) : <span class="${xs.r.exits >= xs.r.need.exits ? '' : 'warn'}">${xs.r.exits} issue${xs.r.exits > 1 ? 's' : ''} / ${xs.r.need.exits} requise${xs.r.need.exits > 1 ? 's' : ''}</span> · <span class="${xs.r.up >= xs.r.need.up ? '' : 'warn'}">${xs.r.up} UP / ${xs.r.need.up} UP</span>`
+      + (xs.r.blocked ? `<br><span class="warn">⚠ obstruée${xs.r.blocked > 1 ? 's' : ''} : ${xs.st.filter(x => x.blocked).map(x => `${esc(x.e.name.replace('Issue de secours ', ''))} (par ${esc(x.by)})`).join(' ; ')}</span>` : '')
+      + `<br><span style="opacity:.7">Contrôle indicatif, à valider avec le chargé de sécurité.</span>`;
     + (j.n > DACAM_RDC ? `<br><span class="warn">⚠ plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : '');
   const c = cabling();
   $('elecInfo').innerHTML = c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind], kw = e.W / 1000;
@@ -1289,7 +1296,7 @@ function placeAsd(p) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = PUBLIC_KINDS.has(kind) ? (L => `${LABELS[kind]} · ${L.seats.length} places${L.tables.length ? ` · ${L.tables.length} tables` : ''}`)(publicLayout(g)) : kind === 'cordon' ? `${LABELS.cordon}` : kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
+    g.userData = { kind, dims }; g.name = PUBLIC_KINDS.has(kind) ? (L => `${LABELS[kind]} · ${L.seats.length} places${L.tables.length ? ` · ${L.tables.length} tables` : ''}`)(publicLayout(g)) : kind === 'issue' ? `Issue de secours ${fr(dims[0], 2)} m · ${upFromWidth(dims[0])} UP` : kind === 'cordon' ? `${LABELS.cordon}` : kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -1312,7 +1319,7 @@ const CATALOG = [
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran', 'polichinelle']],
   ['Public', ['public_theatre', 'public_cabaret', 'public_banquet']],
-  ['Sécurité et circulation', ['vauban', 'heras', 'plot_heras', 'potelet', 'crash', 'defender']],
+  ['Sécurité et circulation', ['issue', 'vauban', 'heras', 'plot_heras', 'potelet', 'crash', 'defender']],
   ['Structures et levage', ['truss30', 'truss40', 'truss30t', 'tcorner30', 'tower', 'hoist', 'perche']],
   ['Divers', ['perso']],
 ];
@@ -1395,8 +1402,26 @@ $('pubKind').onchange = () => { const o = selected; if (!o || !PUBLIC_KINDS.has(
 ['pub0', 'pub1', 'pub2', 'pub3'].forEach((id, i) => $(id).onchange = () => { const o = selected; if (!o || !PUBLIC_KINDS.has(o.userData.kind)) return;
   const lim = [[0.6, 6], [0.3, 3], [1, 40], [0, 5]][i], v = THREE.MathUtils.clamp(+$(id).value || 0, ...lim), d = [...o.userData.dims]; d[3 + i] = i === 2 ? Math.round(v) : v;
   pushUndo(); rebuildProp(o, d); });
+// issues de secours : la zone de dégagement devant chaque issue doit rester libre ; une emprise d'élément qui la recoupe la rend obstruée
+// ponytail: test sur les emprises (boîtes) au sol, pas sur la forme exacte ; une zone de public entière compte comme un obstacle
+function exitsState() {
+  const exits = props.children.filter(o => o.visible && o.userData.kind === 'issue'); if (!exits.length) return [];
+  const others = props.children.filter(o => o.visible && o.userData.kind !== 'issue').map(o => ({ o, b:new THREE.Box3().setFromObject(o) })); // une boîte par élément, calculée une fois
+  return exits.map(e => { e.updateMatrixWorld(); const [w, , , dep = 1.5] = e.userData.dims, inv = e.matrixWorld.clone().invert();
+    const blocker = others.find(({ b }) => { if (b.isEmpty() || b.max.y < e.position.y + 0.05 || b.min.y > e.position.y + 2) return false;
+      const c = [[b.min.x, b.min.z], [b.max.x, b.min.z], [b.min.x, b.max.z], [b.max.x, b.max.z]].map(([x, z]) => new THREE.Vector3(x, e.position.y, z).applyMatrix4(inv));
+      const lx = Math.min(...c.map(p => p.x)), hx = Math.max(...c.map(p => p.x)), lz = Math.min(...c.map(p => p.z)), hz = Math.max(...c.map(p => p.z));
+      return hx > -w / 2 && lx < w / 2 && hz > 0 && lz < dep; });
+    const z = e.children.find(m => m.name === 'dégagement'); z?.material.color.set(blocker ? 0xdc2626 : 0x22c55e);
+    return { e, w, blocked:!!blocker, by:blocker?.o.name }; });
+}
+function exitSummary(j = jauge()) {
+  const st = exitsState(); if (!st.length) return null;
+  const eff = +$('evacN').value || (j.audi ? j.n : j.n), r = exitCheck(st, eff);
+  return { st, eff, r };
+}
 // redimensionner l'élément sélectionné : on le reconstruit à la même place, en gardant trappe, puissance et groupe
-const RESIZABLE = new Set(['public_theatre', 'public_cabaret', 'public_banquet', 'truss30t', 'truss30', 'truss40', 'perche', 'tower', 'scene_m', 'scene', 'scene_fip', 'prat', 'regie', 'ecran', 'led', 'defender']);
+const RESIZABLE = new Set(['issue', 'public_theatre', 'public_cabaret', 'public_banquet', 'truss30t', 'truss30', 'truss40', 'perche', 'tower', 'scene_m', 'scene', 'scene_fip', 'prat', 'regie', 'ecran', 'led', 'defender']);
 function resizeSelected() {
   const o = selected; if (!o || !RESIZABLE.has(o.userData.kind)) return;
   const v = (id, min, max) => THREE.MathUtils.clamp(+$(id).value || min, min, max), half = x => Math.max(0.5, Math.round(x * 2) / 2);
@@ -2227,7 +2252,7 @@ $('fiche').onclick = async () => {
     <h2>Matériel</h2><table><tr><th>Désignation</th><th>Qté</th><th>Poids unit.</th><th>Poids total</th><th>Puissance</th></tr>
     ${[...mat].map(([k, e]) => `<tr>${td(esc(k))}${num(e.n)}${num(e.kg ? fr(e.kg, 2) + ' kg' : '—')}${num(e.kg ? fr(Math.round(e.kg * e.n * 10) / 10, 1) + ' kg' : '—')}${num(e.W ? fr(e.W / 1000) + ' kW' : '—')}</tr>`).join('')}</table>
     <div>${esc(charges())}</div>
-    ${j.audi ? `<h2>Jauge</h2><div>Auditorium : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR (72 places sur chaises à plat)</div>` : `<h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}${j.seated ? `<br>Public assis (zones de public) : <b>${j.seated.toLocaleString('fr')} places</b>.` : ''}</div>`}
+    ${j.audi ? `<h2>Jauge</h2><div>Auditorium : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR (72 places sur chaises à plat)</div>` : `<h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}${j.seated ? `<br>Public assis (zones de public) : <b>${j.seated.toLocaleString('fr')} places</b>.` : ''}</div>`}${(xs => xs ? `<h2>Dégagements</h2><div>Effectif ${xs.eff.toLocaleString('fr')} pers. (règle générale CO 38, contrôle indicatif à valider) : ${xs.r.exits} issue(s) utilisable(s) pour ${xs.r.need.exits} requise(s), ${xs.r.up} UP pour ${xs.r.need.up} UP requises${xs.r.ok ? '' : ' <span class="warn">⚠ insuffisant</span>'}.${xs.r.blocked ? ` <span class="warn">Obstruée(s) : ${xs.st.filter(x => x.blocked).map(x => esc(x.e.name) + ' par ' + esc(x.by)).join(' ; ')}</span>` : ''}</div>` : '')(exitSummary(j))}
     </div><div>
     ${r ? `<h2>Rigging — grill</h2><table><tr><th>Point</th><th>Charge</th><th></th></tr>${r.pts.map(p => `<tr>${td('P' + p.n)}${num(kg(p.kg))}${td(p.kg > r.max ? '<span class="warn">> ' + kg(r.max) + '</span>' : 'ok')}</tr>`).join('')}
       <tr>${td('<b>Total</b>')}${num('<b>' + kg(r.total) + '</b>')}${td('')}</tr></table><div>Hypothèses : poutres ${esc($('trussKg').value)} kg/m, palans ${esc($('hoistKg').value)} kg, limite ${kg(r.max)} par point, poids des poutres réparti par demi-travée.${r.off.length ? ` <span class="warn">Hors grill : ${r.off.map(esc).join(', ')}</span>` : ''}</div>` : ''}
@@ -2243,7 +2268,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', public_theatre:'SETUP_PUBLIC', public_cabaret:'SETUP_PUBLIC', public_banquet:'SETUP_PUBLIC', heras:'SETUP_DIVERS', plot_heras:'SETUP_DIVERS', potelet:'SETUP_DIVERS', cordon:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
+const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', issue:'SETUP_SECURITE', public_theatre:'SETUP_PUBLIC', public_cabaret:'SETUP_PUBLIC', public_banquet:'SETUP_PUBLIC', heras:'SETUP_DIVERS', plot_heras:'SETUP_DIVERS', potelet:'SETUP_DIVERS', cordon:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
 const DXF_COLOR = { TERMINAUX_AU:3, SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
