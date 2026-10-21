@@ -87,7 +87,13 @@
   <div class="row"><input id="cfgEvent" class="grow" placeholder="Événement (ex: FIP 360)" list="eventList"><input type="date" id="cfgDate" style="width:128px"></div>
   <datalist id="eventList"></datalist>
   <div class="row"><input id="cfgName" class="grow" placeholder="Nom du setup (ex: version A)"><button id="save">Sauver</button><button id="share" title="Copie un lien qui ouvre ce setup sur n'importe quel ordinateur">Lien</button></div>
-  <ul id="cfgs"></ul>
+  <div id="libStatus" class="libst"></div>
+  <ul id="libList"></ul>
+  <details id="localBox"><summary>Sur cet appareil <span id="localN"></span></summary>
+    <ul id="cfgs"></ul>
+    <div class="row"><button id="pushAll" class="grow" title="Envoie dans la bibliothèque partagée les setups de cet appareil qui n'y sont pas encore (même nom et même événement)">Envoyer dans la bibliothèque</button></div>
+  </details>
+  <details id="trashBox" hidden><summary>Corbeille de la bibliothèque <span id="trashN"></span></summary><ul id="trashList"></ul></details>
   <div class="row"><button id="compare" class="grow" disabled title="Coche deux setups dans la liste">Comparer les 2 setups cochés</button></div>
   <div class="row"><label class="cb"><input type="checkbox" id="svgGrill"> Grill et palans sur les plans 2D</label></div>
   <div class="row"><button id="dxf" class="grow">Export AutoCAD (DXF)</button><button id="plan2d">Aperçu 2D (SVG)</button></div>
@@ -1761,7 +1767,8 @@ tc.addEventListener('objectChange', () => {
 tc.addEventListener('mouseUp', () => carried = null);
 
 const store = { get() { try { return JSON.parse(localStorage.getItem('cfgs') || '{}'); } catch { return {}; } },
-                set(v) { try { localStorage.setItem('cfgs', JSON.stringify(v)); } catch {} } };
+                set(v) { try { localStorage.setItem('cfgs', JSON.stringify(v)); return true; } catch { alert('⚠ Impossible d\'enregistrer sur cet appareil (stockage plein ou bloqué par le navigateur). Utilise la bibliothèque partagée ou « Exporter JSON ».'); return false; } } };
+navigator.storage?.persist?.().catch(() => {}); // demande au navigateur de ne pas effacer les setups de cet appareil (Safari : 7 jours sans visite)
 let cfgs = store.get();
 // bibliothèque : setups rangés par événement (méta event / date / saved dans chaque setup), du plus proche au plus lointain
 const NO_EVENT = 'Sans événement';
@@ -1784,8 +1791,8 @@ function refreshCfgs() {
       upd.onclick = () => { if (!confirm(`Remplacer « ${n} » par l'état actuel de la salle ?`)) return;
         cfgs[n] = { ...snapshot(), event:c.event || '', date:c.date || '', saved:Date.now() }; setupName = n; fillMeta(n, cfgs[n]); store.set(cfgs); refreshCfgs(); };
       link.onclick = () => copyLink(link, n, c);
-      cb.dataset.n = n; cb.onchange = syncCompare; label.textContent = n; label.title = n + (c.saved ? ` — enregistré le ${new Date(c.saved).toLocaleString('fr')}` : '');
-      load.onclick = () => { pushUndo(); restore(c); setupName = n; fillMeta(n, c); };
+      cb.dataset.k = 'loc:' + n; cb.onchange = syncCompare; label.textContent = n; label.title = n + (c.saved ? ` — enregistré le ${new Date(c.saved).toLocaleString('fr')}` : '');
+      load.onclick = () => { pushUndo(); restore(c); setupName = n; fillMeta(n, c); libCur = libItems.find(e => !e.deleted && e.name === n && (e.event || '') === (c.event || '')) || null; };
       dup.onclick = () => { const m = prompt('Nom de la variante :', n + ' (variante)')?.trim(); if (!m) return; if (cfgs[m] && !confirm(`« ${m} » existe déjà. Le remplacer ?`)) return; cfgs[m] = { ...structuredClone(c), saved:Date.now() }; store.set(cfgs); refreshCfgs(); };
       ren.onclick = () => {
         const m = prompt('Nom du setup :', n)?.trim(); if (!m) return;
@@ -1797,19 +1804,93 @@ function refreshCfgs() {
       ul.appendChild(li);
     }
   }
-  $('eventList').innerHTML = [...groups.keys()].filter(k => k !== NO_EVENT).map(k => `<option value="${esc(k)}">`).join('');
+  renderLib();
+  $('localN').textContent = `(${Object.values(cfgs).filter(c => (c.salle || 'agora') === salle).length})`;
+  $('eventList').innerHTML = [...new Set([...groups.keys(), ...libItems.filter(e => !e.deleted).map(e => e.event || NO_EVENT)])].filter(k => k !== NO_EVENT).map(k => `<option value="${esc(k)}">`).join('');
   syncCompare();
 }
-function syncCompare() { const n = document.querySelectorAll('#cfgs input:checked').length; $('compare').disabled = n !== 2; $('compare').textContent = n === 2 ? 'Comparer les 2 setups cochés' : `Comparer : coche 2 setups (${n}/2)`; }
+function syncCompare() { const n = document.querySelectorAll('#cfgs input:checked, #libList input:checked').length; $('compare').disabled = n !== 2; $('compare').textContent = n === 2 ? 'Comparer les 2 setups cochés' : `Comparer : coche 2 setups (${n}/2)`; }
 let setupName = '';
 $('save').onclick = () => {
   const n = $('cfgName').value.trim() || new Date().toLocaleString('fr');
   if (cfgs[n] && n !== setupName && !confirm(`« ${n} » existe déjà. Le remplacer ?`)) return;
   setupName = n; cfgs[n] = { ...snapshot(), ...meta() }; store.set(cfgs); refreshCfgs(); // les champs restent remplis : « Sauver » à nouveau met à jour ce setup
+  publish(n, cfgs[n]); // et nouvelle version dans la bibliothèque partagée (si elle est joignable)
 };
 $('exp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(cfgs, null, 1)], { type:'application/json' })); a.download = 'setups-salle.json'; a.click(); };
 $('imp').onchange = e => e.target.files[0]?.text().then(t => { const j = JSON.parse(t); if (!j || typeof j !== 'object' || Array.isArray(j)) throw 0; Object.assign(cfgs, j); store.set(cfgs); refreshCfgs(); }).catch(() => alert('Ce fichier de setups est illisible.'));
-refreshCfgs();
+// --- bibliothèque partagée (api/setups.js, Vercel Blob privé) : chaque « Sauver » y ajoute une version ; rien n'est écrasé ---
+let libItems = [], libCur = null, libOk = false; // libCur : entrée de la bibliothèque du setup affiché (les « Sauver » suivants en font de nouvelles versions)
+const api = async (qs = '', o = {}) => { const r = await fetch('/api/setups' + qs, { cache:'no-store', ...o, headers:{ 'Content-Type':'application/json', ...o.headers } });
+  if (r.status === 401) throw new Error('session'); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'HTTP ' + r.status); return r.json(); };
+const libStatus = (t, warn) => { $('libStatus').textContent = t; $('libStatus').classList.toggle('warn', !!warn); };
+const fmtWhen = v => new Date(v).toLocaleString('fr', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+async function getCfg(k) { // clé d'un setup coché : « loc:nom » (cet appareil) ou « lib:id » / « lib:id@version »
+  if (k.startsWith('loc:')) { const n = k.slice(4); return { name:n, cfg:cfgs[n] }; }
+  const [id, v] = k.slice(4).split('@'), j = await api(`?id=${id}${v ? '&v=' + v : ''}`); return { name:j.name, event:j.event, date:j.date, cfg:{ ...j.cfg, event:j.event, date:j.date } };
+}
+async function loadLib() {
+  try { libItems = await api(); libOk = true; libStatus(''); }
+  catch (e) { libOk = false; libStatus(e.message === 'session' ? '⚠ Session expirée : recharge la page pour te reconnecter.' : '⚠ Bibliothèque partagée indisponible (hors connexion ?) : les setups sont enregistrés sur cet appareil.', true); }
+  $('localBox').open = !libOk || !libItems.some(e => !e.deleted); refreshCfgs();
+}
+function libRow(e, trash) {
+  const li = document.createElement('li'); li.className = 'cfg';
+  li.innerHTML = trash ? '<span></span><button title="Restaurer la dernière version">↺ Restaurer</button>'
+    : '<input type="checkbox" title="Cocher pour comparer"><span></span><button title="Charger ce setup">▶</button><button title="Versions précédentes">🕘</button><button title="Copier le lien de partage">🔗</button><button title="Dupliquer (variante)">⧉</button><button title="Renommer / changer d\'événement">✎</button><button title="Mettre à la corbeille">✕</button>';
+  const label = li.querySelector('span'); label.textContent = e.name; label.title = `${e.name} — ${e.versions.length} version${e.versions.length > 1 ? 's' : ''}, dernière le ${fmtWhen(e.saved)}`;
+  const busy = async (btn, f) => { const t = btn.textContent; btn.textContent = '…'; try { await f(); } catch (err) { alert('Bibliothèque : ' + (err.message === 'session' ? 'session expirée, recharge la page' : err.message)); } btn.textContent = t; };
+  if (trash) { li.lastChild.onclick = () => busy(li.lastChild, async () => { const g = await getCfg('lib:' + e.id); await api(`?id=${e.id}`, { method:'POST', body:JSON.stringify({ name:g.name, event:g.event, date:g.date, cfg:g.cfg }) }); await loadLib(); }); return li; }
+  const [cb, , load, hist, link, dup, ren, del] = li.children;
+  cb.dataset.k = 'lib:' + e.id; cb.onchange = syncCompare;
+  const open = (v) => busy(load, async () => { const g = await getCfg(`lib:${e.id}${v ? '@' + v : ''}`); pushUndo(); restore(g.cfg); setupName = g.name; fillMeta(g.name, g.cfg); libCur = e;
+    libStatus(v ? `Version du ${fmtWhen(+v)} chargée : « Sauver » en fera la version la plus récente.` : ''); });
+  load.onclick = () => open();
+  hist.onclick = () => { const old = li.querySelector('select'); if (old) return old.remove();
+    const sel = document.createElement('select'); sel.style.flex = '1 1 100%'; sel.style.maxWidth = '100%';
+    sel.innerHTML = '<option value="">— choisir une version —</option>' + e.versions.map((x, i) => `<option value="${x.v}">${fmtWhen(x.v)}${i ? '' : ' (actuelle)'} · ${esc(x.name)}</option>`).join('');
+    sel.onchange = () => sel.value && open(sel.value); li.appendChild(sel); };
+  link.onclick = () => busy(link, async () => { const g = await getCfg('lib:' + e.id); await copyLink(link, g.name, g.cfg); });
+  dup.onclick = () => { const m = prompt('Nom de la variante :', e.name + ' (variante)')?.trim(); if (!m) return;
+    busy(dup, async () => { const g = await getCfg('lib:' + e.id); await api('', { method:'POST', body:JSON.stringify({ name:m, event:g.event, date:g.date, cfg:g.cfg }) }); await loadLib(); }); };
+  ren.onclick = () => { const m = prompt('Nom du setup :', e.name)?.trim(); if (!m) return; const ev = prompt('Événement :', e.event || '')?.trim(); if (ev === undefined) return;
+    busy(ren, async () => { const g = await getCfg('lib:' + e.id); await api(`?id=${e.id}`, { method:'POST', body:JSON.stringify({ name:m, event:ev, date:g.date, cfg:g.cfg }) }); if (libCur?.id === e.id) { setupName = m; $('cfgName').value = m; $('cfgEvent').value = ev; } await loadLib(); }); };
+  del.onclick = () => { if (!confirm(`Mettre « ${e.name} » à la corbeille ? (récupérable dans « Corbeille de la bibliothèque »)`)) return;
+    busy(del, async () => { await api(`?id=${e.id}`, { method:'DELETE' }); if (libCur?.id === e.id) libCur = null; await loadLib(); }); };
+  return li;
+}
+function renderLib() {
+  const ul = $('libList'), mine = libItems.filter(e => (e.salle || 'agora') === salle); ul.innerHTML = '';
+  if (libOk) { const h = document.createElement('li'); h.className = 'ev libh'; h.textContent = '☁ Bibliothèque partagée'; ul.appendChild(h);
+    if (!mine.some(e => !e.deleted)) { const li = document.createElement('li'); li.className = 'note'; li.textContent = 'Vide pour l\'instant : « Sauver » y range le setup en cours, « Envoyer dans la bibliothèque » y copie ceux de cet appareil.'; ul.appendChild(li); } }
+  const groups = new Map(); for (const e of mine.filter(e => !e.deleted)) { const k = e.event || NO_EVENT; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); }
+  const first = l => l.map(e => e.date || '9999').sort()[0];
+  for (const [ev, list] of [...groups].sort((a, b) => first(a[1]).localeCompare(first(b[1])) || a[0].localeCompare(b[0]))) {
+    const h = document.createElement('li'); h.className = 'ev'; const dates = [...new Set(list.map(e => e.date).filter(Boolean))].sort();
+    h.innerHTML = `<span>${esc(ev)} <small>${dates.map(fmtDate).join(' · ')}</small></span>`; ul.appendChild(h);
+    for (const e of list.sort((a, b) => a.saved - b.saved)) ul.appendChild(libRow(e));
+  }
+  const trash = mine.filter(e => e.deleted); $('trashBox').hidden = !trash.length; $('trashN').textContent = `(${trash.length})`;
+  $('trashList').innerHTML = ''; trash.forEach(e => $('trashList').appendChild(libRow(e, true)));
+}
+// « Sauver » : nouvelle version du setup de la bibliothèque affiché (ou de celui qui porte ce nom et cet événement), sinon nouveau setup
+async function publish(n, c) {
+  if (!libOk) return libStatus('⚠ Enregistré sur cet appareil seulement : bibliothèque partagée indisponible.', true);
+  let cur = libCur && !libCur.deleted ? libCur : libItems.find(e => !e.deleted && e.name === n && (e.event || '') === (c.event || ''));
+  if (cur && cur.name !== n && !confirm(`Nouvelle version de « ${cur.name} » ?\nOK : nouvelle version (renommée « ${n} »)\nAnnuler : nouveau setup séparé`)) cur = null;
+  try { const r = await api(cur ? `?id=${cur.id}` : '', { method:'POST', body:JSON.stringify({ name:n, event:c.event, date:c.date, cfg:c }) });
+    await loadLib(); libCur = libItems.find(e => e.id === r.id) || null; libStatus(`☁ Enregistré dans la bibliothèque partagée (${fmtWhen(r.v)}).`); }
+  catch (e) { libStatus('⚠ Enregistré sur cet appareil seulement : ' + (e.message === 'session' ? 'session expirée, recharge la page.' : 'bibliothèque indisponible.'), true); }
+}
+$('pushAll').onclick = async () => {
+  if (!libOk) return alert('Bibliothèque partagée indisponible.');
+  const todo = Object.entries(cfgs).filter(([n, c]) => !libItems.some(e => !e.deleted && e.name === n && (e.event || '') === (c.event || '')));
+  if (!todo.length) return alert('Tous les setups de cet appareil sont déjà dans la bibliothèque.');
+  if (!confirm(`Envoyer ${todo.length} setup${todo.length > 1 ? 's' : ''} dans la bibliothèque partagée ?`)) return;
+  let ok = 0; for (const [n, c] of todo) { try { await api('', { method:'POST', body:JSON.stringify({ name:n, event:c.event, date:c.date, cfg:c }) }); ok++; } catch {} }
+  await loadLib(); alert(`${ok} / ${todo.length} setup${todo.length > 1 ? 's' : ''} envoyé${ok > 1 ? 's' : ''}.`);
+};
+refreshCfgs(); loadLib();
 // --- lien de partage : setup compressé dans l'adresse (#s=…), sans serveur ; c'est une copie, pas une édition à plusieurs ---
 const b64u = { enc:u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
                dec:s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)) };
@@ -2027,13 +2108,15 @@ function materiel() {
 }
 // --- comparaison de 2 setups : plans de l'Agora côte à côte + écarts de matériel, jauge, charges, rigging ---
 $('compare').onclick = async () => {
-  const names = [...document.querySelectorAll('#cfgs input:checked')].map(c => c.dataset.n); if (names.length !== 2) return;
+  const picked = [...document.querySelectorAll('#cfgs input:checked, #libList input:checked')].map(c => c.dataset.k); if (picked.length !== 2) return;
+  let got; try { got = await Promise.all(picked.map(getCfg)); } catch { return alert('Setup de la bibliothèque introuvable (hors connexion ?).'); }
+  const names = got.map((g, i) => i && g.name === got[0].name ? g.name + ' (2)' : g.name), cfgOf = Object.fromEntries(got.map((g, i) => [names[i], g.cfg]));
   const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour comparer.');
   w.document.write('<p style="font:14px sans-serif">Préparation de la comparaison…</p>');
   const cur = snapshot(), curName = setupName, res = [];
   try {
-    for (const n of names) { restore(cfgs[n]); setupName = n; const r = rigging();
-      res.push({ n, c:cfgs[n], svg:await planSvg(true), mat:materiel(), j:jauge(), ch:charges(), rig:r ? `${kg(r.total)} · max ${kg(Math.max(...r.pts.map(p => p.kg)))}` : '—' }); }
+    for (const n of names) { restore(cfgOf[n]); setupName = n; const r = rigging();
+      res.push({ n, c:cfgOf[n], svg:await planSvg(true), mat:materiel(), j:jauge(), ch:charges(), rig:r ? `${kg(r.total)} · max ${kg(Math.max(...r.pts.map(p => p.kg)))}` : '—' }); }
   } finally { restore(cur); setupName = curName; } // on remet la salle telle qu'elle était
   const [A, B] = res, keys = [...new Set([...A.mat.keys(), ...B.mat.keys()])];
   const row = (k, a, b) => `<tr${a !== b ? ' class="d"' : ''}><td>${k}</td><td class="n">${a}</td><td class="n">${b}</td></tr>`;

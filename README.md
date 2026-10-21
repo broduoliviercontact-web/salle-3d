@@ -189,6 +189,13 @@ Un setup enregistre :
 - la caméra ;
 - les calques visibles et la coupe.
 
+**Bibliothèque partagée** (en tête de la liste) : les setups communs à toute l'équipe, stockés en ligne (Vercel Blob privé, derrière le mot de passe ; `api/setups.js`).
+- **Sauver** range le setup sur cet appareil **et** en ajoute une nouvelle version dans la bibliothèque : rien n'est jamais écrasé. Si le nom a changé depuis le chargement, le site demande s'il s'agit d'une nouvelle version ou d'un nouveau setup.
+- **▶** charge la dernière version ; **🕘** liste les versions (date, nom) et en recharge une ; **🔗** lien de partage ; **⧉** variante ; **✎** renommer / changer d'événement (nouvelle version) ; **✕** met à la corbeille (**Corbeille de la bibliothèque** → **↺ Restaurer**).
+- **Sur cet appareil** (repliable) : les setups enregistrés dans ce navigateur. **Envoyer dans la bibliothèque** y copie ceux qui n'y sont pas encore (même nom et même événement).
+- Hors connexion ou si la bibliothèque ne répond pas, un message le signale et **Sauver** enregistre seulement sur l'appareil ; le site demande aussi au navigateur de ne pas effacer ces setups locaux, et prévient si l'enregistrement local échoue (stockage plein).
+- Mise en place : un stockage **Blob privé** relié au projet dans Vercel (Storage → Create → Blob, accès Private) ; l'authentification passe par `BLOB_STORE_ID` (OIDC), rien à copier.
+
 Chaque setup appartient à un **événement** avec une **date** (ex. « FIP 360 », 14/11). La liste est rangée par événement, du plus proche au plus lointain ; les setups sans événement sont regroupés à la fin. Sur chaque setup :
 - **▶** le charge (les champs nom / événement / date se remplissent : **Sauver** met alors à jour ce setup) ;
 - **⟳** le met à jour : il est remplacé par l'état actuel de la salle (nom, événement et date conservés) ;
