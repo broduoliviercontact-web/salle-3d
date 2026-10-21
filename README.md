@@ -253,7 +253,7 @@ On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre 
 | Incliner le regard vers le haut / le bas | flèches ↑ / ↓ |
 | Monter / descendre | G / B, flèches → / ← (ou Page ↑ / ↓) |
 | Aller plus vite | Maj |
-| Déplacer / tourner la sélection | T / R (magnétisme 0,5 m / 15°) |
+| Déplacer / tourner la sélection | T / R (magnétisme 0,5 m / 15° ; maintenir Maj pendant le geste pour s'en passer) |
 | Ajouter / retirer un élément de la sélection | Maj, ⌘ ou Ctrl + clic |
 | Centrer sur la sélection | C |
 | Masquer la sélection | H |
