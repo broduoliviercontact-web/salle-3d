@@ -54,6 +54,10 @@
     <button data-al="xmin" title="Aligner les bords ouest">⇤ X</button><button data-al="xmid" title="Centrer sur X">↔ X</button><button data-al="xmax" title="Aligner les bords est">X ⇥</button><button data-al="xdist" title="Répartir le long du hall (espaces égaux)">⋯ X</button>
     <button data-al="zmin" title="Aligner les bords nord (côté mezzanine)">⤒ Z</button><button data-al="zmid" title="Centrer sur Z">↕ Z</button><button data-al="zmax" title="Aligner les bords sud (côté verrière)">Z ⤓</button><button data-al="zdist" title="Répartir en travers (espaces égaux)">⋮ Z</button></div>
   <div class="row" id="coteRow" hidden><label class="cb"><input type="checkbox" id="cotes" checked> Cotes au bâti (murs, poteaux)</label></div>
+  <div class="row" id="publicRow" hidden><select id="pubKind" class="grow"><option value="public_theatre">Théâtre (rangées)</option><option value="public_cabaret">Cabaret (tables, face à la scène)</option><option value="public_banquet">Banquet (tables rondes)</option></select>
+    <span style="flex-basis:100%;height:0"></span><span id="pubL0"></span> <input type="number" id="pub0" step="0.05" style="width:52px"> <span id="pubL1"></span> <input type="number" id="pub1" step="0.05" style="width:52px">
+    <span style="flex-basis:100%;height:0"></span><span id="pubL2"></span> <input type="number" id="pub2" step="1" style="width:46px"> <span id="pubL3"></span> <input type="number" id="pub3" step="0.1" style="width:52px">
+    <span id="pubInfo" style="flex-basis:100%;color:var(--mute);font-size:11px"></span></div>
   <div class="row" id="sizeRow" hidden>L <input type="number" id="sW" step="0.5" min="0.5"> P <input type="number" id="sD" step="0.5" min="0.5"> H <input type="number" id="sH" step="0.1" min="0.1"> m</div>
   <div class="row" id="asdRow" hidden><button id="asdBtn" class="grow" title="Ouvre le configurateur de praticables ASD avec les dimensions de cette scène (L = profondeur, P = ouverture, H = hauteur) : garde-corps, escaliers, jupes, poids et nomenclature, puis « Envoyer vers Salle 3D » la remplace ici">Détailler en praticables ASD ↗</button></div>
   <div class="row" id="grpRow" hidden><span id="grpInfo" class="grow info"></span><button id="unlink" title="Retire cet élément du groupe : il se déplacera seul">Délier</button></div>
@@ -129,8 +133,8 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg } from './js/calc.js';
-import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH } from './js/models.js'; // modèles 3D du catalogue
+import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS } from './js/calc.js';
+import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout } from './js/models.js'; // modèles 3D du catalogue
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -375,7 +379,7 @@ function applyMach(o, v) {
   v = THREE.MathUtils.clamp(v, 0, 1); o.userData.dims[3] = +v.toFixed(3);
   o.traverse(c => { if (c.userData.half) c.scale.x = (1.43 + (c.userData.half - 1.43) * (1 - v)) / c.userData.half; if (c.userData.toile) c.scale.y = Math.max(0.01, v); });
 }
-const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, heras:buildHeras, plot_heras:buildPlotHeras, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, public_theatre:buildPublic('public_theatre'), public_cabaret:buildPublic('public_cabaret'), public_banquet:buildPublic('public_banquet'), heras:buildHeras, plot_heras:buildPlotHeras, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 function placeMach() {
   const dz = AXE_AGORA - MACH.scene.c[1]; // scène recentrée entre les piliers ; le grill suit avec le même décalage
@@ -511,7 +515,8 @@ function jauge() {
   let occ = 0;
   for (const o of props.children) if (o.visible && JAUGE_KINDS.has(o.userData.kind) && o.position.x > 5.95 + DWG_SHIFT[0]) occ += o.userData.dims[0] * o.userData.dims[1]; // Agora : à l'est de la cloison CTA (x DXF 5,95)
   const r = +$('m2pp').value || 3, pub = AGORA_PUBLIC - occ;
-  return { occ, pub, r, n:Math.floor(pub / r) };
+  const seated = props.children.filter(o => o.visible && PUBLIC_KINDS.has(o.userData.kind)).reduce((s, o) => s + publicLayout(o).seats.length, 0); // zones de public
+  return { occ, pub, r, n:Math.floor(pub / r), seated };
 }
 // --- câblage : élément relié à une trappe -> longueur de câble estimée et puissance par trappe ---
 const TRAP_KW = { '63A':63 * 400 * Math.sqrt(3) / 1000, '32A':32 * 400 * Math.sqrt(3) / 1000 }; // ponytail: triphasé 400 V supposé (≈ 43,6 / 22,2 kW)
@@ -1170,7 +1175,7 @@ function updateDossier() {
       + (r.off.length ? `<br><span class="warn">⚠ hors grill (non compté) : ${r.off.map(esc).join(', ')}</span>` : '');
   } else $('rigInfo').textContent = '';
   const j = jauge();
-  $('jaugeInfo').innerHTML = j.audi ? `<b>Jauge Auditorium</b> : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR <span style="opacity:.7">(maquette 3D : ${j.seats} sièges visibles, dont ${j.mov} amovibles)</span>` : `<b>Jauge Agora</b> : ${fr(AGORA_PUBLIC)} − ${fr(j.occ)} m² occupés = ${fr(j.pub)} m² → <b>${j.n.toLocaleString('fr')} pers.</b> (${fr(j.r)} m²/pers.)`
+  $('jaugeInfo').innerHTML = j.audi ? `<b>Jauge Auditorium</b> : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR <span style="opacity:.7">(maquette 3D : ${j.seats} sièges visibles, dont ${j.mov} amovibles)</span>` : `<b>Jauge Agora</b> : ${fr(AGORA_PUBLIC)} − ${fr(j.occ)} m² occupés = ${fr(j.pub)} m² → <b>${j.n.toLocaleString('fr')} pers.</b> (${fr(j.r)} m²/pers.)` + (j.seated ? `<br><b>Public assis</b> : <b>${j.seated.toLocaleString('fr')} places</b> (zones de public)` : '')
     + (j.n > DACAM_RDC ? `<br><span class="warn">⚠ plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : '');
   const c = cabling();
   $('elecInfo').innerHTML = c.map(e => { const t = e.t.userData.trap, cap = TRAP_KW[t.kind], kw = e.W / 1000;
@@ -1290,7 +1295,7 @@ function placeAsd(p) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = kind === 'cordon' ? `${LABELS.cordon}` : kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
+    g.userData = { kind, dims }; g.name = PUBLIC_KINDS.has(kind) ? (L => `${LABELS[kind]} · ${L.seats.length} places${L.tables.length ? ` · ${L.tables.length} tables` : ''}`)(publicLayout(g)) : kind === 'cordon' ? `${LABELS.cordon}` : kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -1312,6 +1317,7 @@ const CATALOG = [
   ['Son', ['dli230', 'dli430', 'as40', 'at40', 'xt1', 'xt22', 'l2d', 'kara2', 'ks28', 'ks28x2', 'x15', 'x15p', 'syva', 'vch30', 'vch30x2', 'vtl218', 'enceinte']],
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran', 'polichinelle']],
+  ['Public', ['public_theatre', 'public_cabaret', 'public_banquet']],
   ['Sécurité et circulation', ['vauban', 'heras', 'plot_heras', 'potelet', 'crash', 'defender']],
   ['Structures et levage', ['truss30', 'truss40', 'truss30t', 'tcorner30', 'tower', 'hoist', 'perche']],
   ['Divers', ['perso']],
@@ -1372,7 +1378,7 @@ let select = function (o) {
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) + termInfo(o) + (salle === 'audi' && boxFor(o) ? ` → ${boxFor(o).userData.term.id}` : '') : '—';
   if (o?.userData.term && !$('boxDlg').open) openBox(o); // boîtier : fenêtre de ses connexions
-  const isProp = !!o && props.children.includes(o); syncLift(o); syncState(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); $('asdRow').hidden = !(isProp && PRAT_KINDS.has(o.userData.kind)); if (isProp) $('asdBtn').textContent = o.userData.asd ? 'Modifier la scène ASD ↗' : 'Détailler en praticables ASD ↗'; if (!isProp) return;
+  const isProp = !!o && props.children.includes(o); syncLift(o); syncState(o); syncPublic(o); $('linkRow').hidden = !isProp; $('grpRow').hidden = !(isProp && o.userData.grp); $('sizeRow').hidden = !(isProp && RESIZABLE.has(o.userData.kind)); $('asdRow').hidden = !(isProp && PRAT_KINDS.has(o.userData.kind)); if (isProp) $('asdBtn').textContent = o.userData.asd ? 'Modifier la scène ASD ↗' : 'Détailler en praticables ASD ↗'; if (!isProp) return;
   if (RESIZABLE.has(o.userData.kind)) { const [w, d, h] = o.userData.dims.slice(0, 3).map(v => +v.toFixed(3)); $('sW').value = w; $('sD').value = d; $('sH').value = h; const fixedWD = ['defender', 'perche', 'tower', 'truss30', 'truss40', 'truss30t'].includes(o.userData.kind); $('sD').disabled = o.userData.kind === 'led' || fixedWD; $('sH').disabled = o.userData.kind === 'defender' || (fixedWD && o.userData.kind !== 'tower'); $('sW').disabled = o.userData.kind === 'tower'; }
   if (o.userData.grp) $('grpInfo').textContent = `Lié : ${o.userData.grp.split(' #')[0]} (${props.children.filter(p => p.userData.grp === o.userData.grp).length} éléments)`;
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
@@ -1383,8 +1389,20 @@ let select = function (o) {
 const selectBase = select;
 select = o => { selectBase(o); const placeable = !!o && (o === pivot || props.children.includes(o));
   $('posRow').hidden = $('coteRow').hidden = !placeable; $('multiRow').hidden = o !== pivot; syncPos(); drawCotes(); };
+// zone de public : disposition et réglages (rang, place, allées / entraxe, table, chaises) ; la zone est reconstruite à la même place
+const PUB_LABELS = { public_theatre:['rang', 'place', 'places/bloc ≤', 'allée'], public_cabaret:['entraxe', 'table Ø', 'chaises', ''], public_banquet:['entraxe', 'table Ø', 'chaises', ''] };
+function syncPublic(o = selected) {
+  const on = !!o && PUBLIC_KINDS.has(o.userData.kind) && props.children.includes(o); $('publicRow').hidden = !on; if (!on) return;
+  $('pubKind').value = o.userData.kind; const L = PUB_LABELS[o.userData.kind], p = o.userData.dims.slice(3, 7);
+  for (let i = 0; i < 4; i++) { $('pubL' + i).textContent = L[i]; $('pub' + i).hidden = !L[i]; $('pub' + i).value = p[i] ?? ''; }
+  const lay = publicLayout(o); $('pubInfo').textContent = `${lay.seats.length} places` + (lay.tables.length ? ` · ${lay.tables.length} tables` : ` · ${lay.rows} rangs de ${lay.perRow}`) + ' — valeurs à valider avec le chargé de sécurité';
+}
+$('pubKind').onchange = () => { const o = selected; if (!o || !PUBLIC_KINDS.has(o.userData.kind)) return; pushUndo(); const k = $('pubKind').value; rebuildProp(o, [...o.userData.dims.slice(0, 3), ...PUBLIC_DEFAULTS[k]], k); };
+['pub0', 'pub1', 'pub2', 'pub3'].forEach((id, i) => $(id).onchange = () => { const o = selected; if (!o || !PUBLIC_KINDS.has(o.userData.kind)) return;
+  const lim = [[0.6, 6], [0.3, 3], [1, 40], [0, 5]][i], v = THREE.MathUtils.clamp(+$(id).value || 0, ...lim), d = [...o.userData.dims]; d[3 + i] = i === 2 ? Math.round(v) : v;
+  pushUndo(); rebuildProp(o, d); });
 // redimensionner l'élément sélectionné : on le reconstruit à la même place, en gardant trappe, puissance et groupe
-const RESIZABLE = new Set(['truss30t', 'truss30', 'truss40', 'perche', 'tower', 'scene_m', 'scene', 'scene_fip', 'prat', 'regie', 'ecran', 'led', 'defender']);
+const RESIZABLE = new Set(['public_theatre', 'public_cabaret', 'public_banquet', 'truss30t', 'truss30', 'truss40', 'perche', 'tower', 'scene_m', 'scene', 'scene_fip', 'prat', 'regie', 'ecran', 'led', 'defender']);
 function resizeSelected() {
   const o = selected; if (!o || !RESIZABLE.has(o.userData.kind)) return;
   const v = (id, min, max) => THREE.MathUtils.clamp(+$(id).value || min, min, max), half = x => Math.max(0.5, Math.round(x * 2) / 2);
@@ -2173,7 +2191,9 @@ function materiel() {
       const k = `ASD ${ref ? ref + ' · ' : ''}${nom}${unit ? ` (${unit})` : ''}`, e = mat.get(k) || { n:0, kg:Math.round((+kgu || 0) * 100) / 100, W:0 }; e.n += +n || 0; mat.set(k, e); }
     else mat.set(`Praticables 2×1 pour ${o.name}`, { n:pratLayout(...o.userData.dims).length, kg:WEIGHT.prat, W:0 });
   }
-  for (const o of props.children) if (o.visible) { const k = o.name, e = mat.get(k) || { n:0, kg:o.userData.asd ? 0 : weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); } // scène ASD : poids compté ligne par ligne
+  for (const o of props.children) if (o.visible && PUBLIC_KINDS.has(o.userData.kind)) { const L = publicLayout(o), add = (k, n, kg) => { if (!n) return; const e = mat.get(k) || { n:0, kg, W:0 }; e.n += n; mat.set(k, e); };
+    add('Chaise (public assis)', L.seats.length, 4); add(`Table ronde Ø ${fr(o.userData.dims[4], 2)} m`, L.tables.length, 25); }
+  for (const o of props.children) if (o.visible && !PUBLIC_KINDS.has(o.userData.kind)) { const k = o.name, e = mat.get(k) || { n:0, kg:o.userData.asd ? 0 : weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); } // scène ASD : poids compté ligne par ligne
   return mat;
 }
 // --- comparaison de 2 setups : plans de l'Agora côte à côte + écarts de matériel, jauge, charges, rigging ---
@@ -2290,7 +2310,7 @@ $('fiche').onclick = async () => {
     <h2>Matériel</h2><table><tr><th>Désignation</th><th>Qté</th><th>Poids unit.</th><th>Poids total</th><th>Puissance</th></tr>
     ${[...mat].map(([k, e]) => `<tr>${td(esc(k))}${num(e.n)}${num(e.kg ? fr(e.kg, 2) + ' kg' : '—')}${num(e.kg ? fr(Math.round(e.kg * e.n * 10) / 10, 1) + ' kg' : '—')}${num(e.W ? fr(e.W / 1000) + ' kW' : '—')}</tr>`).join('')}</table>
     <div>${esc(charges())}</div>
-    ${j.audi ? `<h2>Jauge</h2><div>Auditorium : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR (72 places sur chaises à plat)</div>` : `<h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}</div>`}
+    ${j.audi ? `<h2>Jauge</h2><div>Auditorium : <b>${j.n} places</b> en gradins dont ${j.pmr} PMR (72 places sur chaises à plat)</div>` : `<h2>Jauge (calcul DACAM)</h2><div>Surface publique Agora ${fr(AGORA_PUBLIC)} m² − ${fr(j.occ)} m² (scènes, praticables, régies) = <b>${fr(j.pub)} m²</b> → <b>${j.n.toLocaleString('fr')} personnes</b> à ${fr(j.r)} m²/pers.${j.n > DACAM_RDC ? ` <span class="warn">Plafond DACAM RDC : ${DACAM_RDC.toLocaleString('fr')} pers.</span>` : ''}${j.seated ? `<br>Public assis (zones de public) : <b>${j.seated.toLocaleString('fr')} places</b>.` : ''}</div>`}
     </div><div>
     ${r ? `<h2>Rigging — grill</h2><table><tr><th>Point</th><th>Charge</th><th></th></tr>${r.pts.map(p => `<tr>${td('P' + p.n)}${num(kg(p.kg))}${td(p.kg > r.max ? '<span class="warn">> ' + kg(r.max) + '</span>' : 'ok')}</tr>`).join('')}
       <tr>${td('<b>Total</b>')}${num('<b>' + kg(r.total) + '</b>')}${td('')}</tr></table><div>Hypothèses : poutres ${esc($('trussKg').value)} kg/m, palans ${esc($('hoistKg').value)} kg, limite ${kg(r.max)} par point, poids des poutres réparti par demi-travée.${r.off.length ? ` <span class="warn">Hors grill : ${r.off.map(esc).join(', ')}</span>` : ''}</div>` : ''}
@@ -2306,7 +2326,7 @@ $('fiche').onclick = async () => {
 // --- export AutoCAD : éléments ajoutés en DXF R12, dans le repère du DWG d'origine (à coller aux coordonnées d'origine) ---
 
 const toDwg = ([x, z]) => [x - DWG_SHIFT[0], -z - DWG_SHIFT[1]];
-const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', heras:'SETUP_DIVERS', plot_heras:'SETUP_DIVERS', potelet:'SETUP_DIVERS', cordon:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
+const DXF_LAYER = { truss30t:'SETUP_STRUCTURE', truss30:'SETUP_STRUCTURE', truss40:'SETUP_STRUCTURE', tcorner30:'SETUP_STRUCTURE', tcorner40:'SETUP_STRUCTURE', tower:'SETUP_STRUCTURE', hoist:'SETUP_STRUCTURE', perche:'SETUP_STRUCTURE', pc1k:'SETUP_LUMIERE', sx713:'SETUP_LUMIERE', sx654:'SETUP_LUMIERE', lyreprof:'SETUP_LUMIERE', atomic:'SETUP_LUMIERE', fog:'SETUP_LUMIERE', vauban:'SETUP_DIVERS', public_theatre:'SETUP_PUBLIC', public_cabaret:'SETUP_PUBLIC', public_banquet:'SETUP_PUBLIC', heras:'SETUP_DIVERS', plot_heras:'SETUP_DIVERS', potelet:'SETUP_DIVERS', cordon:'SETUP_DIVERS', defender:'SETUP_DIVERS', defender_c:'SETUP_DIVERS', syva:'SETUP_SON', scene_fip:'SETUP_SCENE', lyre:'SETUP_LUMIERE', par:'SETUP_LUMIERE', led:'SETUP_VIDEO', grill:'SETUP_GRILL', scene_m:'SETUP_SCENE', scene:'SETUP_SCENE', prat:'SETUP_SCENE', regie:'SETUP_REGIE', enceinte:'SETUP_SON', vch30:'SETUP_SON', vch30x2:'SETUP_SON', vtl218:'SETUP_SON', ks28:'SETUP_SON', ks28x2:'SETUP_SON', l2d:'SETUP_SON', kara2:'SETUP_SON', x15:'SETUP_SON', x15p:'SETUP_SON', ecran:'SETUP_VIDEO', patience:'SETUP_SCENE', polichinelle:'SETUP_VIDEO', conque:'SETUP_SCENE', dli230:'SETUP_SON', dli430:'SETUP_SON', as40:'SETUP_SON', at40:'SETUP_SON', xt1:'SETUP_SON', xt22:'SETUP_SON' };
 const DXF_COLOR = { TERMINAUX_AU:3, SETUP_GRILL:8, TRAPPES_SOL:1, SETUP_SCENE:30, SETUP_REGIE:5, SETUP_SON:1, SETUP_VIDEO:4, SETUP_DIVERS:6, SETUP_TEXTE:7, AGORA_AXE:6, SETUP_LUMIERE:2, SETUP_STRUCTURE:9 };
 // texte DXF : caractères non ASCII en \U+XXXX (lu par AutoCAD quel que soit le code page)
 const dxfText = t => [...String(t)].map(ch => ch.charCodeAt(0) < 128 ? ch : '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
