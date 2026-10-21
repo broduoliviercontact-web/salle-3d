@@ -166,6 +166,20 @@ function placePonts() {
   const found = []; venue.traverse(o => { if (/pont.roulant/i.test(o.name) && !/pont.roulant/i.test(o.parent?.name || '')) found.push(o); });
   for (const o of found) { const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()), m = PONTS.find(([x]) => Math.abs(c.x - x) < 1); if (m) o.position.x += m[1] - m[0]; }
 }
+// vue d'arrivée sur la page : depuis le pignon est, à 12 m de haut, toute l'Agora vers la mezzanine (un lien de partage impose ensuite la sienne)
+const HOME_VIEW = { cam:[120, 12, 6], target:[60, 3, -10] };
+function homeView() {
+  if (MODEL !== 'halle_ifc.glb') return;
+  camera.position.fromArray(HOME_VIEW.cam); orbit.target.fromArray(HOME_VIEW.target); goal = null;
+  // panneau ouvert : on recule un peu et on tourne le regard d'une demi-largeur de panneau vers la gauche, la salle reste dans la partie visible
+  const ui = $('ui'), pw = document.body.classList.contains('noui') || !ui ? 0 : ui.offsetWidth;
+  if (pw && pw < innerWidth * 0.6) {
+    camera.position.sub(orbit.target).multiplyScalar(Math.sqrt(innerWidth / (innerWidth - pw))).add(orbit.target); // léger recul : la fenêtre visible est plus étroite
+    const halfW = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect, yaw = Math.atan(pw / innerWidth * halfW); // décalage de pw/2 px du centre de l'image
+    orbit.target.sub(camera.position).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).add(camera.position);
+  }
+  orbit.update();
+}
 function loadURL(url, name, then) { loader.load(url, g => { addModel(name, g); then?.(); }, undefined, () => {}); }
 // Bar central, extrudé depuis les contours du DXF (comptoirs 1,10 m, arrière-bars 0,90 m) ; sélectionnable et déplaçable d'un bloc
 function loadBar(url) {
@@ -284,7 +298,7 @@ function demoHall() {
   venue.add(g); refreshModels();
 }
 const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
-fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), document.querySelectorAll('[data-env]').forEach(applyEnv), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openShared(); openAsdLink(); }))) : demoHall()).catch(demoHall);
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), document.querySelectorAll('[data-env]').forEach(applyEnv), homeView(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openShared(); openAsdLink(); }))) : demoHall()).catch(demoHall);
 $('file').onchange = e => loadFiles(e.target.files);
 addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
 addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });
