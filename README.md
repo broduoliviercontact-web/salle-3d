@@ -163,7 +163,7 @@ Sur un tronçon sélectionné, les **poignées orange** aux deux bouts se tirent
   - **arrivée DMX** : chaque sortie DMX des boîtiers (DMX-01, DMX-02, d'après le carnet) porte un univers (défaut : DMX-0k -> Uk), réglable dans le panneau du boîtier (« DMX-01 → U 1 ») et enregistré dans le setup. Chaque appareil DMX (lyres, LED, Atomic, brouillard) cherche son univers sur son boîtier, sinon sur un boîtier de la même porteuse (S1 : BECL-02 / 07, F1 : 08 / 13, F2 : 14 / 15 / 20 / 21, F3 : 22 / 23 / 28 / 29), sinon au plateau ; les traditionnels passent par le gradateur. Affiché : panneau du projecteur (« Arrivée DMX : BECL-28 DMX-01 »), panneau du boîtier (« Alimente en DMX »), infobulle du tableau, fiche technique ; en rouge si aucune sortie ne porte l'univers ;
   - **DMX** : chaque projecteur a son univers / adresse (ex. 1/154) et son empreinte en canaux : affichés sur le plan (« Lyre déc. · 1/154 »), dans le tableau et à l'impression. Adressage auto à la suite du patch (univers 1, sans chevauchement, univers suivant après 512) ; une adresse saisie à la main est gardée et les autres l'évitent. Empreintes par défaut : PC / découpes 1 canal (gradateur), lyre découpe 42 (Ayrton Rivale Profile, mode Standard ; 65 en Extended), lyre 16, PAR LED 8, Atomic 3000 4, Unique 2.1 2 — modifiables par appareil. En rouge : adresses qui se chevauchent, dépassement de 512.
   Le patch est enregistré avec les setups. Circuit = n° de prise 16 A dans le boîtier : les repères d'armoire (ADC-xx-Px) du carnet ne sont pas lisibles (images).
-- Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment.
+- Boutons **Murs ext.**, **Toit**, **Panneaux acoustiques** et **Trappes de sol** pour ouvrir le bâtiment. À l'arrivée sur la page, les murs extérieurs et le toit sont déjà cachés (les boutons les réaffichent).
 - **Coupe** en longueur, en largeur ou en hauteur.
 - Liste **Maquettes et calques** (repliée par défaut) : chaque niveau et chaque calque se masque.
 - **Masquer (H)** : cacher n'importe quel élément gênant. **Tout réafficher** l'annule.
@@ -234,6 +234,7 @@ On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre 
 | Masquer la sélection | H |
 | Mesurer / vue public | M / V |
 | Tracer des passe-câbles | P (Échap pour finir) |
+| Tracer sans magnétisme d'angle (passe-câbles, Vauban, potelets) | maintenir Maj pendant le tracé |
 | Supprimer | Suppr. Un élément de la maquette est masqué, pas effacé. |
 | Annuler / rétablir | ⌘Z / ⌘⇧Z (Ctrl+Z / Ctrl+Y sur PC) |
 | Désélectionner | Échap |
