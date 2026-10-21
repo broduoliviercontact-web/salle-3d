@@ -107,3 +107,33 @@ export function cleanProp(x, known, defaults = {}) {
 }
 export const cleanDmx = d => ({ u:Math.round(num(d?.u, 1, 64) ?? 1), a:Math.round(num(d?.a, 0, 512) ?? 0), ch:Math.round(num(d?.ch, 0, 512) ?? 0) });
 export const cleanVec3 = (a, lim = LIMITS.pos) => vec3(a, lim);
+
+// --- placement précis ---
+// cote au bâti : distance du point (ox, oz) au premier segment touché dans la direction (dx, dz) (unitaire) ; segs = [x1, z1, x2, z2, …]
+export function rayToSegments(ox, oz, dx, dz, segs, maxT = 60) {
+  let best = Infinity;
+  for (let i = 0; i + 3 < segs.length; i += 4) {
+    const ax = segs[i], az = segs[i + 1], ex = segs[i + 2] - ax, ez = segs[i + 3] - az, den = dx * ez - dz * ex;
+    if (Math.abs(den) < 1e-12) continue; // parallèle
+    const wx = ax - ox, wz = az - oz, t = (wx * ez - wz * ex) / den, u = (wx * dz - wz * dx) / den;
+    if (t > 1e-3 && t < best && u >= 0 && u <= 1) best = t;
+  }
+  return best <= maxT ? best : null;
+}
+// aligner / répartir des emprises { minX, maxX, minZ, maxZ } : renvoie le décalage [dx, dz] de chacune
+// modes : 'xmin' | 'xmid' | 'xmax' | 'zmin' | 'zmid' | 'zmax' (aligner) ; 'xdist' | 'zdist' (espaces égaux entre les emprises, les 2 extrêmes restent en place)
+export function alignShifts(boxes, mode) {
+  const ax = mode[0], lo = ax === 'x' ? 'minX' : 'minZ', hi = ax === 'x' ? 'maxX' : 'maxZ', mid = b => (b[lo] + b[hi]) / 2;
+  const put = (b, d) => ax === 'x' ? [d, 0] : [0, d];
+  if (mode.endsWith('dist')) {
+    if (boxes.length < 3) return boxes.map(() => [0, 0]);
+    const order = boxes.map((b, i) => i).sort((a, b) => mid(boxes[a]) - mid(boxes[b])), first = boxes[order[0]], last = boxes[order.at(-1)];
+    const span = last[hi] - first[lo], used = boxes.reduce((s, b) => s + b[hi] - b[lo], 0), gap = (span - used) / (boxes.length - 1), out = boxes.map(() => [0, 0]);
+    let at = first[lo]; for (const i of order) { out[i] = put(boxes[i], at - boxes[i][lo]); at += boxes[i][hi] - boxes[i][lo] + gap; }
+    return out;
+  }
+  const target = mode.endsWith('min') ? Math.min(...boxes.map(b => b[lo])) : mode.endsWith('max') ? Math.max(...boxes.map(b => b[hi])) : (Math.min(...boxes.map(b => b[lo])) + Math.max(...boxes.map(b => b[hi]))) / 2;
+  return boxes.map(b => put(b, mode.endsWith('min') ? target - b[lo] : mode.endsWith('max') ? target - b[hi] : target - mid(b)));
+}
+// cap d'un objet (degrés, 0 = +x du site, sens trigonométrique vu de dessus) à partir de son axe x local projeté au sol
+export const headingDeg = (ux, uz) => { const a = Math.atan2(-uz, ux) * 180 / Math.PI; return Math.round(((a % 360) + 360) % 360 * 100) / 100; };

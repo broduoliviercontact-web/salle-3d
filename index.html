@@ -49,6 +49,11 @@
   <div id="sel">—</div>
   <div class="row" id="stateRow" hidden><span id="stateLab"></span><input type="range" id="stateV" min="0" max="100" class="grow"><span id="stateTxt" style="width:72px"></span></div>
   <div class="row" id="liftRow" hidden><span id="liftLab">Hauteur sous pont</span> <input type="number" id="liftH" step="0.1" style="width:60px"> m <button id="liftDown" title="Descendre (clic : 10 cm, maintenir : continu)">▼</button><button id="liftUp" title="Monter (clic : 10 cm, maintenir : continu)">▲</button></div>
+  <div class="row" id="posRow" hidden title="Position dans le repère du DWG de l'architecte (comme l'export DXF), hauteur au-dessus du sol, cap en degrés (0 = vers l'est, sens inverse des aiguilles d'une montre vu de dessus)">X <input type="number" id="pX" step="0.1" style="width:66px"> Y <input type="number" id="pY" step="0.1" style="width:66px"> m <span style="flex-basis:100%;height:0"></span>h <input type="number" id="pH" step="0.05" style="width:56px"> m ∠ <input type="number" id="pA" step="15" style="width:58px">°</div>
+  <div class="row" id="multiRow" hidden><span style="flex-basis:100%;color:var(--mute);font-size:11px">Aligner (le long du hall : X, en travers : Z) puis répartir</span>
+    <button data-al="xmin" title="Aligner les bords ouest">⇤ X</button><button data-al="xmid" title="Centrer sur X">↔ X</button><button data-al="xmax" title="Aligner les bords est">X ⇥</button><button data-al="xdist" title="Répartir le long du hall (espaces égaux)">⋯ X</button>
+    <button data-al="zmin" title="Aligner les bords nord (côté mezzanine)">⤒ Z</button><button data-al="zmid" title="Centrer sur Z">↕ Z</button><button data-al="zmax" title="Aligner les bords sud (côté verrière)">Z ⤓</button><button data-al="zdist" title="Répartir en travers (espaces égaux)">⋮ Z</button></div>
+  <div class="row" id="coteRow" hidden><label class="cb"><input type="checkbox" id="cotes" checked> Cotes au bâti (murs, poteaux)</label></div>
   <div class="row" id="sizeRow" hidden>L <input type="number" id="sW" step="0.5" min="0.5"> P <input type="number" id="sD" step="0.5" min="0.5"> H <input type="number" id="sH" step="0.1" min="0.1"> m</div>
   <div class="row" id="asdRow" hidden><button id="asdBtn" class="grow" title="Ouvre le configurateur de praticables ASD avec les dimensions de cette scène (L = profondeur, P = ouverture, H = hauteur) : garde-corps, escaliers, jupes, poids et nomenclature, puis « Envoyer vers Salle 3D » la remplace ici">Détailler en praticables ASD ↗</button></div>
   <div class="row" id="grpRow" hidden><span id="grpInfo" class="grow info"></span><button id="unlink" title="Retire cet élément du groupe : il se déplacera seul">Délier</button></div>
@@ -124,7 +129,7 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3 } from './js/calc.js';
+import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH } from './js/models.js'; // modèles 3D du catalogue
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -1362,7 +1367,8 @@ const tc = new TransformControls(camera, renderer.domElement);
 scene.add(tc.getHelper());
 tc.addEventListener('dragging-changed', e => orbit.enabled = !e.value);
 let selected = null;
-function select(o) {
+let select = function (o) {
+  if (o !== pivot) { multi.clear(); multiBoxes.clear(); }
   selected = o; o ? tc.attach(o) : tc.detach();
   $('sel').textContent = o ? (o.name || o.type) + pratInfo(o) + termInfo(o) + (salle === 'audi' && boxFor(o) ? ` → ${boxFor(o).userData.term.id}` : '') : '—';
   if (o?.userData.term && !$('boxDlg').open) openBox(o); // boîtier : fenêtre de ses connexions
@@ -1372,7 +1378,11 @@ function select(o) {
   $('trapSel').innerHTML = '<option value="">— aucune —</option><option value="near">la plus proche</option>'
     + trapList().map(t => `<option value="${t.userData.trap.n}">T${t.userData.trap.n} · ${t.userData.trap.label}</option>`).join('');
   $('trapSel').value = o.userData.trap || ''; $('powerW').value = powerOf(o);
-}
+};
+// select() puis : position chiffrée, alignement (sélection multiple), cotes
+const selectBase = select;
+select = o => { selectBase(o); const placeable = !!o && (o === pivot || props.children.includes(o));
+  $('posRow').hidden = $('coteRow').hidden = !placeable; $('multiRow').hidden = o !== pivot; syncPos(); drawCotes(); };
 // redimensionner l'élément sélectionné : on le reconstruit à la même place, en gardant trappe, puissance et groupe
 const RESIZABLE = new Set(['truss30t', 'truss30', 'truss40', 'perche', 'tower', 'scene_m', 'scene', 'scene_fip', 'prat', 'regie', 'ecran', 'led', 'defender']);
 function resizeSelected() {
@@ -1596,7 +1606,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   if (!hit) return select(null);
   let o = hit.object;
   const p = props.children.find(c => isIn(o, c));
-  if (p) return select(p);
+  if (p) return (e.shiftKey || e.metaKey || e.ctrlKey) ? selectMulti(p) : select(p); // Maj / ⌘ / Ctrl + clic : sélection multiple
   if (o.isLineSegments) o = o.parent; // plan DWG entier
   let s = o; while (s && !s.userData.sel && s !== venue) s = s.parent;
   if (s && s !== venue) o = s; // élément IFC (siège, mobilier, scène, murs d'un niveau…)
@@ -1608,9 +1618,12 @@ $('parent').onclick = () => { if (selected && selected.parent && selected.parent
 $('hide').onclick = () => { if (!selected) return; pushUndo(); const o = selected; select(null); o.visible = false; refreshModels(); };
 $('showAll').onclick = () => { pushUndo(); venue.traverse(o => o.visible = true); document.querySelectorAll('[data-env]').forEach(b => b.classList.add('on')); syncTrapBtn(); refreshModels(); };
 // un élément de la maquette est masqué plutôt que supprimé, pour pouvoir l'annuler
-$('del').onclick = () => { if (!selected) return; pushUndo(); const o = selected; select(null); if (isIn(o, venue)) { o.visible = false; refreshModels(); } else o.removeFromParent(); };
+$('del').onclick = () => { if (!selected) return; pushUndo();
+  if (selected === pivot) { multi.forEach(o => o.removeFromParent()); return select(null); } const o = selected; select(null); if (isIn(o, venue)) { o.visible = false; refreshModels(); } else o.removeFromParent(); };
 $('dup').onclick = () => { if (selected) pushUndo();
   if (!selected) return;
+  if (selected === pivot) { const copies = [...multi].map(o => { const c = makeProp(o.userData.kind, [...o.userData.dims]); c.position.copy(o.position).add(new THREE.Vector3(1, 0, 1)); c.quaternion.copy(o.quaternion); if (o.userData.power != null) c.userData.power = o.userData.power; return c; });
+    multi.clear(); copies.forEach(c => multi.add(c)); placePivot(); return select(pivot); }
   const c = props.children.includes(selected) ? makeProp(selected.userData.kind, selected.userData.dims) : selected.clone();
   if (!c.parent) selected.parent.add(c);
   c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
@@ -1752,19 +1765,76 @@ tc.addEventListener('mouseDown', () => { if (selected && isIn(selected, venue) &
 // une scène déplacée ou tournée emporte les éléments posés dessus ou autour (centre à ≤ 1,5 m du bord) : système son, grill, retours…
 // ponytail: groupe calculé à chaque prise en main, rien à sauvegarder ; un élément voisin à moins de 1,5 m suit aussi (décocher pour l'éviter)
 let carried = null;
-tc.addEventListener('mouseDown', () => {
-  const s = selected; carried = null;
-  if (!s || !props.children.includes(s) || !$('carry').checked || !(s.userData.grp || /^scene/.test(s.userData.kind))) return;
-  s.updateMatrix(); const inv = s.matrix.clone().invert(), [w, d] = s.userData.dims, m = 1.5;
-  carried = props.children.filter(o => o !== s && o.visible).filter(s.userData.grp ? o => o.userData.grp === s.userData.grp // éléments liés (FIP 360)
-    : o => { const p = o.position.clone().applyMatrix4(inv); return Math.abs(p.x) <= w / 2 + m && Math.abs(p.z) <= d / 2 + m; })
-    .map(o => (o.updateMatrix(), { o, rel:inv.clone().multiply(o.matrix) }));
-});
-tc.addEventListener('objectChange', () => {
-  if (!carried) return; selected.updateMatrix();
-  for (const { o, rel } of carried) new THREE.Matrix4().multiplyMatrices(selected.matrix, rel).decompose(o.position, o.quaternion, o.scale);
-});
+function carriedOf(s) { // éléments qui suivent s : membres de la sélection multiple, éléments liés, matériel autour d'une scène
+  if (!s) return null; s.updateMatrix(); const inv = s.matrix.clone().invert();
+  const rel = list => list.map(o => (o.updateMatrix(), { o, rel:inv.clone().multiply(o.matrix) }));
+  if (s === pivot) return rel([...multi]);
+  if (!props.children.includes(s) || !$('carry').checked || !(s.userData.grp || /^scene/.test(s.userData.kind))) return null;
+  const [w, d] = s.userData.dims, m = 1.5;
+  return rel(props.children.filter(o => o !== s && o.visible).filter(s.userData.grp ? o => o.userData.grp === s.userData.grp // éléments liés (FIP 360)
+    : o => { const p = o.position.clone().applyMatrix4(inv); return Math.abs(p.x) <= w / 2 + m && Math.abs(p.z) <= d / 2 + m; }));
+}
+const follow = list => { if (!list) return; selected.updateMatrix(); for (const { o, rel } of list) new THREE.Matrix4().multiplyMatrices(selected.matrix, rel).decompose(o.position, o.quaternion, o.scale); };
+tc.addEventListener('mouseDown', () => { carried = carriedOf(selected); });
+tc.addEventListener('objectChange', () => { follow(carried); syncPos(); drawCotes(); if (selected === pivot) drawMultiBoxes(); });
 tc.addEventListener('mouseUp', () => carried = null);
+
+// --- placement précis : position chiffrée (repère du DWG), sélection multiple, aligner / répartir, cotes au bâti ---
+const multi = new Set(), pivot = new THREE.Object3D(), multiBoxes = new THREE.Group(); scene.add(pivot, multiBoxes); pivot.name = 'Sélection multiple';
+function selectMulti(o) { // Maj / ⌘ + clic : ajoute ou retire o ; un seul élément restant redevient une sélection simple
+  if (!multi.size && selected && selected !== o && props.children.includes(selected)) multi.add(selected);
+  multi.has(o) ? multi.delete(o) : multi.add(o);
+  if (multi.size < 2) { const one = [...multi][0] || null; multi.clear(); return select(one); }
+  placePivot(); select(pivot);
+}
+function placePivot() { const b = new THREE.Box3(); multi.forEach(o => b.expandByObject(o)); const c = b.getCenter(new THREE.Vector3());
+  pivot.position.set(c.x, b.min.y, c.z); pivot.rotation.set(0, 0, 0); pivot.updateMatrix(); pivot.name = `${multi.size} éléments sélectionnés`; drawMultiBoxes(); }
+function drawMultiBoxes() { multiBoxes.clear(); multi.forEach(o => multiBoxes.add(new THREE.BoxHelper(o, 0x3b82f6))); }
+const capOf = o => { const u = new THREE.Vector3(1, 0, 0).applyQuaternion(o.quaternion); return headingDeg(u.x, u.z); };
+const baseY = o => o === pivot ? o.position.y : new THREE.Box3().setFromObject(o).min.y;
+function syncPos() {
+  const o = selected; if (!o || $('posRow').hidden || document.activeElement?.closest?.('#posRow')) return;
+  const [X, Y] = toDwg([o.position.x, o.position.z]); $('pX').value = +X.toFixed(2); $('pY').value = +Y.toFixed(2);
+  $('pH').value = +(baseY(o) - floorAt(o.position)).toFixed(2); $('pA').value = capOf(o);
+  posShown = { pX:$('pX').value, pY:$('pY').value, pH:$('pH').value, pA:$('pA').value };
+}
+let posShown = {}; // valeurs affichées (arrondies) : un champ non modifié garde la valeur exacte
+function applyPos() { // déplace / tourne la sélection aux valeurs saisies ; ce qu'elle emporte suit
+  const o = selected; if (!o) return; const num = id => Number.isFinite(+$(id).value) && $(id).value !== '' ? +$(id).value : null, changed = id => $(id).value !== posShown[id];
+  const X = num('pX'), Y = num('pY'), h = num('pH'), A = num('pA'); if ([X, Y, h, A].includes(null)) return syncPos();
+  if (!['pX', 'pY', 'pH', 'pA'].some(changed)) return;
+  pushUndo(); const list = carriedOf(o);
+  if (changed('pX')) o.position.x = X + DWG_SHIFT[0];
+  if (changed('pY')) o.position.z = -(Y + DWG_SHIFT[1]);
+  if (changed('pH') || changed('pX') || changed('pY')) o.position.y += floorAt(o.position) + h - baseY(o); // la hauteur reste mesurée depuis le sol du nouvel endroit
+  if (changed('pA')) o.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(A - capOf(o))));
+  follow(list); if (o === pivot) drawMultiBoxes(); syncPos(); drawCotes();
+}
+['pX', 'pY', 'pH', 'pA'].forEach(id => { $(id).onchange = applyPos; $(id).onkeydown = e => { if (e.key === 'Enter') { applyPos(); e.target.blur(); } }; });
+document.querySelectorAll('#multiRow [data-al]').forEach(b => b.onclick = () => {
+  if (selected !== pivot || multi.size < 2) return; pushUndo(); const list = [...multi], boxes = list.map(o => new THREE.Box3().setFromObject(o));
+  alignShifts(boxes.map(b => ({ minX:b.min.x, maxX:b.max.x, minZ:b.min.z, maxZ:b.max.z })), b.dataset.al).forEach(([dx, dz], i) => { list[i].position.x += dx; list[i].position.z += dz; });
+  placePivot(); select(pivot);
+});
+// cotes : depuis l'emprise de la sélection, distance au premier trait du bâti (plan DXF rouge) vers l'est, l'ouest, le nord et le sud
+let batiSegs = null; const cotes = new THREE.Group(); scene.add(cotes);
+function batiOf() { if (batiSegs) return batiSegs;
+  const l = venue.children.find(o => o.name === 'Plan hall avec scène (DXF)')?.children.find(c => c.userData.key === 'bati'); if (!l) return null;
+  const a = l.geometry.attributes.position.array, out = new Float32Array(a.length / 3 * 2); for (let i = 0, j = 0; i < a.length; i += 3, j += 2) { out[j] = a[i]; out[j + 1] = a[i + 2]; }
+  return batiSegs = out; }
+function drawCotes() {
+  cotes.clear(); const o = selected, segs = batiOf();
+  if (!o || !segs || !$('cotes').checked || $('coteRow').hidden || salle === 'audi') return;
+  const b = new THREE.Box3().setFromObject(o === pivot ? multiBoxes : o); if (o === pivot) { b.makeEmpty(); multi.forEach(m => b.expandByObject(m)); }
+  const y = b.min.y + 0.05, cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2;
+  for (const [ox, oz, dx, dz] of [[b.max.x, cz, 1, 0], [b.min.x, cz, -1, 0], [cx, b.max.z, 0, 1], [cx, b.min.z, 0, -1]]) {
+    const t = rayToSegments(ox, oz, dx, dz, segs, 40); if (t == null) continue;
+    const a = new THREE.Vector3(ox, y, oz), e = new THREE.Vector3(ox + dx * t, y, oz + dz * t);
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, e]), new THREE.LineBasicMaterial({ color:0x2563eb, depthTest:false })); line.renderOrder = 3;
+    const lab = label3d(`${fr(t, 2)} m`, '#2563eb', 220); lab.position.copy(a).lerp(e, 0.5).setY(y + 0.35); cotes.add(line, lab);
+  }
+}
+$('cotes').onchange = drawCotes;
 
 const store = { get() { try { return JSON.parse(localStorage.getItem('cfgs') || '{}'); } catch { return {}; } },
                 set(v) { try { localStorage.setItem('cfgs', JSON.stringify(v)); return true; } catch { alert('⚠ Impossible d\'enregistrer sur cet appareil (stockage plein ou bloqué par le navigateur). Utilise la bibliothèque partagée ou « Exporter JSON ».'); return false; } } };

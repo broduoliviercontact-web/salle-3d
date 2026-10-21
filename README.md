@@ -182,6 +182,12 @@ Le panneau **Dossier technique** se met à jour en direct :
 - **Câblage** : un élément sélectionné peut être relié à une trappe (ou à « la plus proche »), avec sa puissance en W (valeurs par défaut pour régie, écran, enceintes actives). Le câble est tracé en L au sol (3D et 2D). Pour chaque trappe, le site affiche la puissance totale face à sa capacité (63 A ≈ 43,6 kW, 32 A ≈ 22,2 kW en triphasé 400 V) et la longueur de câble estimée (trajet en L + hauteur + 2 m), arrondie au touret supérieur.
 - **Fiche setup (PDF)** : ouvre une page imprimable avec le plan de toute l'Agora sur la page 1 (A4 paysage), le matériel (quantités, poids, puissance), les charges, la jauge, le rigging par point et les trappes et câbles. On l'enregistre en PDF depuis l'impression du navigateur.
 
+### Placement précis
+Quand un élément ajouté est sélectionné (ou plusieurs) :
+- **X / Y** : sa position dans le repère du DWG de l'architecte (le même que l'export DXF), **h** : sa hauteur au-dessus du sol, **∠** : son cap en degrés (0 = vers l'est, sens inverse des aiguilles d'une montre vu de dessus). Taper une valeur puis Entrée déplace ou tourne l'élément ; ce qu'il emporte (matériel d'une scène, éléments liés) suit.
+- **Cotes au bâti** : distances de son emprise au premier trait du bâti (murs, poteaux du plan DXF) vers l'est, l'ouest, le nord et le sud, affichées en bleu et mises à jour pendant le déplacement.
+- **Sélection multiple** : Maj, ⌘ ou Ctrl + clic ajoute ou retire un élément. Le groupe se déplace et se tourne d'un bloc (poignées, ou X / Y / h / ∠ du groupe), se duplique et se supprime ensemble ; boutons pour **aligner** les bords ou les centres (le long du hall : X, en travers : Z) et **répartir** avec des espaces égaux (les deux extrêmes restent en place).
+
 ### Setups de salle
 Un setup enregistre :
 - les éléments ajoutés et leur position (avec leur trappe et leur puissance) ;
@@ -239,6 +245,7 @@ On clique sur **Sauver** puis sur **▶**. **Lien** copie une adresse qui ouvre 
 | Monter / descendre | G / B, flèches → / ← (ou Page ↑ / ↓) |
 | Aller plus vite | Maj |
 | Déplacer / tourner la sélection | T / R (magnétisme 0,5 m / 15°) |
+| Ajouter / retirer un élément de la sélection | Maj, ⌘ ou Ctrl + clic |
 | Centrer sur la sélection | C |
 | Masquer la sélection | H |
 | Mesurer / vue public | M / V |
