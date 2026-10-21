@@ -118,7 +118,7 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf } from './js/calc.js';
+import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3 } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA } from './js/models.js'; // modèles 3D du catalogue
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -253,7 +253,7 @@ function refreshModels() {
   $('models').innerHTML = '';
   venue.children.forEach(m => {
     const li = document.createElement('li');
-    li.innerHTML = `<input type="checkbox" ${m.visible ? 'checked' : ''}><span title="${m.name}">${m.name}</span><button>✕</button>`;
+    li.innerHTML = `<input type="checkbox" ${m.visible ? 'checked' : ''}><span title="${esc(m.name)}">${esc(m.name)}</span><button>✕</button>`;
     li.children[0].onchange = e => { m.visible = e.target.checked; syncTrapBtn(); };
     li.children[2].onclick = () => { if (selected && isIn(selected, m)) select(null); venue.remove(m); refreshModels(); };
     $('models').appendChild(li);
@@ -877,7 +877,7 @@ function drawPatch() {
       + (r.err ? `<div class="warn">⚠ ${esc(r.err)}</div>` : `<div style="color:#178a3c">→ ${esc(r.b.userData.term.id)}, circuit ${esc(r.cn)}${r.b.userData.term.detail?.loc ? ` (${esc(r.b.userData.term.detail.loc.toLowerCase())})` : ''}</div>`);
     const setP = e => { pushUndo(); const box = $('peBox').value, c = e?.target.id === 'peBox' ? 0 : Math.max(0, Math.round(+$('peC').value) || 0); r.o.userData.patch = box || c ? { box:box || r.b?.userData.term.id || '', c } : undefined; drawPatch(); }; // changer de boîtier remet le circuit en auto
     $('peBox').onchange = $('peC').onchange = setP;
-    $('peU').onchange = $('peA').onchange = $('peCh').onchange = () => { pushUndo(); const ch = Math.max(1, Math.round(+$('peCh').value) || 1), a = Math.max(0, Math.round(+$('peA').value) || 0);
+    $('peU').onchange = $('peA').onchange = $('peCh').onchange = () => { pushUndo(); const ch = Math.min(512, Math.max(1, Math.round(+$('peCh').value) || 1)), a = Math.max(0, Math.round(+$('peA').value) || 0);
       r.o.userData.dmx = { u:Math.max(1, Math.round(+$('peU').value) || 1), a, ch:ch === DMX_CH[r.o.userData.kind] ? 0 : ch }; drawPatch(); };
     $('peW').onchange = () => { pushUndo(); r.o.userData.power = Math.max(0, +$('peW').value || 0); drawPatch(); };
     $('peDel').onclick = () => { pushUndo(); props.remove(r.o); selOnly(null); drawPatch(); };
@@ -908,7 +908,7 @@ function drawPatch() {
     $('pmBox').onchange = () => { const v = $('pmBox').value; if (v) each(q => q.o.userData.patch = v === 'auto' ? undefined : { box:v, c:0 }); };
     $('pmDmx').onclick = () => { let u = Math.max(1, Math.round(+$('pmU').value) || 1), a = Math.max(1, Math.round(+$('pmA').value) || 1); // dans l'ordre du patch
       each(q => { if (a + q.ch - 1 > 512) { u++; a = 1; } q.o.userData.dmx = { u, a, ch:q.o.userData.dmx?.ch || 0 }; a += q.ch; }); };
-    $('pmChOk').onclick = () => { const ch = Math.round(+$('pmCh').value); if (ch >= 1) each(q => q.o.userData.dmx = { ...q.o.userData.dmx, ch:ch === DMX_CH[q.o.userData.kind] ? 0 : ch }); };
+    $('pmChOk').onclick = () => { const ch = Math.min(512, Math.round(+$('pmCh').value)); if (ch >= 1) each(q => q.o.userData.dmx = { ...q.o.userData.dmx, ch:ch === DMX_CH[q.o.userData.kind] ? 0 : ch }); };
     $('pmAuto').onclick = () => each(q => { delete q.o.userData.patch; if (q.o.userData.dmx) q.o.userData.dmx = { ch:q.o.userData.dmx.ch }; });
     $('pmFloor').onclick = () => each(q => placeFx(q.o, q.o.position.x, q.o.position.z, 'sol'));
     $('pmHang').onclick = () => each(q => nearBar(q.o.position.x, q.o.position.z, 3) && placeFx(q.o, q.o.position.x, q.o.position.z, 'perche'));
@@ -1682,7 +1682,7 @@ $('seatMov').onchange = () => { pushUndo(); for (const o of seatList()) if (/amo
 // --- configurations ---
 // Sauve les éléments ajoutés + les objets de maquette déplacés (repérés par leur chemin d'index)
 function pathOf(o) { const p = []; for (; o.parent !== venue; o = o.parent) p.unshift(o.parent.children.indexOf(o)); return [o.name, ...p]; }
-function byPath([name, ...p]) { let o = venue.children.find(m => m.name === name); for (const i of p) o = o?.children[i]; return o; }
+function byPath([name, ...p]) { let o = venue.children.find(m => m.name === name); for (const i of p) o = Number.isInteger(i) ? o?.children[i] : undefined; return o; } // indices entiers seulement (chemins venus d'un lien)
 const T = o => ({ p:o.position.toArray(), r:o.rotation.toArray().slice(0, 3) });
 function snapshot() {
   const moved = [];
@@ -1698,14 +1698,15 @@ function restore(cfg) {
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
   CUES = Array.isArray(cfg.conduite) ? JSON.parse(JSON.stringify(cfg.conduite)).filter(c => c && typeof c.h === 'object').map(c => ({ ...c, name:String(c.name || 'Mémoire').slice(0, 80) })) : []; renderCues?.();
   DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
-  cfg.props.forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (x.power != null) g.userData.power = +x.power; if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = { u:Math.max(1, Math.round(+x.dmx.u) || 1), a:Math.max(0, Math.round(+x.dmx.a) || 0), ch:Math.max(0, Math.round(+x.dmx.ch) || 0) }; });
-  cfg.moved.forEach(x => { const o = byPath(x.path); if (o) { o.position.fromArray(x.p); o.rotation.fromArray(x.r); } });
-  const v = cfg.view; setSalle(cfg.salle || 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
-  camera.position.fromArray(v.cam); orbit.target.fromArray(v.target); goal = null;
+  const known = new Set([...Object.keys(BUILD), ...Object.keys(DEFAULT), ...Object.keys(LABELS), ...Object.keys(COLORS)]); // setup venu d'un lien ou d'un fichier : valeurs bornées (js/calc.js)
+  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); });
+  (Array.isArray(cfg.moved) ? cfg.moved : []).slice(0, LIMITS.props).forEach(x => { const o = Array.isArray(x?.path) && byPath(x.path), p = cleanVec3(x?.p), r = cleanVec3(x?.r, 2 * Math.PI); if (o && p && r) { o.position.fromArray(p); o.rotation.fromArray(r); } });
+  const v = cfg.view && cleanVec3(cfg.view.cam) && cleanVec3(cfg.view.target) ? cfg.view : null; setSalle(cfg.salle === 'audi' ? 'audi' : 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
+  camera.position.fromArray(cleanVec3(v.cam)); orbit.target.fromArray(cleanVec3(v.target)); goal = null;
   venue.traverse(o => o.visible = true);
-  v.hidden.forEach(p => { const o = byPath(p); if (o) o.visible = false; });
-  document.querySelectorAll('[data-env]').forEach(b => b.classList.toggle('on', !v.env.includes(b.dataset.env)));
-  $('cutAxis').value = v.cut.axis; $('cutFlip').checked = v.cut.flip; $('cutAxis').onchange(); $('cut').value = v.cut.value; applyCut();
+  (Array.isArray(v.hidden) ? v.hidden : []).forEach(p => { const o = Array.isArray(p) && byPath(p); if (o) o.visible = false; });
+  const env = Array.isArray(v.env) ? v.env : []; document.querySelectorAll('[data-env]').forEach(b => b.classList.toggle('on', !env.includes(b.dataset.env)));
+  const cut = v.cut && typeof v.cut === 'object' ? v.cut : {}; if (['x', 'y', 'z', ''].includes(cut.axis)) $('cutAxis').value = cut.axis; $('cutFlip').checked = !!cut.flip; $('cutAxis').onchange(); if (Number.isFinite(+cut.value)) $('cut').value = +cut.value; applyCut();
   refreshModels(); syncTrapBtn(); setSalle(salle, false); // sièges amovibles, opacité
 }
 // --- annuler / rétablir : pile d'instantanés de la salle ; la caméra reste où elle est ---
@@ -1786,7 +1787,7 @@ $('save').onclick = () => {
   setupName = n; cfgs[n] = { ...snapshot(), ...meta() }; store.set(cfgs); refreshCfgs(); // les champs restent remplis : « Sauver » à nouveau met à jour ce setup
 };
 $('exp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(cfgs, null, 1)], { type:'application/json' })); a.download = 'setups-salle.json'; a.click(); };
-$('imp').onchange = e => e.target.files[0]?.text().then(t => { Object.assign(cfgs, JSON.parse(t)); store.set(cfgs); refreshCfgs(); });
+$('imp').onchange = e => e.target.files[0]?.text().then(t => { const j = JSON.parse(t); if (!j || typeof j !== 'object' || Array.isArray(j)) throw 0; Object.assign(cfgs, j); store.set(cfgs); refreshCfgs(); }).catch(() => alert('Ce fichier de setups est illisible.'));
 refreshCfgs();
 // --- lien de partage : setup compressé dans l'adresse (#s=…), sans serveur ; c'est une copie, pas une édition à plusieurs ---
 const b64u = { enc:u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),

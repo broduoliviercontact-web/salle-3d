@@ -72,7 +72,8 @@ export function circuitError(r, load, cn, circW = CIRC_W) {
 // (univers 1, sans chevauchement ; on passe à l'univers suivant quand l'empreinte dépasserait 512)
 export const dmxOverlaps = (rows, r, u = r.u, a = r.a, ch = r.ch) => rows.some(q => q !== r && q.a && q.u === u && a <= q.a + q.ch - 1 && q.a <= a + ch - 1);
 export function assignDmx(rows) {
-  for (const r of rows) if (!r.a) { let u = 1, a = 1; while (dmxOverlaps(rows, r, u, a, r.ch) || a + r.ch - 1 > 512) { a++; if (a + r.ch - 1 > 512) { u++; a = 1; } } r.u = u; r.a = a; }
+  // empreinte > 512 : jamais adressable (signalée par dmxError) ; sans ce garde-fou, la boucle ne finirait pas
+  for (const r of rows) if (!r.a && r.ch >= 1 && r.ch <= 512) { let u = 1, a = 1; while (dmxOverlaps(rows, r, u, a, r.ch) || a + r.ch - 1 > 512) { a++; if (a + r.ch - 1 > 512) { u++; a = 1; } } r.u = u; r.a = a; }
   return rows;
 }
 export const dmxError = (rows, r) => r.a + r.ch - 1 > 512 ? `DMX : dépasse 512 (${r.a} + ${r.ch} canaux)` : dmxOverlaps(rows, r) ? 'DMX : adresses qui se chevauchent' : '';
@@ -84,3 +85,25 @@ export function cueTime(a, b, vit, patV, ecrV) {
   if (a.patience != null && b.patience != null) t = Math.max(t, Math.abs(b.patience - a.patience) / patV);
   if (a.ecran != null && b.ecran != null) t = Math.max(t, Math.abs(b.ecran - a.ecran) / ecrV); return t;
 }
+
+// --- setups venus de l'extérieur (lien #s=…, fichier importé, stockage) : valeurs bornées avant de construire la scène ---
+// Un lien piégé (écran LED de 100 000 m, 10 000 canaux DMX…) ferait tourner des boucles sans fin et figerait l'onglet.
+export const LIMITS = { L:120, P:120, H:40, min:0.01, other:1e5, pos:2000, props:5000, str:80 };
+const num = (v, lo, hi) => Number.isFinite(+v) && v !== null && v !== '' ? Math.min(hi, Math.max(lo, +v)) : null;
+const vec3 = (a, lim) => Array.isArray(a) && a.length >= 3 && a.slice(0, 3).every(v => Number.isFinite(+v) && v !== null) ? a.slice(0, 3).map(v => Math.min(lim, Math.max(-lim, +v))) : null;
+// dims : L, P, H bornés à des valeurs plausibles, puis les paramètres propres à chaque objet (nombres finis ou textes courts)
+export function cleanDims(dims, fallback = [1, 1, 1]) {
+  const d = Array.isArray(dims) ? dims.slice(0, 12) : fallback.slice();
+  return d.map((v, i) => typeof v === 'string' ? v.slice(0, LIMITS.str)
+    : i < 3 ? num(v, LIMITS.min, [LIMITS.L, LIMITS.P, LIMITS.H][i]) ?? fallback[i] ?? 1
+    : num(v, -LIMITS.other, LIMITS.other) ?? 0);
+}
+// un élément ajouté : null s'il est inutilisable (type inconnu, position illisible)
+export function cleanProp(x, known, defaults = {}) {
+  if (!x || typeof x !== 'object' || typeof x.kind !== 'string' || !known.has(x.kind)) return null;
+  const p = vec3(x.p, LIMITS.pos), r = vec3(x.r, 2 * Math.PI) || [0, 0, 0];
+  if (!p) return null;
+  return { ...x, dims:cleanDims(x.dims, defaults[x.kind] || [1, 1, 1]), p, r };
+}
+export const cleanDmx = d => ({ u:Math.round(num(d?.u, 1, 64) ?? 1), a:Math.round(num(d?.a, 0, 512) ?? 0), ch:Math.round(num(d?.ch, 0, 512) ?? 0) });
+export const cleanVec3 = (a, lim = LIMITS.pos) => vec3(a, lim);

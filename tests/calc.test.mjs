@@ -1,7 +1,7 @@
 // Tests des calculs de sécurité de Salle 3D : `npm test` (Node 20+, aucune dépendance)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pratLayout, ropeSag, gridRig, hangOnGrid, shareNearest, assignCircuits, circuitError, assignDmx, dmxError, cueTime, CIRC_W } from '../js/calc.js';
+import { pratLayout, ropeSag, gridRig, hangOnGrid, shareNearest, assignCircuits, circuitError, assignDmx, dmxError, cueTime, CIRC_W, LIMITS, cleanDims, cleanProp, cleanDmx } from '../js/calc.js';
 
 const near = (a, b, eps = 1e-6, msg) => assert.ok(Math.abs(a - b) < eps, msg || `${a} ≠ ${b}`);
 const area = l => l.reduce((s, [, , w, d]) => s + w * d, 0);
@@ -117,4 +117,34 @@ test('conduite : durée = l\'élément le plus lent', () => {
   const a = { h:{ F1:2, C1:3 }, patience:0, ecran:0 }, b = { h:{ F1:8, C1:4 }, patience:1, ecran:0.5 };
   near(cueTime(a, b, { F1:0.15, C1:0.08 }, 1 / 5.7, 0.2 / 7.5), 40); // F1 : 6 m à 0,15 m/s
   near(cueTime({ h:{} }, { h:{} }, {}, 1, 1), 0);
+});
+
+// --- liens de partage : valeurs bornées ---
+const KNOWN = new Set(['led', 'scene', 'perche']);
+test('lien piégé : dimensions bornées (écran LED de 100 000 m -> 120 × 40 m)', () => {
+  assert.deepEqual(cleanDims([100000, 0.1, 1e9]), [LIMITS.L, 0.1, LIMITS.H]);
+  assert.deepEqual(cleanDims([-5, 'x', NaN], [4, 0.1, 2.5]), [LIMITS.min, 'x', 2.5]);
+  assert.deepEqual(cleanDims(null, [8, 8, 1.2]), [8, 8, 1.2]);
+  assert.equal(cleanDims(new Array(1000).fill(1)).length, 12);
+  assert.equal(cleanDims([1, 1, 1, 'Équipe F1'.repeat(100)])[3].length, LIMITS.str);
+});
+test('lien piégé : paramètres en plus gardés s\'ils sont des nombres finis (charge d\'une perche, nom d\'équipe)', () => {
+  assert.deepEqual(cleanDims([12, 0.05, 0.05, 'F1', 350, 0, 0, 645]), [12, 0.05, 0.05, 'F1', 350, 0, 0, 645]);
+  assert.deepEqual(cleanDims([12, 0.05, 0.05, 1e12, Infinity]), [12, 0.05, 0.05, LIMITS.other, 0]);
+});
+test('lien piégé : élément de type inconnu ou sans position lisible écarté ; position bornée', () => {
+  assert.equal(cleanProp({ kind:'virus', dims:[1, 1, 1], p:[0, 0, 0], r:[0, 0, 0] }, KNOWN), null);
+  assert.equal(cleanProp({ kind:'led', dims:[1, 1, 1], p:[0, 'a', 0] }, KNOWN), null);
+  assert.equal(cleanProp({ kind:'__proto__', p:[0, 0, 0] }, KNOWN), null);
+  const x = cleanProp({ kind:'led', dims:[1e5, 0.1, 1e5], p:[1e9, 0, -3], r:null, trap:2 }, KNOWN, { led:[4, 0.1, 2.5] });
+  assert.deepEqual(x.dims, [LIMITS.L, 0.1, LIMITS.H]); assert.deepEqual(x.p, [LIMITS.pos, 0, -3]); assert.deepEqual(x.r, [0, 0, 0]); assert.equal(x.trap, 2);
+});
+test('lien piégé : DMX borné (univers 1-64, adresse 0-512, empreinte 0-512)', () => {
+  assert.deepEqual(cleanDmx({ u:1e9, a:-4, ch:100000 }), { u:64, a:0, ch:512 });
+  assert.deepEqual(cleanDmx(null), { u:1, a:0, ch:0 });
+});
+test('DMX : une empreinte de plus de 512 canaux ne bloque pas l\'adressage (signalée)', () => {
+  const rows = assignDmx([dmx(10000), dmx(8)]);
+  assert.equal(rows[0].a, 0); assert.match(dmxError(rows, rows[0]), /dépasse 512/);
+  assert.deepEqual([rows[1].u, rows[1].a], [1, 1]);
 });
