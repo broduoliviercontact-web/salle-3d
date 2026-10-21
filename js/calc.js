@@ -137,3 +137,30 @@ export function alignShifts(boxes, mode) {
 }
 // cap d'un objet (degrés, 0 = +x du site, sens trigonométrique vu de dessus) à partir de son axe x local projeté au sol
 export const headingDeg = (ux, uz) => { const a = Math.atan2(-uz, ux) * 180 / Math.PI; return Math.round(((a % 360) + 360) % 360 * 100) / 100; };
+// --- implantation du public : chaises et tables dans une zone W × D (m), centrée sur l'origine, la scène vers +z ---
+// théâtre : p = [rang (entraxe), largeur de place, places max entre 2 allées, largeur d'allée] ; rangées parallèles à x, sièges tournés vers +z
+// cabaret / banquet : p = [entraxe des tables, Ø table, chaises par table, —] ; cabaret : pas de chaise dos à la scène (côté +z)
+// ponytail: valeurs par défaut d'usage courant, à valider avec le chargé de sécurité (largeurs d'allées, nombre de places par rangée)
+export const PUBLIC_DEFAULTS = { public_theatre:[0.9, 0.5, 16, 1.2], public_cabaret:[2.8, 1.2, 6, 0], public_banquet:[3.3, 1.8, 10, 0] };
+export function seatingLayout(kind, W, D, p = PUBLIC_DEFAULTS[kind]) {
+  const seats = [], tables = [];
+  if (kind === 'public_theatre') {
+    const [rang, place, max, allee] = p, rows = Math.floor(D / rang + 1e-9);
+    let k = 1, n = 0; // k blocs séparés par k − 1 allées, n places par rangée
+    for (; k <= 50; k++) { n = Math.floor((W - (k - 1) * allee) / place + 1e-9); if (n <= 0) { n = 0; break; } if (Math.ceil(n / k) <= max) break; }
+    const per = Array.from({ length:k }, (_, i) => Math.floor(n / k) + (i < n % k ? 1 : 0)), used = n * place + (k - 1) * allee;
+    for (let r = 0; r < rows; r++) { const z = D / 2 - rang / 2 - r * rang; let x = -used / 2; // premier rang côté scène
+      for (const m of per) { for (let i = 0; i < m; i++) seats.push([x + place * (i + 0.5), z, 0]); x += m * place + allee; } }
+    return { seats, tables, rows, perRow:n, blocks:k };
+  }
+  const [e, phi, nc] = p, nx = Math.floor(W / e + 1e-9), nz = Math.floor(D / e + 1e-9), r = phi / 2 + 0.3;
+  for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+    const x = -nx * e / 2 + e * (i + 0.5), z = -nz * e / 2 + e * (j + 0.5); tables.push([x, z]);
+    for (let c = 0; c < nc; c++) {
+      const a = kind === 'public_cabaret' ? Math.PI / 2 + (c + 0.5) * (1.5 * Math.PI / nc) + Math.PI / 4 // 3/4 du tour, côté opposé à la scène
+        : c * 2 * Math.PI / nc;
+      const sx = x + r * Math.cos(a), sz = z + r * Math.sin(a); seats.push([sx, sz, Math.atan2(x - sx, z - sz)]); // tournée vers la table
+    }
+  }
+  return { seats, tables, rows:nz, perRow:nx * nc };
+}

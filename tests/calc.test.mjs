@@ -1,7 +1,7 @@
 // Tests des calculs de sécurité de Salle 3D : `npm test` (Node 20+, aucune dépendance)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pratLayout, ropeSag, gridRig, hangOnGrid, shareNearest, assignCircuits, circuitError, assignDmx, dmxError, cueTime, CIRC_W, LIMITS, cleanDims, cleanProp, cleanDmx, rayToSegments, alignShifts, headingDeg } from '../js/calc.js';
+import { pratLayout, ropeSag, gridRig, hangOnGrid, shareNearest, assignCircuits, circuitError, assignDmx, dmxError, cueTime, CIRC_W, LIMITS, cleanDims, cleanProp, cleanDmx, rayToSegments, alignShifts, headingDeg, seatingLayout, PUBLIC_DEFAULTS } from '../js/calc.js';
 
 const near = (a, b, eps = 1e-6, msg) => assert.ok(Math.abs(a - b) < eps, msg || `${a} ≠ ${b}`);
 const area = l => l.reduce((s, [, , w, d]) => s + w * d, 0);
@@ -174,4 +174,24 @@ test('répartir : espaces égaux entre les emprises, les extrêmes restent en pl
 });
 test('cap en degrés depuis l\'axe local', () => {
   assert.equal(headingDeg(1, 0), 0); assert.equal(headingDeg(0, -1), 90); assert.equal(headingDeg(-1, 0), 180); assert.equal(headingDeg(0, 1), 270);
+});
+
+// --- implantation du public ---
+test('théâtre : rangées au pas de 0,90 m, blocs de 16 places au plus séparés par des allées de 1,20 m', () => {
+  const L = seatingLayout('public_theatre', 20, 9);
+  assert.equal(L.rows, 10); assert.equal(L.blocks, 3); assert.equal(L.perRow, 35); assert.equal(L.seats.length, 350);
+  const row = L.seats.filter(s => s[1] === L.seats[0][1]).map(s => s[0]).sort((a, b) => a - b), gaps = row.slice(1).map((x, i) => +(x - row[i]).toFixed(3));
+  assert.equal(gaps.filter(g => g > 0.5).length, 2); gaps.filter(g => g > 0.5).forEach(g => near(g, 1.7)); // 2 allées : 0,50 + 1,20
+  assert.ok(L.seats.every(([x, z]) => Math.abs(x) <= 10 && Math.abs(z) <= 4.5));
+});
+test('théâtre : petite zone sans allée, zone trop étroite vide', () => {
+  const L = seatingLayout('public_theatre', 5, 1.8); assert.equal(L.blocks, 1); assert.equal(L.seats.length, 20);
+  assert.equal(seatingLayout('public_theatre', 0.4, 5).seats.length, 0);
+});
+test('banquet : tables Ø 1,80 de 10 au pas de 3,30 m ; cabaret : 6 chaises, aucune dos à la scène', () => {
+  const B = seatingLayout('public_banquet', 10, 10); assert.equal(B.tables.length, 9); assert.equal(B.seats.length, 90);
+  const C = seatingLayout('public_cabaret', 6, 6), [tx, tz] = C.tables[0];
+  assert.equal(C.tables.length, 4); assert.equal(C.seats.length, 24);
+  const mine = C.seats.slice(0, 6); assert.ok(mine.every(([, sz]) => sz < tz + 0.9 * (PUBLIC_DEFAULTS.public_cabaret[1] / 2 + 0.3))); // aucune chaise pile côté scène
+  assert.ok(mine.every(([sx, sz, a]) => { const fx = Math.sin(a), fz = Math.cos(a); return (tx - sx) * fx + (tz - sz) * fz > 0; })); // tournées vers la table
 });
