@@ -1,7 +1,7 @@
 // Tests des calculs de sécurité de Salle 3D : `npm test` (Node 20+, aucune dépendance)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pratLayout, ropeSag, gridRig, hangOnGrid, shareNearest, assignCircuits, circuitError, assignDmx, dmxError, cueTime, CIRC_W, LIMITS, cleanDims, cleanProp, cleanDmx } from '../js/calc.js';
+import { pratLayout, ropeSag, gridRig, hangOnGrid, shareNearest, assignCircuits, circuitError, assignDmx, dmxError, cueTime, CIRC_W, LIMITS, cleanDims, cleanProp, cleanDmx, rayToSegments, alignShifts, headingDeg } from '../js/calc.js';
 
 const near = (a, b, eps = 1e-6, msg) => assert.ok(Math.abs(a - b) < eps, msg || `${a} ≠ ${b}`);
 const area = l => l.reduce((s, [, , w, d]) => s + w * d, 0);
@@ -147,4 +147,31 @@ test('DMX : une empreinte de plus de 512 canaux ne bloque pas l\'adressage (sign
   const rows = assignDmx([dmx(10000), dmx(8)]);
   assert.equal(rows[0].a, 0); assert.match(dmxError(rows, rows[0]), /dépasse 512/);
   assert.deepEqual([rows[1].u, rows[1].a], [1, 1]);
+});
+
+// --- placement précis ---
+test('cote au bâti : premier mur touché dans la direction, rien au-delà de la portée', () => {
+  const walls = [10, -5, 10, 5,  20, -5, 20, 5,  -3, -5, -3, 5]; // murs verticaux en x = 10, 20, -3
+  near(rayToSegments(2, 0, 1, 0, walls), 8); near(rayToSegments(2, 0, -1, 0, walls), 5);
+  assert.equal(rayToSegments(2, 0, 0, 1, walls), null); // aucun mur vers +z
+  assert.equal(rayToSegments(2, 0, 1, 0, walls, 7), null); // au-delà de la portée
+  assert.equal(rayToSegments(2, 6, 1, 0, walls), null); // passe au-dessus des segments
+});
+const box = (x0, x1, z0 = 0, z1 = 1) => ({ minX:x0, maxX:x1, minZ:z0, maxZ:z1 });
+test('aligner : bords et centres sur l\'axe choisi, l\'autre axe ne bouge pas', () => {
+  const b = [box(0, 2), box(5, 6, 3, 5), box(-1, 3, 1, 2)];
+  assert.deepEqual(alignShifts(b, 'xmin'), [[-1, 0], [-6, 0], [0, 0]]);
+  assert.deepEqual(alignShifts(b, 'xmax'), [[4, 0], [0, 0], [3, 0]]);
+  assert.deepEqual(alignShifts(b, 'xmid'), [[1.5, 0], [-3, 0], [1.5, 0]]);
+  assert.deepEqual(alignShifts(b, 'zmin'), [[0, 0], [0, -3], [0, -1]]);
+});
+test('répartir : espaces égaux entre les emprises, les extrêmes restent en place', () => {
+  const b = [box(0, 2), box(10, 12), box(3, 4), box(4.5, 5.5)], s = alignShifts(b, 'xdist');
+  assert.deepEqual(s[0], [0, 0]); assert.deepEqual(s[1], [0, 0]);
+  const moved = b.map((x, i) => ({ lo:x.minX + s[i][0], hi:x.maxX + s[i][0] })).sort((p, q) => p.lo - q.lo);
+  const gaps = moved.slice(1).map((m, i) => m.lo - moved[i].hi); gaps.forEach(g => near(g, gaps[0], 1e-9)); near(gaps[0], 2);
+  assert.deepEqual(alignShifts(b.slice(0, 2), 'xdist'), [[0, 0], [0, 0]]); // 2 éléments : rien à répartir
+});
+test('cap en degrés depuis l\'axe local', () => {
+  assert.equal(headingDeg(1, 0), 0); assert.equal(headingDeg(0, -1), 90); assert.equal(headingDeg(-1, 0), 180); assert.equal(headingDeg(0, 1), 270);
 });
