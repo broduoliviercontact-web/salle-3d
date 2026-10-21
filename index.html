@@ -20,8 +20,8 @@
 
   <h2>Ajouter</h2>
   <div class="row"><button id="addBtn" class="grow on" title="Catalogue des éléments 3D">＋ Ajouter un élément…</button></div>
-  <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Échap = fin">Tracer Vauban</button></div>
-  <div class="row"><button id="poteletDraw" class="grow" title="Potelets REXO100CHC + cordons chanvre CI2C (2 m). Clic = départ, chaque clic pose une ligne (écart réparti à égalité, au plus l'écart max) ; clic sur le 1er potelet = boucle fermée ; Échap = fin">Tracer potelets</button><label title="Écart maximal entre deux potelets (axe à axe) ; le cordon CI2C fait 2 m">écart ≤ <input type="number" id="potGap" value="2" min="0.5" max="2" step="0.05" style="width:56px"> m</label></div>
+  <div class="row"><button id="cableDraw" class="grow" title="Clic = point de départ puis chaque clic pose un tronçon ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer passe-câbles (P)</button><button id="vaubanDraw" class="grow" title="Clic = point de départ puis chaque clic pose une ligne de barrières ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer Vauban</button></div>
+  <div class="row"><button id="poteletDraw" class="grow" title="Potelets REXO100CHC + cordons chanvre CI2C (2 m). Clic = départ, chaque clic pose une ligne (écart réparti à égalité, au plus l'écart max) ; clic sur le 1er potelet = boucle fermée ; Maj = angle libre (sans magnétisme) ; Échap = fin">Tracer potelets</button><label title="Écart maximal entre deux potelets (axe à axe) ; le cordon CI2C fait 2 m">écart ≤ <input type="number" id="potGap" value="2" min="0.5" max="2" step="0.05" style="width:56px"> m</label></div>
   <div class="row"><button id="trussDraw" class="grow" title="Clic = départ puis chaque clic pose un pont (longueurs au 0,5 m, angles à 90° avec cube d'angle) ; Échap = fin">Tracer des ponts</button><select id="trussSeries" title="Série de pont"><option value="truss30">290</option><option value="truss40">390</option><option value="truss30t">290 triangle</option></select> à <input type="number" id="trussH" value="6" step="0.5" min="0" style="width:52px"> m</div>
   <div class="row"><label class="cb"><input type="checkbox" id="hoistAuto" checked> Moteurs auto</label> tous les ≤ <input type="number" id="hoistSpan" value="6" step="0.5" min="2" style="width:48px"> m</div>
   <div class="row">Capacité moteur <input type="number" id="hoistCap" value="500" step="250" min="250" style="width:62px"> kg <button id="hoistBtn" title="Replace les moteurs du pont sélectionné (après l'avoir modifié)">Replacer</button></div>
@@ -64,7 +64,7 @@
   <div class="row"><button id="salleAgora" class="on" title="Tout le bâtiment, setups de l'Agora">Bâtiment / Agora</button><button id="salleAudi" title="Uniquement l'auditorium, sièges transparents, setups de l'auditorium">Auditorium seul</button></div>
   <div class="row" id="audiRow" hidden>Sièges <input type="range" id="seatOp" min="0" max="100" value="25" class="grow" title="Opacité des sièges"><label class="cb"><input type="checkbox" id="seatMov" checked> Sièges amovibles</label></div>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button><button id="vPublic" title="Clique ensuite un point de la salle : vue à hauteur d'yeux vers la scène">Vue public (V)</button></div>
-  <div class="row"><button class="on" data-env="mur">Murs ext.</button><button class="on" data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button id="termLab" data-salle="audi" hidden title="Afficher les repères de tous les boîtiers (sinon seulement celui sélectionné)">Repères</button><button class="on" id="termBtn" data-salle="audi" hidden title="Boîtiers AV (bleu), boîtiers d'éclairage scénique (rouge) et enceintes (gris) des plans des terminaux audiovisuels">Boîtiers AV / lumière</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button><button id="beamBtn" title="Faisceaux des projecteurs : cône jusqu'au sol et tache ; rouge si coupé par la conque, l'écran ou la patience">Faisceaux</button></div>
+  <div class="row"><button data-env="mur">Murs ext.</button><button data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button id="termLab" data-salle="audi" hidden title="Afficher les repères de tous les boîtiers (sinon seulement celui sélectionné)">Repères</button><button class="on" id="termBtn" data-salle="audi" hidden title="Boîtiers AV (bleu), boîtiers d'éclairage scénique (rouge) et enceintes (gris) des plans des terminaux audiovisuels">Boîtiers AV / lumière</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button><button id="beamBtn" title="Faisceaux des projecteurs : cône jusqu'au sol et tache ; rouge si coupé par la conque, l'écran ou la patience">Faisceaux</button></div>
   <div class="row" data-salle="agora">Enceintes piliers à <input type="number" id="delayH" value="4" step="0.5" style="width:52px"> m <span style="opacity:.7">(délai / L2D)</span></div>
   <div class="row"><button id="measure">Mesurer (M)</button><button id="clearMeasure">Effacer mesures</button></div>
 
@@ -284,7 +284,7 @@ function demoHall() {
   venue.add(g); refreshModels();
 }
 const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
-fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openShared(); openAsdLink(); }))) : demoHall()).catch(demoHall);
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), document.querySelectorAll('[data-env]').forEach(applyEnv), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openShared(); openAsdLink(); }))) : demoHall()).catch(demoHall);
 $('file').onchange = e => loadFiles(e.target.files);
 addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
 addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });
@@ -1432,7 +1432,7 @@ function segTo(p) {
   const T = TRUSS[cable.kind];
   if (T && cable.heading === null && cable.fromRot != null) { a = cable.fromRot + Math.round((a - cable.fromRot) / (Math.PI / 2)) * (Math.PI / 2); start = s.clone().addScaledVector(heading(a), T.S / 2); } // départ d'un cube : perpendiculaire à ses faces
   else if (cable.kind === 'potelet' && potClose(p)) { p = cable.first; a = Math.atan2(-(p.z - s.z), p.x - s.x); } // fermeture exacte, sans magnétisme
-  else if (cable.heading === null || cable.kind === 'vauban' || cable.kind === 'potelet') { if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
+  else if (cable.heading === null || cable.kind === 'vauban' || cable.kind === 'potelet') { if ($('snap').checked && !cable.free) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); } // Vauban : les crochets pivotent, pas de pièce d'angle
   else if (T) { // ponts : tout droit (raccord) ou angle à 90° avec un cube d'angle entre les 2 ponts
     let d = a - cable.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); k = THREE.MathUtils.clamp(Math.round(d / (Math.PI / 2)), -1, 1); a = cable.heading + k * Math.PI / 2;
     if (k) { const c = s.clone().addScaledVector(heading(cable.heading), T.S / 2); pieces.push({ pos:c, rot:cable.heading, corner:true }); start = c.clone().addScaledVector(heading(a), T.S / 2); }
@@ -1455,8 +1455,14 @@ function segTo(p) {
   const P = cable.kind === 'vauban' ? VAUBAN_PITCH : T ? 0.5 : MOD, n = Math.max(1, Math.round(new THREE.Vector3(p.x - start.x, 0, p.z - start.z).dot(dir) / P));
   return { a, n, dir, start, pieces, P, end:start.clone().addScaledVector(dir, n * P) };
 }
-renderer.domElement.addEventListener('pointermove', e => {
+// Maj enfoncée pendant un tracé : angle libre (sans le magnétisme à 45°) ; l'aperçu suit dès qu'on appuie ou relâche Maj
+let cableLast = null;
+addEventListener('keydown', e => { if (e.key === 'Shift' && cable?.start && cableLast) cableMove({ clientX:cableLast.clientX, clientY:cableLast.clientY, shiftKey:true }); });
+addEventListener('keyup', e => { if (e.key === 'Shift' && cable?.start && cableLast) cableMove({ clientX:cableLast.clientX, clientY:cableLast.clientY, shiftKey:false }); });
+renderer.domElement.addEventListener('pointermove', e => cableMove(e));
+function cableMove(e) {
   if (!cable?.start) return;
+  cableLast = { clientX:e.clientX, clientY:e.clientY }; cable.free = e.shiftKey;
   const p = floorPoint(e); if (!p) return;
   const { a, n, dir, start, pieces, P } = segTo(p), L = n * P, pt = cable.kind === 'potelet', vb = cable.kind === 'vauban' || pt, T = TRUSS[cable.kind], H = T ? trussY() - cable.start.y : 0;
   if (T) { preview.scale.set(L, T.S / 0.05, T.S / 0.29); preview.position.copy(start).addScaledVector(dir, L / 2).setY(cable.start.y + H + T.S / 2);
@@ -1465,10 +1471,11 @@ renderer.domElement.addEventListener('pointermove', e => {
   preview.rotation.y = a; preview.visible = true;
   if (!T) while (ghosts.length < pieces.length) { const g = new THREE.Group(); buildDefenderC().forEach(m => { m.material = preview.material; g.add(m); }); g.renderOrder = 4; scene.add(g); ghosts.push(g); }
   if (!T) ghosts.forEach((g, i) => { const pc = pieces[i]; g.visible = !!pc; if (pc) { g.position.copy(pc.pos).setY(cable.start.y + 0.02); g.rotation.y = pc.rot; } });
-  const txt = T ? `${pieces.length ? 'cube d\'angle + ' : ''}pont ${fr(L, 1)} m (${trussPartsTxt(L)}) à ${fr(H, 1)} m` : (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + (pt ? `${potClose(p) ? 'boucle · ' : ''}${n} cordon${n > 1 ? 's' : ''} · écart ${fr(P, 2)} m · ${fr(L, 2)} m` : `${n} ${vb ? 'barrière' : 'module'}${n > 1 ? 's' : ''} · ${fr(L, 2)} m`);
+  let txt = T ? `${pieces.length ? 'cube d\'angle + ' : ''}pont ${fr(L, 1)} m (${trussPartsTxt(L)}) à ${fr(H, 1)} m` : (pieces.length ? `${pieces.length} angle${pieces.length > 1 ? 's' : ''} ${pieces[0].side > 0 ? 'gauche' : 'droite'} (${pieces.length * C_DEG}°) + ` : '') + (pt ? `${potClose(p) ? 'boucle · ' : ''}${n} cordon${n > 1 ? 's' : ''} · écart ${fr(P, 2)} m · ${fr(L, 2)} m` : `${n} ${vb ? 'barrière' : 'module'}${n > 1 ? 's' : ''} · ${fr(L, 2)} m`);
+  if (cable.free && $('snap').checked && !T) txt += ' · angle libre';
   if (previewLab?.userData.txt !== txt) { if (previewLab) scene.remove(previewLab); previewLab = label3d(txt, '#8a6d00', 320); previewLab.userData.txt = txt; scene.add(previewLab); }
   previewLab.position.copy(preview.position).setY(cable.start.y + (vb ? 1.6 : T ? H + T.S + 0.5 : 0.6));
-});
+}
 // hauteur (dessous) des ponts du tracé : celle du pont rejoint au départ, sinon le réglage
 const trussY = () => cable.Yabs ?? (cable.start.y + (+$('trussH').value || 0));
 // jonction possible sous la souris : cube de même section (à 0,6 m) ou axe d'un pont de même section (à 0,4 m), coupé au pas de 0,5 m
@@ -1500,6 +1507,7 @@ const bumpCube = c => rebuildProp(c, [...c.userData.dims.slice(0, 3), (c.userDat
 const mergeGrp = (from, to) => { if (from && from !== to) props.children.forEach(o => { if (o.userData.grp === from) o.userData.grp = to; }); };
 function cableClick(e) {
   const p = floorPoint(e); if (!p) return;
+  cable.free = e.shiftKey; // Maj : angle libre
   const T = TRUSS[cable.kind];
   if (!cable.start) {
     const j = T && trussJoin(p, cable.kind);
@@ -1606,10 +1614,9 @@ $('vPersp').onclick = () => view(new THREE.Vector3(0.6, 0.45, 0.7));
 $('vFront').onclick = () => view(salle === 'audi' ? new THREE.Vector3(1, 0.15, 0) : new THREE.Vector3(0, 0.15, 1)); // auditorium : depuis le public, scène à l'ouest
 
 // --- enveloppe : murs extérieurs (IsExternal Revit) et toit, marqués « env » dans l'IFC converti ---
-document.querySelectorAll('[data-env]').forEach(b => b.onclick = () => {
-  const show = b.classList.toggle('on');
-  venue.traverse(o => { if (o.userData.env === b.dataset.env) o.visible = show; });
-});
+// à l'arrivée sur la page, murs extérieurs et toit cachés (boutons sans « on » dans le HTML) pour voir l'intérieur tout de suite
+const applyEnv = b => { const show = b.classList.contains('on'); venue.traverse(o => { if (o.userData.env === b.dataset.env) o.visible = show; }); };
+document.querySelectorAll('[data-env]').forEach(b => b.onclick = () => { b.classList.toggle('on'); applyEnv(b); });
 
 // trappes de sol : afficher / cacher tout le groupe (l'état est gardé dans les setups via la liste des objets masqués)
 const trapGroup = () => venue.children.find(o => o.name === 'Trappes de sol (PDF)');
