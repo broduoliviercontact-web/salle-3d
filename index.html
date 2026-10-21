@@ -1385,7 +1385,8 @@ function resizeSelected() {
 function rebuildProp(o, dims, kind = o.userData.kind) {
   const n = makeProp(kind, dims), keep = { ...o.userData }; delete keep.kind; delete keep.dims;
   Object.assign(n.userData, keep);
-  if (n.userData.asd) { const a = n.userData.asd; if ([a.D, a.W, a.H].every((v, i) => Math.abs(+v - dims[i]) < 1e-6)) asdify(n, a); else delete n.userData.asd; } // redimensionnée : redevient une scène simple n.position.copy(o.position); n.rotation.copy(o.rotation);
+  if (n.userData.asd) { const a = n.userData.asd; if ([a.D, a.W, a.H].every((v, i) => Math.abs(+v - dims[i]) < 1e-6)) asdify(n, a); else delete n.userData.asd; } // redimensionnée : redevient une scène simple
+  n.position.copy(o.position); n.rotation.copy(o.rotation);
   const arr = props.children, i = arr.indexOf(o); props.remove(o); arr.splice(arr.indexOf(n), 1); arr.splice(i, 0, n);
   select(n); return n;
 }
