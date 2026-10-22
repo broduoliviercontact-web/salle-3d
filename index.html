@@ -66,7 +66,7 @@
   <div class="row"><button id="parent">Parent ↑</button><button id="dup">Dupliquer</button><button id="del">Suppr.</button></div>
   <div class="row"><button id="hide">Masquer (H)</button><button id="showAll">Tout réafficher</button></div>
   <div class="row"><button id="undo">↶ Annuler (⌘Z)</button><button id="redo">↷ Rétablir</button></div>
-  <div class="row"><label class="cb"><input type="checkbox" id="snap" checked> Magnétisme 0,5 m / 15°</label></div>
+  <div class="row"><label class="cb"><input type="checkbox" id="snap" checked> Magnétisme 0,5 m / 15° <span style="color:var(--mute)">(Maj : sans)</span></label></div>
   <div class="row"><label class="cb"><input type="checkbox" id="carry" checked> La scène et les groupes liés emportent leur matériel</label></div>
 
   <h2>Vue</h2>
@@ -1630,7 +1630,11 @@ $('trapSel').onchange = () => {
 };
 $('powerW').onchange = () => { if (selected) { pushUndo(); selected.userData.power = Math.max(0, +$('powerW').value || 0); } };
 function setMode(m) { tc.setMode(m); $('mTrans').classList.toggle('on', m === 'translate'); $('mRot').classList.toggle('on', m === 'rotate'); tc.showX = tc.showZ = m === 'translate'; tc.showY = true; }
-function applySnap() { const on = $('snap').checked; tc.setTranslationSnap(on ? 0.5 : null); tc.setRotationSnap(on ? THREE.MathUtils.degToRad(15) : null); }
+let snapOff = false; // Maj enfoncée : magnétisme coupé le temps du geste (déplacer, tourner, tracer)
+function applySnap() { const on = $('snap').checked && !snapOff; tc.setTranslationSnap(on ? 0.5 : null); tc.setRotationSnap(on ? THREE.MathUtils.degToRad(15) : null); }
+addEventListener('keydown', e => { if (e.key === 'Shift' && !snapOff) { snapOff = true; applySnap(); } });
+addEventListener('keyup', e => { if (e.key === 'Shift') { snapOff = false; applySnap(); } });
+addEventListener('blur', () => { if (snapOff) { snapOff = false; applySnap(); } }); // Maj relâchée hors de la fenêtre
 $('snap').onchange = applySnap; applySnap();
 $('mTrans').onclick = () => setMode('translate'); $('mRot').onclick = () => setMode('rotate'); setMode('translate');
 // ponytail: en mode rotation seul l'axe vertical est affiché (les éléments restent à plat)
