@@ -315,7 +315,7 @@ function demoHall() {
   venue.add(g); refreshModels();
 }
 const MODEL = new URLSearchParams(location.search).get('model') || 'halle_ifc.glb';
-fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), document.querySelectorAll('[data-env]').forEach(applyEnv), homeView(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openShared(); openAsdLink(); }))) : demoHall()).catch(demoHall);
+fetch(MODEL, { method:'HEAD' }).then(r => r.ok ? loadURL(MODEL, MODEL, () => (placePonts(), document.querySelectorAll('[data-env]').forEach(applyEnv), homeView(), Promise.all([loadPlan('plan_scene.json'), loadBar('bar.json'), loadTrappes('trappes.json'), loadTerminaux('terminaux_au.json')]).then(() => { buildAgora(); openSalleLink(); openShared(); openAsdLink(); }))) : demoHall()).catch(demoHall);
 $('file').onchange = e => loadFiles(e.target.files);
 addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'grid'; });
 addEventListener('dragleave', e => { if (!e.relatedTarget) $('drop').style.display = 'none'; });
@@ -1761,8 +1761,17 @@ function setSalle(s, reframe = true) {
   if (reframe) { goal = null; if (audi) { orbit.target.set(-80, 3, 3); camera.position.set(-56, 24, 9); } /* depuis le fond de salle, plafond coupé */ else view(new THREE.Vector3(0.6, 0.45, 0.7)); }
   refreshCfgs();
 }
-$('salleAgora').onclick = () => setSalle('agora');
-$('salleAudi').onclick = () => setSalle('audi');
+// lien direct vers une salle : …/#auditorium ouvre l'auditorium (aussi ?salle=audi) ; la barre d'adresse suit le choix de salle
+// pour être copiée telle quelle (sans toucher aux liens de setup #s=… ni de scène ASD #asd=…)
+const SALLE_HASH = { audi:'#auditorium', agora:'#agora' };
+function openSalleLink() {
+  const h = location.hash.toLowerCase(), q = new URLSearchParams(location.search).get('salle');
+  if (h === '#auditorium' || h === '#audi' || q === 'audi' || q === 'auditorium') setSalle('audi');
+}
+function salleToUrl(s) { if (location.hash && !Object.values(SALLE_HASH).includes(location.hash.toLowerCase()) && location.hash !== '#audi') return; // lien de setup ou de scène : on n'y touche pas
+  history.replaceState(null, '', location.pathname + location.search + (s === 'audi' ? SALLE_HASH.audi : '')); }
+$('salleAgora').onclick = () => { setSalle('agora'); salleToUrl('agora'); };
+$('salleAudi').onclick = () => { setSalle('audi'); salleToUrl('audi'); };
 $('seatOp').oninput = () => seatOpacity(+$('seatOp').value / 100);
 $('seatMov').onchange = () => { pushUndo(); for (const o of seatList()) if (/amovible/i.test(o.name)) o.visible = $('seatMov').checked; };
 

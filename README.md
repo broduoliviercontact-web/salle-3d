@@ -197,6 +197,9 @@ Quand un élément ajouté est sélectionné (ou plusieurs) :
 - **Cotes au bâti** : distances de son emprise au premier trait du bâti (murs, poteaux du plan DXF) vers l'est, l'ouest, le nord et le sud, affichées en bleu et mises à jour pendant le déplacement.
 - **Sélection multiple** : Maj, ⌘ ou Ctrl + clic ajoute ou retire un élément. Le groupe se déplace et se tourne d'un bloc (poignées, ou X / Y / h / ∠ du groupe), se duplique et se supprime ensemble ; boutons pour **aligner** les bords ou les centres (le long du hall : X, en travers : Z) et **répartir** avec des espaces égaux (les deux extrêmes restent en place).
 
+### Lien direct vers l'auditorium
+`https://salle-3d-tools.vercel.app/#auditorium` ouvre directement la vue **Auditorium seul** (aussi `?salle=audi`). Quand on clique sur *Auditorium seul*, la barre d'adresse prend ce lien : il suffit de la copier. Après le mot de passe, on arrive bien sur l'auditorium. Les liens de setup (`#s=…`) gardent leur propre salle.
+
 ### Setups de salle
 Un setup enregistre :
 - les éléments ajoutés et leur position (avec leur trappe et leur puissance) ;
