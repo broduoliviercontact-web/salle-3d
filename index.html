@@ -1766,7 +1766,10 @@ function setSalle(s, reframe = true) {
 const SALLE_HASH = { audi:'#auditorium', agora:'#agora' };
 function openSalleLink() {
   const h = location.hash.toLowerCase(), q = new URLSearchParams(location.search).get('salle');
-  if (h === '#auditorium' || h === '#audi' || q === 'audi' || q === 'auditorium') setSalle('audi');
+  if (!(h === '#auditorium' || h === '#audi' || q === 'audi' || q === 'auditorium')) return;
+  setSalle('audi');
+  placeCintres(); // arrivée sur l'auditorium : cintres motorisés posés (équipes, écran, patience)
+  const acou = document.querySelector('[data-env="acou"]'); if (acou?.classList.contains('on')) { acou.classList.remove('on'); applyEnv(acou); } // panneaux acoustiques cachés
 }
 function salleToUrl(s) { if (location.hash && !Object.values(SALLE_HASH).includes(location.hash.toLowerCase()) && location.hash !== '#audi') return; // lien de setup ou de scène : on n'y touche pas
   history.replaceState(null, '', location.pathname + location.search + (s === 'audi' ? SALLE_HASH.audi : '')); }
