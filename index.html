@@ -179,7 +179,7 @@ import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
 import { RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
-import { annotSvg, annotBox, annotLength, zoneArea, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
+import { annotSvg, annotBox, annotLength, zoneArea, zoneRect, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -2575,6 +2575,19 @@ function pedDraftDraw(cur) {
     + (P.length >= 3 && cur ? '' : '');
   $('pedInfo').textContent = P.length >= 3 ? `${P.length} points · ${fmtArea(polyArea([...P, ...(cur ? [cur] : [])]))} — double-clic, Entrée ou 1er point pour fermer` : 'Clique les angles de la zone';
 }
+// zone dessinée (annotation rectangle) -> zone de restauration de même forme, nom et couleur
+function zoneToResto(a) {
+  const [x, z, w, h] = zoneRect(a); if (w * h < 1) return;
+  pushUndo();
+  const g = makeProp('resto', [1, 1, 0.01]), cx = x + w / 2, cz = z + h / 2;
+  g.position.set(cx, 0, cz); g.position.y = floorAt(g.position);
+  const r = g.userData.resto; r.poly = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(q => q.map(v => +v.toFixed(3)));
+  if (a.txt && a.txt !== 'Zone') r.name = a.txt.replace(/\n/g, ' ').slice(0, 80);
+  if (isHex(a.col)) r.col = a.col.toLowerCase();
+  ANNOT.splice(ANNOT.indexOf(a), 1); refillResto(g);
+  pedDraw(); pedSelect({ g }); drawCotes();
+  const st = restoStats(r.items, r.poly); $('pedInfo').textContent = `Zone de restauration : ${st.places} places · ${st.tables} tables`;
+}
 function pedRestoFinish() {
   const P = ped.poly; ped.poly = null; $('pedDraft').innerHTML = ''; $('pedInfo').textContent = '';
   if (!P || P.length < 3 || polyArea(P) < 1) { pedSetTool('sel'); return; }
@@ -2898,10 +2911,12 @@ function pedSide() {
       <label class="pedl">${a.t === 'text' ? 'Texte' : a.t === 'zone' ? 'Nom de la zone' : a.t === 'dim' ? 'Libellé avant la mesure' : 'Libellé'}<textarea id="pedTxt" rows="${a.t === 'text' ? 3 : 2}" placeholder="${a.t === 'text' ? '' : 'facultatif'}">${esc(a.txt || '')}</textarea></label>
       ${a.t === 'icon' ? '' : `<div class="row pedcols">${ANNOT_COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === a.col ? 'on' : ''}" title="${c}"></button>`).join('')}</div>`}
       <label class="pedl">Taille <input id="pedS" type="range" min="0.3" max="5" step="0.1" value="${a.s}"></label>
+      ${a.t === 'zone' ? `<div class="row"><button id="pedToResto" class="grow" title="Remplace cette zone par une zone de restauration de même forme, même nom et même couleur, remplie de tables ; son contour se modifie ensuite point par point">🍽 Transformer en zone de restauration</button></div>` : ''}
       <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button></div>`;
     let undo = false; const edit = fn => { if (!undo) { pushUndo(); undo = true; } fn(); pedDraw(); };
     $('pedTxt').oninput = () => edit(() => { a.txt = $('pedTxt').value.slice(0, 200); });
     $('pedS').oninput = () => edit(() => { a.s = +$('pedS').value; });
+    if ($('pedToResto')) $('pedToResto').onclick = () => zoneToResto(a);
     if ($('pedIc')) $('pedIc').onchange = () => { edit(() => { a.ic = $('pedIc').value; }); pedSide(); };
     el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { edit(() => { a.col = b.dataset.c; }); pedSide(); });
   }
