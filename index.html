@@ -2707,6 +2707,40 @@ function potFinish(closed = false) {
   pedSetTool('sel'); pedDraw(); drawCotes();
   $('pedInfo').textContent = `Posé : ${lineCount(plan)} · ${fr(plan.len, 2)} m`;
 }
+// --- pinceau de mobilier dans les zones de restauration ---
+ped.br = { mod:'r_t4', ang:0, gap:0.6, erase:false, rad:0.8, pick:false, custom:null }; // custom : élément pris à la pipette
+const brMod = () => ped.br.custom?.items || ped.br.mod;
+const brushZone = p => { // zone sous le pointeur (la zone sélectionnée d'abord)
+  const L = [ped.sel?.g, ...props.children].filter(g => g?.userData.resto && shown(g));
+  return L.find(g => pointInPoly(toLocal(g, p), g.userData.resto.poly)) || null; };
+function brushAt(d, p, e) {
+  const g = d.g, r = g.userData.resto, q = toLocal(g, p), a = ped.br.ang * Math.PI / 180;
+  if (ped.br.pick) { // pipette : l'élément cliqué devient le motif du pinceau
+    const G = pickGroup(r.items, q[0], q[1]); if (!G) { $('pedInfo').textContent = 'Clique sur une table ou une chaise de la zone'; return; }
+    ped.br.custom = { items:G, name:groupName(G) }; ped.br.pick = false; d.picked = true; pedSide(); $('pedInfo').textContent = `Pinceau : ${ped.br.custom.name}`; return; }
+  if (ped.br.erase || e.altKey) { const n = r.items.length; r.items = eraseItems(r.items, q[0], q[1], ped.br.rad); if (r.items.length !== n) d.changed = true; }
+  else {
+    const pos = d.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
+    if (canPlace(r.poly, r.items, brMod(), pos[0], pos[1], a, ped.br.gap, 0.05)) { r.items.push(...moduleItemsAt(brMod(), pos[0], pos[1], a)); d.anchor ||= pos; d.changed = true; }
+  }
+  if (d.changed) { pedLater(); const st = restoStats(r.items, r.poly); $('pedInfo').textContent = `${r.name} : ${st.tables} tables · ${st.places} places`; }
+}
+function brushGhost(p, e) { // aperçu : emprise du module (vert : posable, rouge : non) ou cercle de la gomme
+  const u = pedUnit(), g = brushZone(p);
+  if (ped.br.pick) { // pipette : surligne le groupe sous le pointeur
+    const g = brushZone(p); if (!g) { $('pedDraft').innerHTML = ''; return; }
+    const G = pickGroup(g.userData.resto.items, ...toLocal(g, p)); if (!G) { $('pedDraft').innerHTML = ''; return; }
+    const q = toLocal(g, p), hit = g.userData.resto.items, u = pedUnit();
+    $('pedDraft').innerHTML = `<circle cx="${p[0]}" cy="${p[1]}" r="${6 * u}" fill="none" stroke="#1f5fbf" stroke-width="${2 * u}" pointer-events="none"/><text x="${p[0] + 9 * u}" y="${p[1] - 9 * u}" font-size="${13 * u}" fill="#1f5fbf" stroke="#fff" stroke-width="${3 * u}" paint-order="stroke" pointer-events="none">${esc(groupName(G))}</text>`; return; }
+  if (ped.br.erase || e.altKey) { $('pedDraft').innerHTML = `<circle cx="${p[0]}" cy="${p[1]}" r="${ped.br.rad}" fill="#fff" fill-opacity="0.25" stroke="#e8262b" stroke-width="${2 * u}" stroke-dasharray="${5 * u} ${3 * u}" pointer-events="none"/>`; return; }
+  if (!g) { $('pedDraft').innerHTML = ''; return; }
+  const r = g.userData.resto, q = toLocal(g, p), a = ped.br.ang * Math.PI / 180, d = ped.drag?.k === 'brush' ? ped.drag : null;
+  const pos = d?.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
+  const ok = canPlace(r.poly, r.items, brMod(), pos[0], pos[1], a, ped.br.gap, 0.05), col = ok ? '#1a8f3c' : '#e8262b';
+  const F = moduleFootprint(brMod(), pos[0], pos[1], a).map(([x, z]) => toPlan(g, x, z));
+  $('pedDraft').innerHTML = `<polygon points="${F.map(v => v.join(',')).join(' ')}" fill="${col}" fill-opacity="0.25" stroke="${col}" stroke-width="${2 * u}" pointer-events="none"/>`
+    + `<g transform="translate(${toPlan(g, 0, 0).join(' ')}) rotate(${-g.rotation.y * 180 / Math.PI})" opacity="0.55" pointer-events="none">${furnitureSvg(moduleItemsAt(brMod(), pos[0], pos[1], a))}</g>`;
+}
 // scinder : trait à travers les zones (la zone sélectionnée seule, sinon toutes celles que le trait traverse)
 function pedLetterName(name, taken) { // « Bar » -> « Bar A » / « Bar B » ; « Bar A » -> garde A, l'autre morceau prend la lettre libre suivante
   const m = name.match(/^(.*) ([A-Z])$/), base = m ? m[1] : name, used = new Set(taken.map(n => n.match(/^(.*) ([A-Z])$/)).filter(x => x && x[1] === base).map(x => x[2]));
