@@ -93,6 +93,14 @@ test('restauration : couleur de zone (validée, reprise dans le dessin)', async 
   assert.equal(cleanResto({ poly:rect(2, 2), col:'red;}<script>' }).col, RESTO_COLORS[0]);
   assert.match(zoneSvg(rect(2, 2), 'z', '#1f5fbf'), /stroke="#1f5fbf"/);
 });
+test('restauration : pipette (table + ses chaises, recentrée, réutilisable au pinceau)', async () => {
+  const { pickGroup, groupName, canPlace, moduleItemsAt } = await import('../js/resto.js');
+  const items = [...moduleItemsAt('r_t2', 3, 3), ...moduleItemsAt('r_t4', 8, 3)];
+  const g1 = pickGroup(items, 3, 3); assert.equal(g1.length, 3); assert.equal(groupName(g1), 'Table 0,9 × 0,7 + 2 chaises');
+  const g2 = pickGroup(items, 8 + 0.675, 3); assert.equal(g2.length, 5); // clic sur une chaise : toute la table carrée
+  assert.equal(pickGroup(items, 20, 20), null);
+  const Z = rect(14, 8); assert.ok(canPlace(Z, items, g1, 3, 6.5, 0, 0.6)); assert.equal(moduleItemsAt(g1, 3, 6.5).length, 3);
+});
 test('restauration : pinceau (poser sans chevaucher, dans la zone, gomme, grille)', async () => {
   const { canPlace, moduleItemsAt, eraseItems, brushSnap, quadsOverlap } = await import('../js/resto.js');
   const Z = rect(10, 6); let items = [];

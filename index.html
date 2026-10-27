@@ -179,7 +179,7 @@
 import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
-import { pointInPoly, RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
+import { pointInPoly, itemsBox, RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
 import { annotSvg, annotBox, annotLength, zoneArea, zoneRect, edgeCotesSvg, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -2685,29 +2685,38 @@ function potFinish(closed = false) {
   $('pedInfo').textContent = `Posé : ${plan.posts} potelets · ${plan.ropes} cordons · ${fr(plan.len, 2)} m`;
 }
 // --- pinceau de mobilier dans les zones de restauration ---
-ped.br = { mod:'r_t4', ang:0, gap:0.6, erase:false, rad:0.8 };
+ped.br = { mod:'r_t4', ang:0, gap:0.6, erase:false, rad:0.8, pick:false, custom:null }; // custom : élément pris à la pipette
+const brMod = () => ped.br.custom?.items || ped.br.mod;
 const brushZone = p => { // zone sous le pointeur (la zone sélectionnée d'abord)
   const L = [ped.sel?.g, ...props.children].filter(g => g?.userData.resto && shown(g));
   return L.find(g => pointInPoly(toLocal(g, p), g.userData.resto.poly)) || null; };
 function brushAt(d, p, e) {
   const g = d.g, r = g.userData.resto, q = toLocal(g, p), a = ped.br.ang * Math.PI / 180;
+  if (ped.br.pick) { // pipette : l'élément cliqué devient le motif du pinceau
+    const G = pickGroup(r.items, q[0], q[1]); if (!G) { $('pedInfo').textContent = 'Clique sur une table ou une chaise de la zone'; return; }
+    ped.br.custom = { items:G, name:groupName(G) }; ped.br.pick = false; d.picked = true; pedSide(); $('pedInfo').textContent = `Pinceau : ${ped.br.custom.name}`; return; }
   if (ped.br.erase || e.altKey) { const n = r.items.length; r.items = eraseItems(r.items, q[0], q[1], ped.br.rad); if (r.items.length !== n) d.changed = true; }
   else {
-    const pos = d.anchor && !e.shiftKey ? brushSnap(ped.br.mod, d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
-    if (canPlace(r.poly, r.items, ped.br.mod, pos[0], pos[1], a, ped.br.gap, 0.05)) { r.items.push(...moduleItemsAt(ped.br.mod, pos[0], pos[1], a)); d.anchor ||= pos; d.changed = true; }
+    const pos = d.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
+    if (canPlace(r.poly, r.items, brMod(), pos[0], pos[1], a, ped.br.gap, 0.05)) { r.items.push(...moduleItemsAt(brMod(), pos[0], pos[1], a)); d.anchor ||= pos; d.changed = true; }
   }
   if (d.changed) { pedLater(); const st = restoStats(r.items, r.poly); $('pedInfo').textContent = `${r.name} : ${st.tables} tables · ${st.places} places`; }
 }
 function brushGhost(p, e) { // aperçu : emprise du module (vert : posable, rouge : non) ou cercle de la gomme
   const u = pedUnit(), g = brushZone(p);
+  if (ped.br.pick) { // pipette : surligne le groupe sous le pointeur
+    const g = brushZone(p); if (!g) { $('pedDraft').innerHTML = ''; return; }
+    const G = pickGroup(g.userData.resto.items, ...toLocal(g, p)); if (!G) { $('pedDraft').innerHTML = ''; return; }
+    const q = toLocal(g, p), hit = g.userData.resto.items, u = pedUnit();
+    $('pedDraft').innerHTML = `<circle cx="${p[0]}" cy="${p[1]}" r="${6 * u}" fill="none" stroke="#1f5fbf" stroke-width="${2 * u}" pointer-events="none"/><text x="${p[0] + 9 * u}" y="${p[1] - 9 * u}" font-size="${13 * u}" fill="#1f5fbf" stroke="#fff" stroke-width="${3 * u}" paint-order="stroke" pointer-events="none">${esc(groupName(G))}</text>`; return; }
   if (ped.br.erase || e.altKey) { $('pedDraft').innerHTML = `<circle cx="${p[0]}" cy="${p[1]}" r="${ped.br.rad}" fill="#fff" fill-opacity="0.25" stroke="#e8262b" stroke-width="${2 * u}" stroke-dasharray="${5 * u} ${3 * u}" pointer-events="none"/>`; return; }
   if (!g) { $('pedDraft').innerHTML = ''; return; }
   const r = g.userData.resto, q = toLocal(g, p), a = ped.br.ang * Math.PI / 180, d = ped.drag?.k === 'brush' ? ped.drag : null;
-  const pos = d?.anchor && !e.shiftKey ? brushSnap(ped.br.mod, d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
-  const ok = canPlace(r.poly, r.items, ped.br.mod, pos[0], pos[1], a, ped.br.gap, 0.05), col = ok ? '#1a8f3c' : '#e8262b';
-  const F = moduleFootprint(ped.br.mod, pos[0], pos[1], a).map(([x, z]) => toPlan(g, x, z));
+  const pos = d?.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
+  const ok = canPlace(r.poly, r.items, brMod(), pos[0], pos[1], a, ped.br.gap, 0.05), col = ok ? '#1a8f3c' : '#e8262b';
+  const F = moduleFootprint(brMod(), pos[0], pos[1], a).map(([x, z]) => toPlan(g, x, z));
   $('pedDraft').innerHTML = `<polygon points="${F.map(v => v.join(',')).join(' ')}" fill="${col}" fill-opacity="0.25" stroke="${col}" stroke-width="${2 * u}" pointer-events="none"/>`
-    + `<g transform="translate(${toPlan(g, 0, 0).join(' ')}) rotate(${-g.rotation.y * 180 / Math.PI})" opacity="0.55" pointer-events="none">${furnitureSvg(moduleItemsAt(ped.br.mod, pos[0], pos[1], a))}</g>`;
+    + `<g transform="translate(${toPlan(g, 0, 0).join(' ')}) rotate(${-g.rotation.y * 180 / Math.PI})" opacity="0.55" pointer-events="none">${furnitureSvg(moduleItemsAt(brMod(), pos[0], pos[1], a))}</g>`;
 }
 // scinder : trait à travers les zones (la zone sélectionnée seule, sinon toutes celles que le trait traverse)
 function pedLetterName(name, taken) { // « Bar » -> « Bar A » / « Bar B » ; « Bar A » -> garde A, l'autre morceau prend la lettre libre suivante
@@ -2864,7 +2873,7 @@ addEventListener('keydown', e => {
     e.preventDefault(); if (e.key === 'Enter') pedRestoFinish(); else if (e.key === 'Escape') pedSetTool('sel'); else { ped.poly.pop(); pedDraftDraw(); } return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); pedDelete(); }
   if (e.key === 'Escape') { e.preventDefault(); if (ped.tool !== 'sel') pedSetTool('sel'); else if (ped.sel) pedSelect(null); else $('ped').close(); }
-  if (ped.tool === 'brush' && (k === 'r' || k === 'e')) { if (k === 'r') ped.br.ang = (ped.br.ang + 90) % 180; else ped.br.erase = !ped.br.erase; pedSide(); $('pedDraft').innerHTML = ''; return; }
+  if (ped.tool === 'brush' && (k === 'r' || k === 'e' || k === 'i')) { if (k === 'r') ped.br.ang = (ped.br.ang + 90) % 180; else if (k === 'i') { ped.br.pick = !ped.br.pick; ped.br.erase = false; } else { ped.br.erase = !ped.br.erase; ped.br.pick = false; } pedSide(); $('pedDraft').innerHTML = ''; return; }
   if (k === 'b') pedSetTool('brush'); if (k === 'p') pedSetTool('pot'); if (k === 'q') pedSetTool('resto'); if (k === 'x') pedSetTool('split'); if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
   if (k === 'r' && ped.sel?.g) pedRotate(ped.sel.g, (e.altKey ? 5 : 15) * (e.shiftKey ? -1 : 1));
   if (k === 'c') pedFit();
@@ -2934,13 +2943,14 @@ function pedSide() {
   if (ped.tool === 'brush') {
     const B = ped.br;
     el.innerHTML = `<h3>Pinceau de mobilier</h3>
-      <div class="row" id="brMode"><button data-m="0" class="${B.erase ? '' : 'on'}">🖌 Peindre</button><button data-m="1" class="${B.erase ? 'on' : ''}">⌫ Gommer (E)</button></div>
-      <label class="pedl">Module<select id="brMod">${Object.entries(RESTO_MODS).map(([k, m]) => `<option value="${k}"${k === B.mod ? ' selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
+      <div class="row" id="brMode"><button data-m="0" class="${B.erase || B.pick ? '' : 'on'}">🖌 Peindre</button><button data-m="2" class="${B.pick ? 'on' : ''}" title="Cliquer une table (ou une chaise) d'une zone : elle et ses assises deviennent le motif du pinceau">💧 Pipette (I)</button><button data-m="1" class="${B.erase ? 'on' : ''}">⌫ Gommer (E)</button></div>
+      <label class="pedl">Module<select id="brMod">${B.custom ? `<option value="__custom" selected>Pris dans la zone : ${esc(B.custom.name)}</option>` : ''}${Object.entries(RESTO_MODS).map(([k, m]) => `<option value="${k}"${!B.custom && k === B.mod ? ' selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
+      ${B.custom ? `<svg class="brprev" viewBox="${(([[a, b], [c, d]]) => `${a - 0.2} ${b - 0.2} ${c - a + 0.4} ${d - b + 0.4}`)(itemsBox(B.custom.items))}">${furnitureSvg(B.custom.items)}</svg>` : ''}
       <div class="row"><label>Sens <select id="brAng"><option value="0"${B.ang === 0 ? ' selected' : ''}>0°</option><option value="90"${B.ang === 90 ? ' selected' : ''}>90°</option></select></label><label>Écart <input id="brGap" type="number" step="0.1" min="0" value="${B.gap}"> m</label></div>
       <label class="pedl">Taille de la gomme<input id="brRad" type="range" min="0.3" max="3" step="0.1" value="${B.rad}"></label>
-      <p class="e2note">Cliquer ou glisser dans une zone de restauration : les modules se posent en rangées alignées sur le 1er du trait (Maj : placement libre), seulement là où ils tiennent sans toucher le mobilier déjà posé (écart minimum ci-dessus). Alt ou mode Gomme : effacer sous le cercle. R : tourner le module de 90°. ⌘Z annule tout le trait.</p>`;
-    el.querySelectorAll('#brMode [data-m]').forEach(b => b.onclick = () => { B.erase = b.dataset.m === '1'; pedSide(); });
-    $('brMod').onchange = () => { B.mod = $('brMod').value; B.erase = false; pedSide(); };
+      <p class="e2note">Cliquer ou glisser dans une zone de restauration : les modules se posent en rangées alignées sur le 1er du trait (Maj : placement libre), seulement là où ils tiennent sans toucher le mobilier déjà posé (écart minimum ci-dessus). Alt ou mode Gomme : effacer sous le cercle. Pipette (I) : cliquer une table de la zone pour peindre la même (avec ses chaises ou tabourets). R : tourner le module de 90°. ⌘Z annule tout le trait.</p>`;
+    el.querySelectorAll('#brMode [data-m]').forEach(b => b.onclick = () => { B.erase = b.dataset.m === '1'; B.pick = b.dataset.m === '2'; pedSide(); $('pedDraft').innerHTML = ''; });
+    $('brMod').onchange = () => { if ($('brMod').value !== '__custom') { B.mod = $('brMod').value; B.custom = null; } B.erase = B.pick = false; pedSide(); };
     $('brAng').onchange = () => { B.ang = +$('brAng').value; };
     $('brGap').onchange = () => { B.gap = Math.max(0, +$('brGap').value || 0); };
     $('brRad').oninput = () => { B.rad = +$('brRad').value; };
