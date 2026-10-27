@@ -431,10 +431,10 @@ export function buildFurniture(items) {
     const im = new THREE.InstancedMesh(geo[k], mat[k], m.length); m.forEach((x, i) => im.setMatrixAt(i, x)); im.computeBoundingSphere(); im.computeBoundingBox?.(); return im; });
 }
 // sol de la zone : rose transparent + contour en tirets (repère local du groupe)
-export function buildRestoFloor(poly) {
+export function buildRestoFloor(poly, col = 0xe8262b) {
   if (!poly || poly.length < 3) return [];
   const shape = new THREE.Shape(poly.map(([x, z]) => new THREE.Vector2(x, -z)));
-  const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color:0xe8262b, transparent:true, opacity:0.22, depthWrite:false, side:THREE.DoubleSide }));
+  const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.22, depthWrite:false, side:THREE.DoubleSide }));
   floor.position.y = 0.015; floor.renderOrder = 1;
   const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(poly.map(([x, z]) => new THREE.Vector3(x, 0.02, z))), new THREE.LineDashedMaterial({ color:0x9a1c1c, dashSize:0.45, gapSize:0.25 }));
   line.computeLineDistances();
