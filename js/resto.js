@@ -235,18 +235,20 @@ export function quadsOverlap(A, B) { // axes séparateurs (deux quadrilatères c
   }
   return true;
 }
+// un module : clé du catalogue (RESTO_MODS) ou liste d'éléments centrée (pris à la pipette dans une zone)
+const modItems = m => Array.isArray(m) ? m : RESTO_MODS[m]?.items;
 // emprise d'un module posé en (x, z) tourné de a (radians)
 export function moduleFootprint(mod, x, z, a = 0, grow = 0) {
-  const [[x0, z0], [x1, z1]] = itemsBox(RESTO_MODS[mod].items);
+  const [[x0, z0], [x1, z1]] = itemsBox(modItems(mod));
   return rectQuad(x, z, x1 - x0 + 2 * grow, z1 - z0 + 2 * grow, a);
 }
 export function moduleItemsAt(mod, x, z, a = 0) {
-  const M = RESTO_MODS[mod], [[x0, z0], [x1, z1]] = itemsBox(M.items);
-  return moveItems(moveItems(M.items, -(x0 + x1) / 2, -(z0 + z1) / 2), x, z, a);
+  const M = modItems(mod), [[x0, z0], [x1, z1]] = itemsBox(M);
+  return moveItems(moveItems(M, -(x0 + x1) / 2, -(z0 + z1) / 2), x, z, a);
 }
 // le module tient-il ici ? dans la zone (avec la marge) et à au moins « gap » du mobilier déjà posé
 export function canPlace(poly, items, mod, x, z, a = 0, gap = 0.6, margin = 0) {
-  if (!RESTO_MODS[mod] || !quadInPoly(moduleFootprint(mod, x, z, a, margin), poly)) return false;
+  if (!modItems(mod)?.length || !quadInPoly(moduleFootprint(mod, x, z, a, margin), poly)) return false;
   const F = moduleFootprint(mod, x, z, a, gap / 2), c = [x, z];
   for (const it of items) {
     if (Math.hypot(it[1] - c[0], it[2] - c[1]) > 6) continue; // loin : inutile de tester
@@ -260,7 +262,28 @@ export const eraseItems = (items, x, z, rad) => items.filter(it => Math.hypot(it
 // grille du pinceau : pas = emprise du module + écart, alignée sur le 1er module posé du trait
 export function brushSnap(mod, anchor, p, a = 0, gap = 0.6) {
   if (!anchor) return p;
-  const [[x0, z0], [x1, z1]] = itemsBox(RESTO_MODS[mod].items), sx = x1 - x0 + gap, sz = z1 - z0 + gap, c = Math.cos(a), s = Math.sin(a);
+  const [[x0, z0], [x1, z1]] = itemsBox(modItems(mod)), sx = x1 - x0 + gap, sz = z1 - z0 + gap, c = Math.cos(a), s = Math.sin(a);
   const dx = p[0] - anchor[0], dz = p[1] - anchor[1], u = Math.round((dx * c + dz * s) / sx) * sx, v = Math.round((-dx * s + dz * c) / sz) * sz;
   return [anchor[0] + u * c - v * s, anchor[1] + u * s + v * c];
+}
+
+// pipette : l'élément sous le point (x, z) et ce qui va avec (une table et ses chaises / tabourets), recentré
+export function pickGroup(items, x, z) {
+  const inside = it => pointInPoly([x, z], itemCorners(it));
+  let hit = items.find(it => (it[0] === 't' || it[0] === 'o') && inside(it)) || items.find(inside);
+  if (!hit) { const d = it => Math.hypot(it[1] - x, it[2] - z), n = [...items].sort((a, b) => d(a) - d(b))[0]; if (n && d(n) < 0.6) hit = n; }
+  if (!hit) return null;
+  const tables = items.filter(it => it[0] === 't' || it[0] === 'o'), dist = (a, b) => Math.hypot(a[1] - b[1], a[2] - b[2]);
+  const reach = t => (t[0] === 't' ? Math.max(t[3], t[4]) : t[3]) / 2 + 0.75; // une assise appartient à la table la plus proche, à portée
+  const tableOf = s => { const t = tables.reduce((b, t) => !b || dist(t, s) < dist(b, s) ? t : b, null); return t && dist(t, s) <= reach(t) ? t : null; };
+  const T = hit[0] === 't' || hit[0] === 'o' ? hit : tableOf(hit);
+  const group = T ? [T, ...items.filter(it => (it[0] === 'c' || it[0] === 's') && tableOf(it) === T)] : [hit];
+  const [[x0, z0], [x1, z1]] = itemsBox(group);
+  return moveItems(group, -(x0 + x1) / 2, -(z0 + z1) / 2);
+}
+export function groupName(g) {
+  const n = k => g.filter(i => i[0] === k).length, t = g.find(i => i[0] === 't' || i[0] === 'o'), f = v => (Math.round(v * 100) / 100).toLocaleString('fr');
+  const tn = !t ? '' : t[0] === 't' ? `${t[6] > 0.9 ? 'Table haute' : 'Table'} ${f(Math.max(t[3], t[4]))} × ${f(Math.min(t[3], t[4]))}` : `${t[4] > 0.9 ? 'Mange-debout' : 'Table ronde'} Ø ${f(t[3])}`;
+  const seats = [n('c') && `${n('c')} chaise${n('c') > 1 ? 's' : ''}`, n('s') && `${n('s')} tabouret${n('s') > 1 ? 's' : ''}`].filter(Boolean).join(', ');
+  return [tn, seats].filter(Boolean).join(' + ') || 'Élément';
 }

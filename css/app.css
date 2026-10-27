@@ -104,3 +104,4 @@ button.acc { background:var(--acc); color:#111; border-color:var(--acc); }
 .pedhelp li { display:list-item; }
 .pottab { width:100%; border-collapse:collapse; font-size:12px; color:var(--mute); } .pottab td { padding:2px 4px; border-bottom:1px solid var(--line); } .pottab td:first-child { width:18px; }
 .captab button { padding:2px 6px; font-size:11px; } .captab tr:first-child td { color:var(--fg); font-weight:600; }
+.brprev { display:block; width:100%; max-height:110px; background:#fff; border-radius:6px; margin:4px 0 8px; }
