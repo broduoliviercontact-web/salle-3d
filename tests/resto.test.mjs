@@ -63,3 +63,16 @@ test('restauration DACAM : 13 zones avec mobilier, dans l\'Agora et autour, donn
   }
   assert.ok(places > 300 && places < 450, `places ${places}`); // 230 chaises + 130 tabourets sur le plan
 });
+test('restauration : scinder une zone (droite, zone en L, mobilier réparti)', async () => {
+  const { splitPoly, splitResto } = await import('../js/resto.js');
+  const sq = rect(10, 6), [A, B] = splitPoly(sq, [4, -1], [4, 7]);
+  near(polyArea(A) + polyArea(B), 60); near(Math.min(polyArea(A), polyArea(B)), 24);
+  assert.equal(splitPoly(sq, [20, 0], [20, 5]), null); // trait hors zone
+  // L : un trait qui ne traverse que le bras vertical ne coupe pas le bras horizontal
+  const L = [[0, 0], [12, 0], [12, 4], [4, 4], [4, 12], [0, 12]], [P, Q] = splitPoly(L, [-1, 8], [5, 8]);
+  near(polyArea(P) + polyArea(Q), polyArea(L)); near(Math.min(polyArea(P), polyArea(Q)), 16);
+  const r = { name:'Z', poly:sq, items:[['c', 1, 1, 0], ['c', 8, 1, 0], ['s', 9, 5]], auto:null, src:'dacam' }, parts = splitResto(r, [4, -1], [4, 7]);
+  assert.deepEqual(parts.map(p => p.items.length).sort(), [1, 2]); assert.ok(parts.every(p => p.src === 'dacam'));
+  const auto = splitResto({ ...r, auto:{ mod:'r_t4', gx:1.2, gy:1.2, margin:0.3, ang:0 } }, [5, -1], [5, 7]);
+  assert.ok(auto.every(p => p.items.length && p.items.every(it => itemCorners(it).every(q => pointInPoly(q, p.poly))))); // remplissage refait par morceau
+});
