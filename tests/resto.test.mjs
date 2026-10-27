@@ -93,3 +93,17 @@ test('restauration : couleur de zone (validée, reprise dans le dessin)', async 
   assert.equal(cleanResto({ poly:rect(2, 2), col:'red;}<script>' }).col, RESTO_COLORS[0]);
   assert.match(zoneSvg(rect(2, 2), 'z', '#1f5fbf'), /stroke="#1f5fbf"/);
 });
+test('restauration : pinceau (poser sans chevaucher, dans la zone, gomme, grille)', async () => {
+  const { canPlace, moduleItemsAt, eraseItems, brushSnap, quadsOverlap } = await import('../js/resto.js');
+  const Z = rect(10, 6); let items = [];
+  assert.ok(canPlace(Z, items, 'r_t4', 2, 2, 0, 0.6, 0.2));
+  items = moduleItemsAt('r_t4', 2, 2); assert.equal(items.length, 5);
+  assert.ok(!canPlace(Z, items, 'r_t4', 3, 2, 0, 0.6)); // chevauche
+  assert.ok(!canPlace(Z, items, 'r_t4', 2 + 1.8 + 0.3, 2, 0, 0.6)); // trop près (écart 0,6)
+  assert.ok(canPlace(Z, items, 'r_t4', 2 + 1.8 + 0.6, 2, 0, 0.6));
+  assert.ok(!canPlace(Z, items, 'r_t4', 9.5, 2, 0, 0.6)); // déborde de la zone
+  const p = brushSnap('r_t4', [2, 2], [4.3, 2.1], 0, 0.6); near(p[0], 4.4); near(p[1], 2);
+  assert.equal(eraseItems(items, 2, 2, 0.3).length, 4); // la table seule
+  assert.ok(quadsOverlap([[0, 0], [1, 0], [1, 1], [0, 1]], [[0.5, 0.5], [2, 0.5], [2, 2], [0.5, 2]]));
+  assert.ok(!quadsOverlap([[0, 0], [1, 0], [1, 1], [0, 1]], [[1.1, 0], [2, 0], [2, 1], [1.1, 1]]));
+});

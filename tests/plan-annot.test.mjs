@@ -43,3 +43,11 @@ test('annotations venues d\'un lien : types, points et textes nettoyés', () => 
   assert.equal(cleanAnnot(Array.from({ length:ANNOT_LIMIT + 50 }, () => ({ t:'text', p:[[0, 0]] }))).length, ANNOT_LIMIT);
   assert.deepEqual(cleanAnnot([{ t:'zone', p:[[0, 0], [1e9, 5]] }])[0].p[1], [2000, 5]);
 });
+test('annotations : cotes d\'un contour (une par bord, valeurs justes, gardées au nettoyage)', async () => {
+  const { edgeCotesSvg } = await import('../js/plan-annot.js');
+  const svg = edgeCotesSvg([[0, 0], [4, 0], [4, 3], [0, 3]]);
+  assert.equal((svg.match(/<text/g) || []).length, 4); assert.match(svg, /4,00 m/); assert.match(svg, /3,00 m/);
+  assert.equal(edgeCotesSvg([[0, 0], [1, 0]]), '');
+  assert.equal(cleanAnnot([{ t:'zone', p:[[0, 0], [2, 2]], cotes:true }])[0].cotes, true);
+  assert.match(annotSvg({ t:'zone', p:[[0, 0], [5, 2]], cotes:true }), /5,00 m/);
+});

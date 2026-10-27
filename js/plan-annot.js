@@ -30,6 +30,22 @@ export const zoneRect = a => [Math.min(a.p[0][0], a.p[1][0]), Math.min(a.p[0][1]
 export const zoneArea = a => { const [, , w, h] = zoneRect(a); return w * h; };
 export const fmtArea = v => `${(Math.round(v * 10) / 10).toLocaleString('fr')} m²`;
 
+// cotes de chaque bord d'un contour : trait de cote décalé vers l'extérieur, traits obliques aux bouts, longueur (jamais à l'envers)
+export function edgeCotesSvg(poly, col = '#111', s = 1, min = 0.5) {
+  if (!Array.isArray(poly) || poly.length < 3) return '';
+  const area = poly.reduce((t, [x, z], i) => { const [x2, z2] = poly[(i + 1) % poly.length]; return t + x * z2 - x2 * z; }, 0), out = [], off = 0.45 * s, fs = 0.32 * s;
+  poly.forEach((p, i) => {
+    const q = poly[(i + 1) % poly.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (L < min) return;
+    const ux = (q[0] - p[0]) / L, uz = (q[1] - p[1]) / L, sg = area > 0 ? -1 : 1, nx = -uz * sg, nz = ux * sg; // normale vers l'extérieur
+    const a = [p[0] + nx * off, p[1] + nz * off], b = [q[0] + nx * off, q[1] + nz * off], t = 0.12 * s;
+    let ang = Math.atan2(uz, ux) * 180 / Math.PI; if (ang > 90) ang -= 180; if (ang <= -90) ang += 180;
+    const m = [(a[0] + b[0]) / 2 + nx * fs * 0.45, (a[1] + b[1]) / 2 + nz * fs * 0.45];
+    out.push(`<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" stroke="${col}" stroke-width="${f(0.025 * s)}"/>`
+      + [a, b].map(c => `<line x1="${f(c[0] - (ux + nx) * t)}" y1="${f(c[1] - (uz + nz) * t)}" x2="${f(c[0] + (ux + nx) * t)}" y2="${f(c[1] + (uz + nz) * t)}" stroke="${col}" stroke-width="${f(0.04 * s)}"/>`).join('')
+      + `<text transform="translate(${f(m[0])} ${f(m[1])}) rotate(${f(ang)})" font-size="${f(fs)}" text-anchor="middle" dominant-baseline="middle" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="${f(fs / 6)}" paint-order="stroke">${esc(fmtM(L))}</text>`);
+  });
+  return out.join('');
+}
 // texte sur plusieurs lignes, halo blanc pour rester lisible sur le fond de plan
 function lines(x, y, txt, fs, col, anchor = 'middle', weight = 'bold') {
   const ls = String(txt).split('\n');
@@ -92,7 +108,8 @@ export function annotSvg(a) {
     case 'zone': {
       const [x, z, w, h] = zoneRect(a), fs = Math.min(0.6 * s, Math.max(0.25, Math.min(w, h) / 4));
       return `<rect x="${f(x)}" y="${f(z)}" width="${f(w)}" height="${f(h)}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="${f(0.06 * s)}" stroke-dasharray="${f(0.4 * s)} ${f(0.2 * s)}"/>`
-        + lines(x + w / 2, z + h / 2, `${a.txt ? a.txt + '\n' : ''}${fmtArea(w * h)}`, fs, col);
+        + lines(x + w / 2, z + h / 2, `${a.txt ? a.txt + '\n' : ''}${fmtArea(w * h)}`, fs, col)
+        + (a.cotes ? edgeCotesSvg([[x, z], [x + w, z], [x + w, z + h], [x, z + h]], col, s) : '');
     }
   }
   return '';
@@ -123,6 +140,7 @@ export function cleanAnnot(list, lim = 2000) {
     r.col = /^#[0-9a-f]{6}$/i.test(a.col) ? a.col : '#d0021b';
     r.s = Number.isFinite(+a.s) && a.s !== null ? Math.min(5, Math.max(0.3, +a.s)) : 1;
     if (a.t === 'icon') r.ic = ICONS[a.ic] ? a.ic : 'info';
+    if (a.t === 'zone' && a.cotes) r.cotes = true;
     out.push(r);
   }
   return out;
