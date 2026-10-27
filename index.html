@@ -112,8 +112,8 @@
 </div>
 <dialog id="ped">
   <div class="pedh"><b>Éditeur de plan 2D</b>
-    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
-    <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button>
+    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
+    <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
     <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label>
     <span class="grow"></span>
     <button id="pedUndo" title="Annuler (⌘Z)">↶</button><button id="pedRedo" title="Rétablir (⌘⇧Z)">↷</button><button id="pedFit" title="Recadrer sur le matériel et les annotations (C)">Recadrer</button><button id="pedExport" class="acc" title="Exporter le plan (SVG / PDF)">Exporter…</button><button id="pedClose" title="Fermer (Échap)">✕</button>
@@ -177,7 +177,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
-import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue } from './js/models.js'; // modèles 3D du catalogue
+import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
+import { RESTO_MODS, RESTO_DEFAULT, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
 import { annotSvg, annotBox, annotLength, zoneArea, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -423,7 +424,7 @@ function applyMach(o, v) {
   v = THREE.MathUtils.clamp(v, 0, 1); o.userData.dims[3] = +v.toFixed(3);
   o.traverse(c => { if (c.userData.half) c.scale.x = (1.43 + (c.userData.half - 1.43) * (1 - v)) / c.userData.half; if (c.userData.toile) c.scale.y = Math.max(0.01, v); });
 }
-const BUILD = { polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, issue:buildIssue, public_theatre:buildPublic('public_theatre'), public_cabaret:buildPublic('public_cabaret'), public_banquet:buildPublic('public_banquet'), heras:buildHeras, plot_heras:buildPlotHeras, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
+const BUILD = { resto:() => [], ...Object.fromEntries(Object.keys(RESTO_MODS).map(k => [k, () => buildFurniture(RESTO_MODS[k].items)])), polichinelle:buildPolichinelle, as40:d => buildHP(d), at40:d => buildHP(d), xt1:d => buildHP(d), xt22:d => buildHP(d, true), dli230:() => buildColonne(2.308, true), dli430:() => buildColonne(4.316, false), patience:buildPatience, conque:buildConque, truss30t:buildTruss30t, truss30:buildTruss30, truss40:buildTruss40, tcorner30:() => buildCorner(0.29), tcorner40:() => buildCorner(0.39), tower:buildTower, hoist:buildHoist, perche:buildPerche, pc1k:buildPC, sx713:buildSX713, sx654:buildSX654, lyreprof:buildLyreProf, atomic:buildAtomic, fog:buildFog, vauban:buildVauban, issue:buildIssue, public_theatre:buildPublic('public_theatre'), public_cabaret:buildPublic('public_cabaret'), public_banquet:buildPublic('public_banquet'), heras:buildHeras, plot_heras:buildPlotHeras, potelet:buildPotelet, cordon:buildCordon, defender_c:buildDefenderC, defender:buildDefender, syva:buildSyva, lyre:buildLyre, par:buildPar, led:buildLed, crash:buildCrash, vch30:buildVch30, vch30x2:buildVch30x2, vtl218:buildVtl218, scene_m:buildSceneM, grill:buildGrill, ks28:buildKs28, ks28x2:buildKs28x2, l2d:buildL2d, kara2:buildKara2, x15:buildX15, x15p:buildX15p };
 $('machBtn').onclick = async () => { await machReady; if (!MACH) return alert('machiniste.json introuvable'); pushUndo(); placeMach(); };
 function placeMach() {
   const dz = AXE_AGORA - MACH.scene.c[1]; // scène recentrée entre les piliers ; le grill suit avec le même décalage
@@ -559,7 +560,8 @@ function jauge() {
   let occ = 0;
   for (const o of props.children) if (o.visible && JAUGE_KINDS.has(o.userData.kind) && o.position.x > 5.95 + DWG_SHIFT[0]) occ += o.userData.dims[0] * o.userData.dims[1]; // Agora : à l'est de la cloison CTA (x DXF 5,95)
   const r = +$('m2pp').value || 3, pub = AGORA_PUBLIC - occ;
-  const seated = props.children.filter(o => o.visible && PUBLIC_KINDS.has(o.userData.kind)).reduce((s, o) => s + publicLayout(o).seats.length, 0); // zones de public
+  const seated = props.children.filter(o => o.visible && PUBLIC_KINDS.has(o.userData.kind)).reduce((s, o) => s + publicLayout(o).seats.length, 0) // zones de public
+    + props.children.filter(o => o.visible && (o.userData.resto || RESTO_MODS[o.userData.kind])).reduce((s, o) => s + restoStats(o.userData.resto?.items || RESTO_MODS[o.userData.kind].items, []).places, 0); // restauration
   return { occ, pub, r, n:Math.floor(pub / r), seated };
 }
 // --- câblage : élément relié à une trappe -> longueur de câble estimée et puissance par trappe ---
@@ -1344,7 +1346,7 @@ function placeAsd(p) {
 function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
-    g.userData = { kind, dims }; g.name = PUBLIC_KINDS.has(kind) ? (L => `${LABELS[kind]} · ${L.seats.length} places${L.tables.length ? ` · ${L.tables.length} tables` : ''}`)(publicLayout(g)) : kind === 'issue' ? `Issue de secours ${fr(dims[0], 2)} m · ${upFromWidth(dims[0])} UP` : kind === 'cordon' ? `${LABELS.cordon}` : kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
+    g.userData = { kind, dims }; if (kind === 'resto') return (props.add(g), setResto(g, initResto(dims)), g); g.name = PUBLIC_KINDS.has(kind) ? (L => `${LABELS[kind]} · ${L.seats.length} places${L.tables.length ? ` · ${L.tables.length} tables` : ''}`)(publicLayout(g)) : kind === 'issue' ? `Issue de secours ${fr(dims[0], 2)} m · ${upFromWidth(dims[0])} UP` : kind === 'cordon' ? `${LABELS.cordon}` : kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
     props.add(g); return g;
   }
   const [w, d, h] = dims;
@@ -1368,6 +1370,7 @@ const CATALOG = [
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran', 'polichinelle']],
   ['Public', ['public_theatre', 'public_cabaret', 'public_banquet']],
+  ['Restauration', ['resto', ...Object.keys(RESTO_MODS)]],
   ['Sécurité et circulation', ['issue', 'vauban', 'heras', 'plot_heras', 'potelet', 'crash', 'defender']],
   ['Structures et levage', ['truss30', 'truss40', 'truss30t', 'tcorner30', 'tower', 'hoist', 'perche']],
   ['Divers', ['perso']],
@@ -1375,6 +1378,7 @@ const CATALOG = [
 const NAMES = { scene:'Scène', prat:'Praticable Samia 2 × 1', regie:'Régie', enceinte:'Enceinte (générique)', ecran:'Écran (projection)', perso:'Personne (échelle)', led:'Écran LED', defender:'Passe-câbles Defender Mini' };
 const catName = k => NAMES[k] || (LABELS[k] || k).replace(/ \(\d+ kg\)$/, '');
 function catDesc(k) {
+  if (RESTO_MODS[k]) return RESTO_MODS[k].desc; if (k === 'resto') return 'Remplie de tables automatiquement ; contour libre dans l\'éditeur de plan 2D';
   const [w, d, h] = DEFAULT[k], m = v => fr(v, v < 1 ? 2 : 1).replace(/,0$/, ''), g = makeProp(k, DEFAULT[k]), kgs = weightOf(g); props.remove(g);
   return `${m(w)} × ${m(d)} × ${m(h)} m${kgs ? ` · ${Math.round(kgs)} kg` : ''}`;
 }
@@ -1484,6 +1488,19 @@ function resizeSelected() {
   pushUndo(); rebuildProp(o, dims, o.userData.kind === 'scene_m' ? 'scene' : o.userData.kind); // l'ancienne scène 11 × 9 du DWG devient une scène classique
 }
 // reconstruit un élément avec d'autres dimensions, à la même place et au même rang, en gardant trappe, puissance et groupe
+// zone de restauration : contour (repère local du groupe) + mobilier ; reconstruite à chaque changement
+function initResto([w, d]) { const poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]], auto = { ...RESTO_DEFAULT };
+  return { name:'Zone de restauration', poly, auto, items:fillZone(poly, auto), src:'' }; }
+function setResto(g, r) {
+  r = r || initResto([10, 6]); g.userData.resto = r;
+  for (const c of [...g.children]) { g.remove(c); c.geometry?.dispose(); }
+  [...buildRestoFloor(r.poly), ...buildFurniture(r.items)].forEach(o => g.add(o));
+  const xs = r.poly.map(p => p[0]), zs = r.poly.map(p => p[1]), st = restoStats(r.items, r.poly);
+  g.userData.dims = r.poly.length ? [+(Math.max(...xs) - Math.min(...xs)).toFixed(2), +(Math.max(...zs) - Math.min(...zs)).toFixed(2), 0.01] : [1, 1, 0.01];
+  g.name = `${r.name} · ${st.places} places · ${Math.round(st.area)} m²`;
+  return g;
+}
+const refillResto = g => { const r = g.userData.resto; if (r.auto) r.items = fillZone(r.poly, r.auto); setResto(g, r); };
 function rebuildProp(o, dims, kind = o.userData.kind) {
   const n = makeProp(kind, dims), keep = { ...o.userData }; delete keep.kind; delete keep.dims;
   Object.assign(n.userData, keep);
@@ -1715,6 +1732,7 @@ $('dup').onclick = () => { if (selected) pushUndo();
   if (selected === pivot) { const copies = [...multi].map(o => { const c = makeProp(o.userData.kind, [...o.userData.dims]); c.position.copy(o.position).add(new THREE.Vector3(1, 0, 1)); c.quaternion.copy(o.quaternion); if (o.userData.power != null) c.userData.power = o.userData.power; return c; });
     multi.clear(); copies.forEach(c => multi.add(c)); placePivot(); return select(pivot); }
   const c = props.children.includes(selected) ? makeProp(selected.userData.kind, selected.userData.dims) : selected.clone();
+  if (selected.userData.resto) setResto(c, structuredClone(selected.userData.resto));
   if (!c.parent) selected.parent.add(c);
   c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
 };
@@ -1834,7 +1852,7 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, annot:ANNOT, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom, sid:g.userData.sid, asd:g.userData.asd })), moved, view };
+  return { salle, annot:ANNOT, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom, sid:g.userData.sid, asd:g.userData.asd, resto:g.userData.resto })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
@@ -1843,7 +1861,7 @@ function restore(cfg) {
   ANNOT = cleanAnnot(cfg.annot); // annotations du plan 2D (textes, cotes, zones, pictos)
   DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
   const known = new Set([...Object.keys(BUILD), ...Object.keys(DEFAULT), ...Object.keys(LABELS), ...Object.keys(COLORS)]); // setup venu d'un lien ou d'un fichier : valeurs bornées (js/calc.js)
-  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); });
+  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); if (x.kind === 'resto') setResto(g, cleanResto(x.resto)); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); });
   (Array.isArray(cfg.moved) ? cfg.moved : []).slice(0, LIMITS.props).forEach(x => { const o = Array.isArray(x?.path) && byPath(x.path), p = cleanVec3(x?.p), r = cleanVec3(x?.r, 2 * Math.PI); if (o && p && r) { o.position.fromArray(p); o.rotation.fromArray(r); } });
   const v = cfg.view && cleanVec3(cfg.view.cam) && cleanVec3(cfg.view.target) ? cfg.view : null; setSalle(cfg.salle === 'audi' ? 'audi' : 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(cleanVec3(v.cam)); orbit.target.fromArray(cleanVec3(v.target)); goal = null;
@@ -2158,6 +2176,7 @@ function viewExtent() {
 }
 // un élément ajouté sur le plan (aussi utilisé par l'éditeur 2D)
 function planItem(g) {
+  if (g.userData.resto?.poly.length) { const [w, d] = g.userData.dims; return { g, w, d, poly:g.userData.resto.poly.map(([x, z]) => toPlan(g, x, z)), front:null }; }
   const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
   return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
 }
@@ -2165,6 +2184,15 @@ function drawItem(out, { g, w, d, poly, front }, o = PLAN_DEF, legend = new Map(
   const f = v => +v.toFixed(2);
   const col = hex(COLORS[g.userData.kind] ?? 0x888888), kind = LABELS[g.userData.kind] || g.userData.kind;
   legend.set(kind, { col, n:(legend.get(kind)?.n || 0) + 1 });
+  const R = g.userData.resto, MOD_ = RESTO_MODS[g.userData.kind];
+  if (R || MOD_) { // restauration : dessinée dans le repère de l'élément (zone hachurée + mobilier), nom et compte en clair
+    const [px, pz] = toPlan(g, 0, 0), items = R ? R.items : MOD_.items;
+    out.push(`<g transform="translate(${f(px)} ${f(pz)}) rotate(${f(-g.rotation.y * 180 / Math.PI)})">${R ? zoneSvg(R.poly, 'hr' + g.id) : ''}${furnitureSvg(items)}</g>`);
+    if (!R || !o.labels) return;
+    const st = restoStats(R.items, R.poly), [cx, cz] = toPlan(g, ...polyCentroid(R.poly)), fs = 0.55;
+    out.push(`<text x="${f(cx)}" y="${f(cz)}" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="#9a1c1c" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke"><tspan x="${f(cx)}">${esc(R.name)}</tspan><tspan x="${f(cx)}" dy="${fs * 1.15}" font-weight="normal">${st.places ? `${st.places} places` : `${st.tables} ${st.tables > 1 ? 'tables' : 'table'}`} · ${Math.round(st.area)} m²</tspan></text>`);
+    return;
+  }
   if (g.userData.kind === 'grill' && MACH) { // grill : axes des poutres + emprise en pointillés, sans remplissage (la scène reste visible dessous)
     out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="none" stroke="#555" stroke-width="0.03" stroke-dasharray="0.3 0.2"/>`);
     for (const [a, b] of grillLines()) { const [p, q] = [a, b].map(([x, z]) => toPlan(g, x, z)); out.push(`<line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" stroke="#2c3e50" stroke-width="0.12" stroke-opacity="0.8"/>`); }
@@ -2262,7 +2290,7 @@ async function planSvg(opts = false) {
   // annotations : les zones sous les éléments, le reste (textes, flèches, cotes, pictos) par-dessus
   const noteSvg = list => list.map(a => `<g clip-path="url(#cadre)">${annotSvg(a)}</g>`).join('\n');
   out.push(noteSvg(notes.filter(a => a.t === 'zone')));
-  for (const it of items) drawItem(out, it, o, legend);
+  for (const it of [...items].sort((a, b) => !!b.g.userData.resto - !!a.g.userData.resto)) drawItem(out, it, o, legend); // zones de restauration dessous
   out.push(noteSvg(notes.filter(a => a.t !== 'zone')));
   for (const a of notes) if (a.t === 'icon') { const I = ICONS[a.ic]; legend.set(I.name, { col:I.col, n:(legend.get(I.name)?.n || 0) + 1 }); }
   // palans du grill avec leur charge, câbles depuis les trappes
@@ -2404,7 +2432,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const ped = { tool:'sel', ic:'sortie', sel:null, vb:null, drag:null, bgReady:false, space:false };
 const PED_KIND = { text:'Texte', arrow:'Flèche', dim:'Cote', zone:'Zone', icon:'Picto' };
 $('pedIcon').innerHTML = '<option value="">Picto…</option>' + Object.entries(ICONS).map(([k, I]) => `<option value="${k}">${esc(I.name)}</option>`).join('');
-$('pedSvg').innerHTML = `<rect id="pedPaper" fill="#fff"/><image id="pedImg" preserveAspectRatio="none"/><image id="pedDet" preserveAspectRatio="none"/><image id="pedOver" preserveAspectRatio="none"/><g id="pedZones"></g><g id="pedItems"></g><g id="pedAnn"></g><g id="pedSel"></g>`;
+$('pedSvg').innerHTML = `<rect id="pedPaper" fill="#fff"/><image id="pedImg" preserveAspectRatio="none"/><image id="pedDet" preserveAspectRatio="none"/><image id="pedOver" preserveAspectRatio="none"/><g id="pedZones"></g><g id="pedItems"></g><g id="pedAnn"></g><g id="pedSel"></g><g id="pedDraft"></g>`;
 const pedUnit = () => { const r = $('pedSvg').getBoundingClientRect(); return Math.max(ped.vb.w / r.width, ped.vb.h / r.height); }; // mètres par pixel écran
 function pedApplyVb() { const v = ped.vb; $('pedSvg').setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`); pedDrawSel(); pedDetail(); }
 function pedPt(e) { const m = $('pedSvg').getScreenCTM().inverse(), p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return [p.x, p.y]; }
@@ -2490,6 +2518,9 @@ function pedDrawSel() {
       const c = [(Math.min(...q.map(p => p[0])) + Math.max(...q.map(p => p[0]))) / 2, Math.max(...q.map(p => p[1])) + fs * 1.4]; // valeur sous le cadre, hors du nom de l'élément
       h += `<polygon points="${q.map(p => p.join(',')).join(' ')}" fill="#f0a53a" fill-opacity="0.15" stroke="#f0a53a" ${sw} pointer-events="none"/>`
         + `<text x="${c[0]}" y="${c[1]}" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="#111" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke" pointer-events="none">${fr(w, 2)} × ${fr(d, 2)} m</text>`;
+    } else if (s.g.userData.resto) { // sommets de la zone ; double-clic sur un bord : ajouter un point
+      h += s.g.userData.resto.poly.map(([x, z], i) => { const [X, Z] = toPlan(s.g, x, z); return `<circle data-v="${i}" cx="${X}" cy="${Z}" r="${r}" fill="#fff" stroke="#e8262b" ${sw} style="cursor:move"/>`; }).join('')
+        + s.g.userData.resto.poly.map((q, i, P) => { const [X1, Z1] = toPlan(s.g, ...q), [X2, Z2] = toPlan(s.g, ...P[(i + 1) % P.length]); return `<line data-e="${i}" x1="${X1}" y1="${Z1}" x2="${X2}" y2="${Z2}" stroke="transparent" stroke-width="${10 * u}" style="cursor:copy"/>`; }).join('');
     } else if (ax) for (const [sx, sz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
       if ((sx && !ax.w) || (sz && !ax.d)) continue;
       const [x, z] = toPlan(s.g, sx * it.w / 2, sz * it.d / 2), corner = sx && sz;
@@ -2511,7 +2542,7 @@ function pedSnap(p, e, skip) {
   return best ? [...best] : p.map(v => Math.round(v * 10) / 10);
 }
 function pedSetTool(t, ic) {
-  ped.tool = t; if (ic) ped.ic = ic;
+  ped.tool = t; if (ic) ped.ic = ic; ped.poly = null; $('pedDraft').innerHTML = '';
   document.querySelectorAll('#pedTools [data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   $('pedIcon').classList.toggle('on', t === 'icon'); if (t !== 'icon') $('pedIcon').value = '';
   $('pedSvg').style.cursor = t === 'sel' ? '' : 'crosshair';
@@ -2527,6 +2558,46 @@ function pedCreate(t, p) {
   if (t === 'icon') a.ic = ped.ic; if (t === 'text') a.txt = 'Texte'; if (t === 'zone') a.txt = 'Zone';
   ANNOT.push(a); return a;
 }
+// zone de restauration tracée point par point (repère du plan), puis remplie avec le module par défaut
+function pedDraftDraw(cur) {
+  const P = ped.poly; if (!P) { $('pedDraft').innerHTML = ''; return; }
+  const u = pedUnit(), pts = [...P, ...(cur ? [cur] : [])].map(q => q.join(',')).join(' ');
+  $('pedDraft').innerHTML = `<polygon points="${pts}" fill="#e8262b" fill-opacity="0.15" stroke="#e8262b" stroke-width="${2 * u}" stroke-dasharray="${6 * u} ${4 * u}" pointer-events="none"/>`
+    + P.map((q, i) => `<circle cx="${q[0]}" cy="${q[1]}" r="${(i ? 4 : 7) * u}" fill="${i ? '#fff' : '#e8262b'}" stroke="#e8262b" stroke-width="${2 * u}" pointer-events="none"/>`).join('')
+    + (P.length >= 3 && cur ? '' : '');
+  $('pedInfo').textContent = P.length >= 3 ? `${P.length} points · ${fmtArea(polyArea([...P, ...(cur ? [cur] : [])]))} — double-clic, Entrée ou 1er point pour fermer` : 'Clique les angles de la zone';
+}
+function pedRestoFinish() {
+  const P = ped.poly; ped.poly = null; $('pedDraft').innerHTML = ''; $('pedInfo').textContent = '';
+  if (!P || P.length < 3 || polyArea(P) < 1) { pedSetTool('sel'); return; }
+  pushUndo();
+  const [cx, cz] = polyCentroid(P), g = makeProp('resto', [1, 1, 0.01]);
+  g.position.set(cx, 0, cz); g.position.y = floorAt(g.position);
+  const r = g.userData.resto; r.poly = P.map(([x, z]) => [+(x - cx).toFixed(3), +(z - cz).toFixed(3)]); refillResto(g);
+  pedSetTool('sel'); pedDraw(); pedSelect({ g }); drawCotes();
+}
+// zones du plan DACAM (restauration_dacam.json, tiré du PDF par tools/resto_dacam.py)
+async function pedDacam() {
+  const old = props.children.filter(g => g.userData.resto?.src === 'dacam');
+  if (old.length && !confirm(`Les ${old.length} zones DACAM sont déjà posées. Les remplacer par celles du plan d'origine ?`)) return;
+  let d; try { d = await fetch('restauration_dacam.json').then(r => r.json()); } catch { return alert('Impossible de charger restauration_dacam.json'); }
+  pushUndo(); old.forEach(g => props.remove(g)); if (ped.sel?.g && old.includes(ped.sel.g)) ped.sel = null;
+  const made = [];
+  for (const z of d.zones) {
+    const r = cleanResto({ ...z, src:'dacam' }); if (!r || r.poly.length < 3) continue;
+    const [cx, cz] = polyCentroid(r.poly), g = makeProp('resto', [1, 1, 0.01]);
+    g.position.set(cx, 0, cz); g.position.y = floorAt(g.position);
+    r.poly = r.poly.map(([x, z]) => [+(x - cx).toFixed(3), +(z - cz).toFixed(3)]);
+    r.items = r.items.map(it => [it[0], +(it[1] - cx).toFixed(3), +(it[2] - cz).toFixed(3), ...it.slice(3)]);
+    setResto(g, r); made.push(g);
+  }
+  const st = made.reduce((a, g) => { const s = restoStats(g.userData.resto.items, g.userData.resto.poly); return [a[0] + s.places, a[1] + s.area]; }, [0, 0]);
+  pedSelect(null); pedFit(); pedDraw(); drawCotes();
+  $('pedInfo').textContent = `${made.length} zones DACAM posées · ${st[0]} places · ${Math.round(st[1])} m²`;
+}
+$('pedSvg').addEventListener('dblclick', e => {
+  const eh = e.target.closest?.('[data-e]');
+  if (eh && ped.sel?.g?.userData.resto) { const g = ped.sel.g, r = g.userData.resto; pushUndo(); r.poly.splice(+eh.dataset.e + 1, 0, toLocal(g, pedPt(e)).map(v => +v.toFixed(3))); refillResto(g); pedDraw(); pedSide(); return; } if (ped.tool === 'resto' && ped.poly) { e.preventDefault(); pedRestoFinish(); } }); // les 2 clics du double-clic tombent au même endroit : un seul point
 $('pedSvg').addEventListener('pointerdown', e => {
   if (!ped.vb) return;
   const p = pedPt(e), tgt = e.target;
@@ -2536,6 +2607,18 @@ $('pedSvg').addEventListener('pointerdown', e => {
   if (rh && ped.sel?.g) { const g = ped.sel.g; ped.drag = { k:'size', g, side:rh.dataset.r.split(',').map(Number), dims:null }; return; }
   const h = tgt.closest('[data-h]');
   if (h && ped.sel?.a) { ped.drag = { k:'pt', a:ped.sel.a, i:+h.dataset.h, undo:false }; return; }
+  if (ped.tool === 'resto') {
+    const q = pedSnap(p, e), P = ped.poly || (ped.poly = []);
+    if (P.length >= 3 && Math.hypot(q[0] - P[0][0], q[1] - P[0][1]) < 10 * pedUnit()) return pedRestoFinish(); // retour au 1er point : fermé
+    if (!P.length || Math.hypot(q[0] - P.at(-1)[0], q[1] - P.at(-1)[1]) > 0.05) P.push(q);
+    pedDraftDraw(); return;
+  }
+  const vh = tgt.closest('[data-v]');
+  if (vh && ped.sel?.g?.userData.resto) { // sommet d'une zone de restauration : glisser ; Alt+clic : retirer
+    const g = ped.sel.g, i = +vh.dataset.v, r = g.userData.resto;
+    if (e.altKey) { if (r.poly.length > 3) { pushUndo(); r.poly.splice(i, 1); refillResto(g); pedDraw(); pedSide(); } return; }
+    ped.drag = { k:'vtx', g, i, undo:false }; return;
+  }
   if (ped.tool === 'text' || ped.tool === 'icon') {
     pushUndo(); const a = pedCreate(ped.tool, [pedSnap(p, e)]); pedDraw(); pedSetTool('sel'); pedSelect({ a });
     if (a.t === 'text') setTimeout(() => $('pedTxt')?.select(), 0); return;
@@ -2552,7 +2635,9 @@ const pedLater = () => { if (!pedRaf) pedRaf = requestAnimationFrame(() => { ped
 $('pedSvg').addEventListener('pointermove', e => {
   if (!ped.vb) return;
   const p = pedPt(e), [X, Y] = toDwg(p); $('pedPos').textContent = `X ${X.toFixed(2)} · Y ${Y.toFixed(2)} m (repère DWG)`;
+  if (ped.tool === 'resto' && ped.poly) pedDraftDraw(pedSnap(p, e));
   const d = ped.drag; if (!d) return;
+  if (d.k === 'vtx') { if (!d.undo) { pushUndo(); d.undo = true; } const r = d.g.userData.resto; r.poly[d.i] = toLocal(d.g, pedSnap(p, e)).map(v => +v.toFixed(3)); pedLater(); return; }
   if (d.k === 'pan') { const u = pedUnit(); ped.vb.x = d.vb.x - (e.clientX - d.c[0]) * u; ped.vb.y = d.vb.y - (e.clientY - d.c[1]) * u; pedApplyVb(); return; }
   if (d.k === 'new') { d.a.p[1] = pedSnap(p, e, d.a); pedLater(); pedSide(); return; }
   if (d.k === 'size') { // côté opposé fixe ; pas de 0,5 m (Maj : 10 cm)
@@ -2572,6 +2657,7 @@ $('pedSvg').addEventListener('pointerup', () => {
   const d = ped.drag; ped.drag = null; if (!d) return;
   if (d.k === 'new') { if (annotLength(d.a) < 0.2) { ANNOT.splice(ANNOT.indexOf(d.a), 1); undoStack.pop(); pedSelect(null); } pedSetTool('sel'); }
   if (d.k === 'moveG' && d.undo) drawCotes();
+  if (d.k === 'vtx' && d.undo) { refillResto(d.g); drawCotes(); }
   if (d.k === 'size') { $('pedInfo').textContent = ''; if (d.dims) return pedResize(d.g, d.dims, d.side); }
   pedDraw(); pedSide();
 });
@@ -2609,9 +2695,11 @@ addEventListener('keydown', e => {
     if (k === 'z') { e.preventDefault(); pedHistory(e.shiftKey); } if (k === 'y') { e.preventDefault(); pedHistory(true); }
     if (k === 'd') { e.preventDefault(); pedDup(); } return;
   }
+  if (ped.poly && (e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Escape')) { // tracé d'une zone de restauration en cours
+    e.preventDefault(); if (e.key === 'Enter') pedRestoFinish(); else if (e.key === 'Escape') pedSetTool('sel'); else { ped.poly.pop(); pedDraftDraw(); } return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); pedDelete(); }
   if (e.key === 'Escape') { e.preventDefault(); if (ped.tool !== 'sel') pedSetTool('sel'); else if (ped.sel) pedSelect(null); else $('ped').close(); }
-  if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
+  if (k === 'q') pedSetTool('resto'); if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
   if (k === 'r' && ped.sel?.g) pedRotate(ped.sel.g, (e.altKey ? 5 : 15) * (e.shiftKey ? -1 : 1));
   if (k === 'c') pedFit();
   if (e.key.startsWith('Arrow') && ped.sel) { // flèches : 10 cm (Maj : 1 m)
@@ -2623,12 +2711,31 @@ addEventListener('keydown', e => {
   }
 });
 addEventListener('keyup', e => { if (e.key === ' ') ped.space = false; });
+// panneau d'une zone de restauration : nom, module, allées, marge, sens des rangées, comptes
+function restoPanel(g) {
+  const r = g.userData.resto, st = restoStats(r.items, r.poly), a = r.auto || { ...RESTO_DEFAULT, mod:'' };
+  const opts = Object.entries(RESTO_MODS).map(([k, m]) => `<option value="${k}"${k === a.mod ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+  return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label>
+    <p><b>${st.tables} tables · ${st.places} places</b> (${st.chairs} chaises, ${st.stools} tabourets)<br>${fmtArea(st.area)}${st.places ? ` · ${fr(st.perPlace, 1)} m² par place` : ''}</p>
+    <label class="pedl">Remplissage<select id="rsMod">${r.auto ? '' : `<option value="" selected>${r.src === 'dacam' ? 'Mobilier du plan DACAM (fixe)' : 'Mobilier posé à la main'}</option>`}${opts}<option value="__vide">Vider la zone</option></select></label>
+    <div class="row"><label>Allée ↔ <input id="rsGx" type="number" step="0.1" min="0" value="${a.gx}"> m</label><label>Allée ↕ <input id="rsGy" type="number" step="0.1" min="0" value="${a.gy}"> m</label></div>
+    <div class="row"><label>Marge <input id="rsM" type="number" step="0.1" min="0" value="${a.margin}"> m</label><label>Sens <input id="rsA" type="number" step="15" value="${a.ang}"> °</label></div>
+    <p class="e2note">Allées : espace libre entre deux modules (1,40 m pour un passage PMR). Points rouges : glisser pour modifier le contour, Alt+clic pour en retirer un, double-clic sur un bord pour en ajouter.${r.auto ? '' : ' Choisir un module remplace le mobilier actuel.'}</p>`;
+}
+function bindRestoPanel(g) {
+  const r = g.userData.resto, apply = () => { refillResto(g); pedDraw(); pedSide(); drawCotes(); };
+  $('rsName').onchange = () => { pushUndo(); r.name = $('rsName').value.trim().slice(0, 80) || 'Zone de restauration'; setResto(g, r); pedDraw(); pedSide(); };
+  $('rsMod').onchange = () => { const v = $('rsMod').value; if (!v) return; pushUndo();
+    if (v === '__vide') { r.auto = null; r.items = []; r.src = ''; } else { r.auto = { ...RESTO_DEFAULT, ...(r.auto || {}), mod:v }; r.src = ''; } apply(); };
+  for (const [id, key] of [['rsGx', 'gx'], ['rsGy', 'gy'], ['rsM', 'margin'], ['rsA', 'ang']])
+    $(id).onchange = () => { if (!r.auto) { r.auto = { ...RESTO_DEFAULT }; r.src = ''; } pushUndo(); r.auto[key] = Math.max(key === 'ang' ? -360 : 0, +$(id).value || 0); apply(); };
+}
 // panneau de droite : propriétés de la sélection
 function pedSide() {
   const s = ped.sel, el = $('pedSide');
   if (!s) {
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
-      <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li>
+      <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
       <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : 10 cm (Maj : 1 m)</li>
       <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · glisser le fond, Espace ou clic droit : déplacer la vue · <b>C</b> recadrer</li></ul>
       <p class="e2note">Le matériel est le même qu'en 3D. Textes, cotes, zones et pictos n'apparaissent que sur les plans (export, fiches) et sont sauvés avec le setup.</p>`;
@@ -2641,12 +2748,14 @@ function pedSide() {
       <div class="row"><label>Cap <input id="pedA" type="number" step="5" value="${capOf(g)}"> °</label><button id="pedR1" title="R">↻ 15°</button><button id="pedR2" title="Maj+R">↺ 15°</button></div>
       ${pedAxes(g) ? `<h3>Taille</h3><div class="row"><label>L <input id="pedW" type="number" step="0.5" min="0.5" value="${+g.userData.dims[0].toFixed(2)}"></label>${pedAxes(g).d ? `<label>P <input id="pedD" type="number" step="0.5" min="0.5" value="${+g.userData.dims[1].toFixed(2)}"></label><label>H <input id="pedH" type="number" step="0.1" min="0.1" value="${+g.userData.dims[2].toFixed(2)}"></label>` : ''}</div>
       <p class="e2note">Ou glisser les poignées orange autour de l'élément (pas de 0,5 m, Maj : 10 cm) ; le côté opposé ne bouge pas.</p>` : ''}
+      ${g.userData.resto ? restoPanel(g) : ''}
       <p class="e2note">Coordonnées du plan AutoCAD (m). Hauteur au sol et autres réglages : dans le panneau 3D.</p>
       <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button><button id="ped3d" class="grow">Voir en 3D</button></div>`;
     const fromSide = () => { select(g); $('pX').value = $('pedX').value; $('pY').value = $('pedY').value; $('pA').value = $('pedA').value; applyPos(); pedDraw(); };
     ['pedX', 'pedY', 'pedA'].forEach(id => $(id).onchange = fromSide);
     for (const id of ['pedW', 'pedD', 'pedH']) if ($(id)) $(id).onchange = () => pedResize(g, [+$('pedW').value || g.userData.dims[0], +($('pedD')?.value || g.userData.dims[1]), +($('pedH')?.value || g.userData.dims[2])]);
     $('pedR1').onclick = () => pedRotate(g, 15); $('pedR2').onclick = () => pedRotate(g, -15);
+    if (g.userData.resto) bindRestoPanel(g);
     $('ped3d').onclick = () => { $('ped').close(); select(g); frame(g); };
   } else {
     const a = s.a, info = a.t === 'dim' ? `Longueur : ${fmtM(annotLength(a))}` : a.t === 'zone' ? `Surface : ${fmtArea(zoneArea(a))}` : a.t === 'arrow' ? `Longueur : ${fmtM(annotLength(a))}` : '';
@@ -2668,6 +2777,7 @@ document.querySelectorAll('#pedTools [data-t]').forEach(b => b.onclick = () => p
 $('pedIcon').onchange = () => { if ($('pedIcon').value) pedSetTool('icon', $('pedIcon').value); else pedSetTool('sel'); $('pedIcon').blur(); };
 $('pedCotes').onchange = pedDraw;
 $('pedAdd').onclick = () => $('addBtn').click();
+$('pedDacam').onclick = pedDacam;
 $('catalog').addEventListener('close', () => { if ($('ped').open && selected && props.children.includes(selected)) { ped.sel = { g:selected }; pedDraw(); pedSide(); } });
 $('pedUndo').onclick = () => pedHistory(false); $('pedRedo').onclick = () => pedHistory(true);
 $('pedFit').onclick = pedFit;
@@ -2690,7 +2800,9 @@ function materiel() {
   }
   for (const o of props.children) if (o.visible && PUBLIC_KINDS.has(o.userData.kind)) { const L = publicLayout(o), add = (k, n, kg) => { if (!n) return; const e = mat.get(k) || { n:0, kg, W:0 }; e.n += n; mat.set(k, e); };
     add('Chaise (public assis)', L.seats.length, 4); add(`Table ronde Ø ${fr(o.userData.dims[4], 2)} m`, L.tables.length, 25); }
-  for (const o of props.children) if (o.visible && !PUBLIC_KINDS.has(o.userData.kind)) { const k = o.name, e = mat.get(k) || { n:0, kg:o.userData.asd ? 0 : weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); } // scène ASD : poids compté ligne par ligne
+  for (const o of props.children) if (o.visible && (o.userData.resto || RESTO_MODS[o.userData.kind])) // restauration : tables, chaises, tabourets
+    for (const [k, n] of restoBom(o.userData.resto?.items || RESTO_MODS[o.userData.kind].items)) { const e = mat.get(k) || { n:0, kg:0, W:0 }; e.n += n; mat.set(k, e); }
+  for (const o of props.children) if (o.visible && !PUBLIC_KINDS.has(o.userData.kind) && !o.userData.resto && !RESTO_MODS[o.userData.kind]) { const k = o.name, e = mat.get(k) || { n:0, kg:o.userData.asd ? 0 : weightOf(o), W:0 }; e.n++; e.W += powerOf(o); mat.set(k, e); } // scène ASD : poids compté ligne par ligne
   return mat;
 }
 // --- comparaison de 2 setups : plans de l'Agora côte à côte + écarts de matériel, jauge, charges, rigging ---

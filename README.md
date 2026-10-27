@@ -389,3 +389,10 @@ Le bouton **Éditeur de plan 2D** ouvre une vue de dessus plein écran du bâtim
 - Navigation : molette pour zoomer, glisser le fond (ou Espace / clic droit) pour déplacer la vue, C pour recadrer.
 
 Le fond de plan de l'éditeur est une image (`plan_fond.png`, 24 px/m) tant qu'on regarde large ; zoomé, la partie visible est redessinée nette depuis `plan_fond.svg`. Si `plan_fond.svg` change, régénérer l'image : `python3 tools/fond_png.py`.
+
+### Restauration (tables, chaises, zones)
+
+- **Catalogue → Restauration** : 5 modules mesurés sur le plan DACAM (1:200) — table 2 places (0,9 × 0,7 m, chaises en bout), table carrée 4 places (0,9 m), tablée haute 2,8 × 0,8 m avec 8 tabourets, table ronde Ø 0,9 m 4 places, mange-debout Ø 0,6 m — et la **zone de restauration**.
+- **Éditeur de plan 2D → 🍽 Zone resto (Q)** : cliquer chaque angle de la zone (forme libre), double-clic / Entrée / clic sur le 1er point pour fermer. La zone se remplit avec le module choisi ; allées entre modules, marge au bord et sens des rangées se règlent dans le panneau de droite (1,40 m d'allée pour un passage PMR). Points rouges : glisser pour modifier le contour, Alt+clic pour en retirer un, double-clic sur un bord pour en ajouter. Le panneau affiche tables, places (chaises + tabourets), surface et m² par place.
+- **Restauration DACAM** : pose les 13 zones de restauration du plan « LGS-GH DA8.2 — Plan de niveau côté — Accessibilité RdC » avec leur mobilier exact (≈ 230 chaises, 130 tabourets, 620 m²). Données : `restauration_dacam.json`, tirées du PDF par `tools/resto_dacam.py` (contours roses, tracés vectoriels du mobilier, calage sur `plan_fond.png` par corrélation, écart < 5 cm).
+- Sur les plans exportés : zone rose hachurée de rouge, contour en tirets, mobilier, nom, places et surface ; les places comptent dans la jauge (public assis) et le mobilier dans la liste du matériel des fiches.
