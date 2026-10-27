@@ -369,3 +369,13 @@ Les fichiers `flags.json`, `align.json`, `pdf2dxf.json` et `pdf2dxf_est.json` so
 ## Limites connues
 - Pas d'édition à plusieurs en temps réel : on partage des setups par lien (copie).
 - Certains éléments de façade mal renseignés dans Revit ont été rattachés à la main au bouton *Murs ext.* (voir `tools/flags.py`).
+
+### Export du plan 2D
+
+Le bouton **Plan 2D…** ouvre le menu d'export, avec un aperçu en direct :
+- **Zone exportée** : éléments ajoutés + marge réglable, salle active entière (Agora ou Auditorium), bâtiment entier, ce que montre la vue 3D, ou une zone tracée à la souris sur l'aperçu du bâtiment (calée au mètre).
+- **Échelle et format** : 1:50, 1:100, 1:200, 1:500, ou « ajuster au format » (A4 à A0, portrait ou paysage choisi automatiquement). Le menu indique la taille du plan en mm et le plus petit format où il tient.
+- **Contenu** : fond de plan, grille, règles, trappes/boîtiers, axe et piliers, cotes, noms, câbles, bandeau titre/légende, grill et palans (ce dernier réglage vaut aussi pour les fiches et la comparaison).
+- **Sortie** : SVG téléchargé ou impression / PDF à l'échelle (page au bon format, marges 10 mm).
+
+Les réglages sont gardés sur l'appareil. Les fiches et la comparaison gardent leur cadrage sur la salle active.
