@@ -379,3 +379,13 @@ Le bouton **Plan 2D…** ouvre le menu d'export, avec un aperçu en direct :
 - **Sortie** : SVG téléchargé ou impression / PDF à l'échelle (page au bon format, marges 10 mm).
 
 Les réglages sont gardés sur l'appareil. Les fiches et la comparaison gardent leur cadrage sur la salle active.
+
+### Éditeur de plan 2D
+
+Le bouton **Éditeur de plan 2D** ouvre une vue de dessus plein écran du bâtiment :
+- **Matériel** : le même qu'en 3D. Le glisser, le tourner (R / Maj+R : 15°, Alt : 5°), le décaler aux flèches du clavier (10 cm, Maj : 1 m), le dupliquer (⌘D) ou le supprimer le fait aussi en 3D ; ce qu'il emporte (scène et matériel posé dessus) suit. **+ Matériel** pose un élément du catalogue au centre du plan.
+- **Annotations propres au plan** (n'apparaissent pas en 3D) : textes (T), flèches (F), cotes (D, accrochées aux coins des éléments, Maj : libre), zones avec surface en m² (Z) et pictos (sortie de secours, extincteur, RIA, poste de secours, accès PMR, toilettes, accueil, régie, armoire électrique, point de rassemblement). Couleur, taille et libellé dans le panneau de droite.
+- Annulation commune avec la 3D (⌘Z), sauvegarde avec le setup (bibliothèque, liens, fichiers JSON), et annotations reprises dans l'export du plan 2D, les fiches et la comparaison (calque « Annotations » du menu d'export ; les pictos vont dans la légende).
+- Navigation : molette pour zoomer, glisser le fond (ou Espace / clic droit) pour déplacer la vue, C pour recadrer.
+
+Le fond de plan de l'éditeur est une image (`plan_fond.png`, 24 px/m) tant qu'on regarde large ; zoomé, la partie visible est redessinée nette depuis `plan_fond.svg`. Si `plan_fond.svg` change, régénérer l'image : `python3 tools/fond_png.py`.
