@@ -186,7 +186,7 @@ export function cleanResto(r, lim = 500) {
   }
   const a = r.auto && typeof r.auto === 'object' && RESTO_MODS[r.auto.mod]
     ? { mod:r.auto.mod, gx:fin(r.auto.gx, 0, 20) ?? RESTO_DEFAULT.gx, gy:fin(r.auto.gy, 0, 20) ?? RESTO_DEFAULT.gy, margin:fin(r.auto.margin, 0, 10) ?? RESTO_DEFAULT.margin, ang:fin(r.auto.ang, -360, 360) ?? 0, dx:fin(r.auto.dx, 0, 1) ?? 0, dz:fin(r.auto.dz, 0, 1) ?? 0 } : null;
-  return { name:String(r.name || 'Zone de restauration').slice(0, 80), col:isHex(r.col) ? r.col.toLowerCase() : RESTO_COLORS[0], poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
+  return { name:String(r.name || 'Zone de restauration').slice(0, 80), ...(r.cotes ? { cotes:true } : {}), col:isHex(r.col) ? r.col.toLowerCase() : RESTO_COLORS[0], poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
 }
 
 // --- scinder une zone par un trait (a -> b, repère local de la zone) ---
@@ -223,4 +223,44 @@ export function splitResto(r, a, b) {
     : Math.hypot(it[1] - c1[0], it[2] - c1[1]) <= Math.hypot(it[1] - c2[0], it[2] - c2[1]) ? 0 : 1;
   const items = [[], []]; for (const it of r.items) items[side(it)].push(it);
   return parts.map((poly, k) => ({ ...r, poly, items:r.auto ? fillZone(poly, r.auto) : items[k], auto:r.auto ? { ...r.auto } : null }));
+}
+
+// --- pinceau : poser un module à la main dans une zone, gommer ---
+const rectQuad = (x, z, w, d, a) => { const c = Math.cos(a), s = Math.sin(a); return [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * c - v * s, z + u * s + v * c]); };
+export function quadsOverlap(A, B) { // axes séparateurs (deux quadrilatères convexes)
+  for (const P of [A, B]) for (let i = 0; i < 4; i++) {
+    const [x1, z1] = P[i], [x2, z2] = P[(i + 1) % 4], nx = z1 - z2, nz = x2 - x1;
+    const pa = A.map(p => p[0] * nx + p[1] * nz), pb = B.map(p => p[0] * nx + p[1] * nz);
+    if (Math.max(...pa) <= Math.min(...pb) + 2e-3 || Math.max(...pb) <= Math.min(...pa) + 2e-3) return false; // 2 mm de tolérance (angles arrondis)
+  }
+  return true;
+}
+// emprise d'un module posé en (x, z) tourné de a (radians)
+export function moduleFootprint(mod, x, z, a = 0, grow = 0) {
+  const [[x0, z0], [x1, z1]] = itemsBox(RESTO_MODS[mod].items);
+  return rectQuad(x, z, x1 - x0 + 2 * grow, z1 - z0 + 2 * grow, a);
+}
+export function moduleItemsAt(mod, x, z, a = 0) {
+  const M = RESTO_MODS[mod], [[x0, z0], [x1, z1]] = itemsBox(M.items);
+  return moveItems(moveItems(M.items, -(x0 + x1) / 2, -(z0 + z1) / 2), x, z, a);
+}
+// le module tient-il ici ? dans la zone (avec la marge) et à au moins « gap » du mobilier déjà posé
+export function canPlace(poly, items, mod, x, z, a = 0, gap = 0.6, margin = 0) {
+  if (!RESTO_MODS[mod] || !quadInPoly(moduleFootprint(mod, x, z, a, margin), poly)) return false;
+  const F = moduleFootprint(mod, x, z, a, gap / 2), c = [x, z];
+  for (const it of items) {
+    if (Math.hypot(it[1] - c[0], it[2] - c[1]) > 6) continue; // loin : inutile de tester
+    const q = itemCorners(it), m = [(q[0][0] + q[2][0]) / 2, (q[0][1] + q[2][1]) / 2], k = gap / 2;
+    const Q = q.map(([px, pz]) => { const dx = px - m[0], dz = pz - m[1], L = Math.hypot(dx, dz) || 1; return [px + dx / L * k * Math.SQRT2, pz + dz / L * k * Math.SQRT2]; });
+    if (quadsOverlap(F, Q)) return false;
+  }
+  return true;
+}
+export const eraseItems = (items, x, z, rad) => items.filter(it => Math.hypot(it[1] - x, it[2] - z) > rad);
+// grille du pinceau : pas = emprise du module + écart, alignée sur le 1er module posé du trait
+export function brushSnap(mod, anchor, p, a = 0, gap = 0.6) {
+  if (!anchor) return p;
+  const [[x0, z0], [x1, z1]] = itemsBox(RESTO_MODS[mod].items), sx = x1 - x0 + gap, sz = z1 - z0 + gap, c = Math.cos(a), s = Math.sin(a);
+  const dx = p[0] - anchor[0], dz = p[1] - anchor[1], u = Math.round((dx * c + dz * s) / sx) * sx, v = Math.round((-dx * s + dz * c) / sz) * sz;
+  return [anchor[0] + u * c - v * s, anchor[1] + u * s + v * c];
 }
