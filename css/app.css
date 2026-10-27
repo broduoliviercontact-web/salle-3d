@@ -102,3 +102,4 @@ button.acc { background:var(--acc); color:#111; border-color:var(--acc); }
 @media (max-width:760px) { #ped .pedb { grid-template-columns:1fr; grid-template-rows:1fr 220px; } #pedSide { border-left:0; border-top:1px solid var(--line); } }
 #exp2d .e2r { flex-wrap:nowrap; align-items:center; } #exp2d .e2r > span { flex:1; }
 .pedhelp li { display:list-item; }
+.pottab { width:100%; border-collapse:collapse; font-size:12px; color:var(--mute); } .pottab td { padding:2px 4px; border-bottom:1px solid var(--line); } .pottab td:first-child { width:18px; }
