@@ -2523,7 +2523,12 @@ function pedResize(g, dims, side) {
   ped.sel = { g:n }; syncPos(); drawCotes(); pedDraw(); pedSide();
 }
 function pedDrawSel() {
-  const S = $('pedSel'), s = ped.sel; if (!s || !ped.vb) { S.innerHTML = ''; return; }
+  const S = $('pedSel'), s = ped.sel;
+  if (multiOn() && ped.vb) { const u = pedUnit(); // sélection multiple : contour de chaque élément
+    S.innerHTML = ped.multi.gs.map(o => `<polygon points="${planItem(o).poly.map(q => q.join(',')).join(' ')}" fill="#1f5fbf" fill-opacity="0.08" stroke="#1f5fbf" stroke-width="${2 * u}" stroke-dasharray="${6 * u} ${4 * u}" pointer-events="none"/>`).join('')
+      + ped.multi.as.map(a => { const b = annotBox(a); return `<rect x="${b[0][0]}" y="${b[0][1]}" width="${b[1][0] - b[0][0]}" height="${b[1][1] - b[0][1]}" fill="none" stroke="#1f5fbf" stroke-width="${2 * u}" stroke-dasharray="${6 * u} ${4 * u}" pointer-events="none"/>`; }).join('');
+    return; }
+  if (!s || !ped.vb) { S.innerHTML = ''; return; }
   const u = pedUnit(), sw = `stroke-width="${2 * u}"`, dash = `stroke-dasharray="${6 * u} ${4 * u}"`;
   if (s.g) {
     const it = planItem(s.g), ax = pedAxes(s.g), r = 6 * u, rz = ped.drag?.k === 'size' ? ped.drag : null;
@@ -2564,8 +2569,41 @@ function pedSetTool(t, ic) {
   $('pedIcon').classList.toggle('on', t === 'icon'); if (t !== 'icon') $('pedIcon').value = '';
   $('pedSvg').style.cursor = t === 'sel' ? '' : 'crosshair';
 }
+// --- sélection multiple : rectangle tracé sur le fond, Maj + clic pour ajouter / retirer ---
+const multiOn = () => ped.multi && (ped.multi.gs.length + ped.multi.as.length > 0);
+function pedSetMulti(gs, as) {
+  gs = [...new Set(gs)]; as = [...new Set(as)];
+  if (gs.length + as.length === 0) return pedSelect(null);
+  if (gs.length + as.length === 1) return pedSelect(gs.length ? { g:gs[0] } : { a:as[0] });
+  ped.sel = null; ped.multi = { gs, as }; if (selected) select(null); pedDrawSel(); pedSide();
+}
+const selList = () => ped.multi ? ped.multi : ped.sel ? { gs:ped.sel.g ? [ped.sel.g] : [], as:ped.sel.a ? [ped.sel.a] : [] } : { gs:[], as:[] };
+// copie d'un élément (mêmes réglages) ; les lignes / groupes copiés forment de nouveaux groupes
+function cloneProp(o, grpMap) {
+  const c = makeProp(o.userData.kind, [...o.userData.dims]), keep = JSON.parse(JSON.stringify({ ...o.userData, kind:undefined, dims:undefined }));
+  delete keep.kind; delete keep.dims; Object.assign(c.userData, keep);
+  if (keep.grp) c.userData.grp = grpMap[keep.grp] ||= keep.grp.replace(/#.*$/, '#') + Math.random().toString(36).slice(2, 8);
+  if (keep.resto) setResto(c, keep.resto); if (keep.col) setLineCol(c, keep.col); if (keep.asd) asdify(c, keep.asd);
+  c.position.copy(o.position); c.quaternion.copy(o.quaternion); return c;
+}
+function pedMultiDup(offset = 0) { // duplique la sélection ; offset : décalage (m) en x et z
+  const L = selList(); if (!L.gs.length && !L.as.length) return null; pushUndo();
+  const map = {}, gs = L.gs.map(o => { const c = cloneProp(o, map); c.position.x += offset; c.position.z += offset; return c; });
+  const as = L.as.map(a => { const c = { ...JSON.parse(JSON.stringify(a)), id:newId() }; if (c.grp && map[c.grp]) c.grp = map[c.grp]; c.p = c.p.map(q => [q[0] + offset, q[1] + offset]); ANNOT.push(c); return c; });
+  pedDraw(); pedSetMulti(gs, as); drawCotes(); return { gs, as };
+}
+function pedMultiDelete() {
+  const L = selList(); if (!L.gs.length && !L.as.length) return; pushUndo();
+  L.gs.forEach(o => props.remove(o)); L.as.forEach(a => { const i = ANNOT.indexOf(a); if (i >= 0) ANNOT.splice(i, 1); });
+  ped.multi = null; pedSelect(null); pedDraw(); drawCotes(); $('pedInfo').textContent = `${L.gs.length + L.as.length} éléments supprimés`;
+}
+function pedMultiMove(d, dx, dz) { // déplace tout depuis les positions d'origine du glisser
+  d.gs.forEach((o, i) => { const h = d.h[i]; o.position.x = d.og[i].x + dx; o.position.z = d.og[i].z + dz; o.position.y = floorAt(o.position) + h; });
+  d.as.forEach((a, i) => { a.p = d.oa[i].map(q => [q[0] + dx, q[1] + dz]); });
+}
+const multiDrag = (L, p, undo) => ({ k:'moveM', gs:L.gs, as:L.as, p0:p, og:L.gs.map(o => o.position.clone()), h:L.gs.map(o => o.position.y - floorAt(o.position)), oa:L.as.map(a => a.p.map(q => [...q])), undo });
 function pedSelect(s) {
-  ped.sel = s;
+  ped.sel = s; ped.multi = null;
   if (s?.g) select(s.g); else if (selected) select(null); // la 3D suit la sélection du plan
   pedDrawSel(); pedSide();
 }
@@ -2828,6 +2866,13 @@ $('pedSvg').addEventListener('pointerdown', e => {
   if (['arrow', 'dim', 'zone'].includes(ped.tool)) { pushUndo(); const q = pedSnap(p, e), a = pedCreate(ped.tool, [q, [...q]]); ped.drag = { k:'new', a }; pedSelect({ a }); return; }
   const ae = tgt.closest('[data-a]'), ge = tgt.closest('[data-u]');
   const a = ae && ANNOT.find(x => x.id === ae.dataset.a), g = !a && ge && pedItem(ge.dataset.u);
+  if ((a || g) && e.shiftKey && !e.altKey) { // Maj + clic : ajoute à la sélection ou en retire
+    const L = selList(), gs = [...L.gs], as = [...L.as], t = a ? as : gs, it = a || g, i = t.indexOf(it);
+    if (i >= 0) t.splice(i, 1); else t.push(it); pedSetMulti(gs, as); return; }
+  if ((a || g) && multiOn() && (ped.multi.gs.includes(g) || ped.multi.as.includes(a))) { // élément de la sélection multiple : on déplace (⌥ : copie) tout le lot
+    if (e.altKey) { const c = pedMultiDup(0); ped.drag = multiDrag(c, p, true); $('pedInfo').textContent = 'Copies : glisse pour les placer'; }
+    else ped.drag = multiDrag(ped.multi, p, false);
+    return; }
   if (a && e.altKey) { // ⌥ Option + glisser : dupliquer puis déplacer la copie
     pushUndo(); const c = { ...JSON.parse(JSON.stringify(a)), id:newId() }; ANNOT.push(c); pedDraw(); pedSelect({ a:c });
     ped.drag = { k:'moveA', a:c, p0:p, orig:c.p.map(q => [...q]), undo:true }; return; }
@@ -2837,7 +2882,9 @@ $('pedSvg').addEventListener('pointerdown', e => {
     $('pedInfo').textContent = 'Copie : glisse pour la placer'; return; }
   if (a) { pedSelect({ a }); ped.drag = { k:'moveA', a, p0:p, orig:a.p.map(q => [...q]), undo:false }; return; }
   if (g) { pedSelect({ g }); ped.drag = { k:'moveG', g, p0:p, orig:g.position.clone(), h:g.position.y - floorAt(g.position), undo:false, carried:null }; return; }
-  pedSelect(null); ped.drag = { k:'pan', c:[e.clientX, e.clientY], vb:{ ...ped.vb } };
+  // fond : rectangle de sélection (déplacer la vue : Espace ou clic droit + glisser, molette, flèches)
+  if (!e.shiftKey) pedSelect(null);
+  ped.drag = { k:'marq', a:p, b:p, add:e.shiftKey };
 });
 let pedRaf = 0;
 const pedLater = () => { if (!pedRaf) pedRaf = requestAnimationFrame(() => { pedRaf = 0; pedDraw(); }); };
@@ -2860,6 +2907,10 @@ $('pedSvg').addEventListener('pointermove', e => {
     pedDrawSel(); $('pedInfo').textContent = `${fr(d.dims[0], 2)} × ${fr(d.dims[1], 2)} m`; return; }
   if (d.k === 'pt') { if (!d.undo) { pushUndo(); d.undo = true; } d.a.p[d.i] = pedSnap(p, e, d.a); pedLater(); pedSide(); return; }
   if (d.k === 'brush') return; // peint plus haut
+  if (d.k === 'marq') { d.b = p; const u = pedUnit(), [x0, x1] = [Math.min(d.a[0], p[0]), Math.max(d.a[0], p[0])], [z0, z1] = [Math.min(d.a[1], p[1]), Math.max(d.a[1], p[1])];
+    $('pedDraft').innerHTML = `<rect x="${x0}" y="${z0}" width="${x1 - x0}" height="${z1 - z0}" fill="#1f5fbf" fill-opacity="0.08" stroke="#1f5fbf" stroke-width="${1.5 * u}" stroke-dasharray="${5 * u} ${3 * u}" pointer-events="none"/>`; return; }
+  if (d.k === 'moveM') { let dx = p[0] - d.p0[0], dz = p[1] - d.p0[1]; if (!d.undo && Math.hypot(dx, dz) < 3 * pedUnit()) return;
+    if (!e.shiftKey) { dx = Math.round(dx * 10) / 10; dz = Math.round(dz * 10) / 10; } if (!d.undo) { pushUndo(); d.undo = true; } pedMultiMove(d, dx, dz); pedLater(); return; }
   let dx = p[0] - d.p0[0], dz = p[1] - d.p0[1];
   if (!d.undo && Math.hypot(dx, dz) < 3 * pedUnit()) return; // simple clic : pas de déplacement
   if (!e.shiftKey) { dx = Math.round(dx * 10) / 10; dz = Math.round(dz * 10) / 10; }
@@ -2873,6 +2924,15 @@ $('pedSvg').addEventListener('pointerup', () => {
   if (d.k === 'new') { if (annotLength(d.a) < 0.2) { ANNOT.splice(ANNOT.indexOf(d.a), 1); undoStack.pop(); pedSelect(null); } pedSetTool('sel'); }
   if (d.k === 'moveG' && d.undo) drawCotes();
   if (d.k === 'vtx' && d.undo) { refillResto(d.g); drawCotes(); }
+  if (d.k === 'marq') { // éléments et annotations dont le centre est dans le rectangle
+    $('pedDraft').innerHTML = ''; const [x0, x1] = [Math.min(d.a[0], d.b[0]), Math.max(d.a[0], d.b[0])], [z0, z1] = [Math.min(d.a[1], d.b[1]), Math.max(d.a[1], d.b[1])];
+    if (x1 - x0 < 0.2 && z1 - z0 < 0.2) return;
+    const inR = ([x, z]) => x >= x0 && x <= x1 && z >= z0 && z <= z1, ctr = q => [q.reduce((s, v) => s + v[0], 0) / q.length, q.reduce((s, v) => s + v[1], 0) / q.length];
+    const gs = props.children.filter(o => shown(o) && inR(o.userData.resto?.poly.length ? toPlan(o, ...polyCentroid(o.userData.resto.poly)) : ctr(planItem(o).poly)));
+    const as = ANNOT.filter(a => !a.hidden && inR(ctr(a.p)));
+    const L = d.add ? selList() : { gs:[], as:[] }; pedSetMulti([...L.gs, ...gs], [...L.as, ...as]);
+    if (multiOn()) $('pedInfo').textContent = `${ped.multi.gs.length + ped.multi.as.length} sélectionnés — ⌥ + glisser : dupliquer · Suppr. : supprimer`; return; }
+  if (d.k === 'moveM') { if (d.undo) { syncPos(); drawCotes(); } pedDraw(); return; }
   if (d.k === 'brush') {
     if (d.changed) { for (const g of d.touched) { const r = g.userData.resto; if (!r.poly.length && !r.items.length) props.remove(g); else setResto(g, r); } drawCotes(); }
     else { undoStack.pop(); if (d.free && d.g && !d.g.userData.resto.items.length) props.remove(d.g); }
@@ -2913,18 +2973,24 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (e.metaKey || e.ctrlKey) {
     if (k === 'z') { e.preventDefault(); pedHistory(e.shiftKey); } if (k === 'y') { e.preventDefault(); pedHistory(true); }
-    if (k === 'd') { e.preventDefault(); pedDup(); } return;
+    if (k === 'd') { e.preventDefault(); if (multiOn()) pedMultiDup(1); else pedDup(); }
+    if (k === 'a') { e.preventDefault(); pedSetMulti(props.children.filter(shown), ANNOT.filter(a => !a.hidden)); } // tout sélectionner
+    return;
   }
   if (ped.pot && (e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Escape')) { // tracé de potelets en cours
     e.preventDefault(); if (e.key === 'Enter') potFinish(false); else if (e.key === 'Escape') { pedSetTool('sel'); $('pedInfo').textContent = ''; } else { ped.pot.pts.pop(); potDraft(); } return; }
   if (ped.poly && (e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Escape')) { // tracé d'une zone de restauration en cours
     e.preventDefault(); if (e.key === 'Enter') pedRestoFinish(); else if (e.key === 'Escape') pedSetTool('sel'); else { ped.poly.pop(); pedDraftDraw(); } return; }
-  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); pedDelete(); }
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); if (multiOn()) pedMultiDelete(); else pedDelete(); }
+  if (e.key === 'Escape' && multiOn() && ped.tool === 'sel') { e.preventDefault(); pedSelect(null); return; }
   if (e.key === 'Escape') { e.preventDefault(); if (ped.tool !== 'sel') pedSetTool('sel'); else if (ped.sel) pedSelect(null); else $('ped').close(); }
   if (ped.tool === 'brush' && (k === 'r' || k === 'e' || k === 'i')) { if (k === 'r') ped.br.ang = (ped.br.ang + 90) % 180; else if (k === 'i') { ped.br.pick = !ped.br.pick; ped.br.erase = false; } else { ped.br.erase = !ped.br.erase; ped.br.pick = false; } pedSide(); $('pedDraft').innerHTML = ''; return; }
   if (k === 'b') pedSetTool('brush'); if (k === 'p') pedSetTool('pot'); if (k === 'q') pedSetTool('resto'); if (k === 'x') pedSetTool('split'); if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
   if (k === 'r' && ped.sel?.g) pedRotate(ped.sel.g, (e.altKey ? 5 : 15) * (e.shiftKey ? -1 : 1));
   if (k === 'c') pedFit();
+  if (e.key.startsWith('Arrow') && multiOn()) { // flèches : déplacer toute la sélection (10 cm, Maj : 1 m)
+    e.preventDefault(); const st = e.shiftKey ? 1 : 0.1, [dx, dz] = { ArrowLeft:[-st, 0], ArrowRight:[st, 0], ArrowUp:[0, -st], ArrowDown:[0, st] }[e.key];
+    pushUndo(); pedMultiMove(multiDrag(ped.multi, [0, 0], true), dx, dz); pedDraw(); return; }
   if (e.key.startsWith('Arrow') && !ped.sel) { // flèches sans sélection : déplacer la vue (Maj : plus vite)
     e.preventDefault(); const v = ped.vb, st = v.w * (e.shiftKey ? 0.25 : 0.08), [dx, dz] = { ArrowLeft:[-st, 0], ArrowRight:[st, 0], ArrowUp:[0, -st], ArrowDown:[0, st] }[e.key];
     v.x += dx; v.y += dz; pedApplyVb(); return; }
@@ -2992,6 +3058,14 @@ function bindRestoPanel(g) {
 // panneau de droite : propriétés de la sélection
 function pedSide() {
   const s = ped.sel, el = $('pedSide');
+  if (multiOn() && ped.tool === 'sel') {
+    const M = ped.multi, cnt = new Map(); M.gs.forEach(o => { const k = o.userData.resto ? (o.userData.resto.poly.length ? 'Zone de restauration' : 'Mobilier libre') : LABELS[o.userData.kind] || o.userData.kind; cnt.set(k, (cnt.get(k) || 0) + 1); });
+    M.as.forEach(a => { const k = 'Annotation : ' + PED_KIND[a.t].toLowerCase(); cnt.set(k, (cnt.get(k) || 0) + 1); });
+    const places = M.gs.reduce((s, o) => s + (o.userData.resto ? restoStats(o.userData.resto.items, []).places : RESTO_MODS[o.userData.kind] ? restoStats(RESTO_MODS[o.userData.kind].items, []).places : 0), 0);
+    el.innerHTML = `<h3>Sélection multiple</h3><p><b>${M.gs.length + M.as.length} sélectionnés</b>${places ? ` · ${places} places` : ''}</p><table class="pottab">${[...cnt].map(([k, n]) => `<tr><td>${n}</td><td>${esc(k)}</td></tr>`).join('')}</table>
+      <div class="row" style="margin-top:8px"><button id="msDup" class="grow">Dupliquer (⌘D)</button><button id="msDel" class="grow">Supprimer (Suppr.)</button></div>
+      <p class="e2note">Glisser un élément de la sélection : tout bouge. ⌥ Option + glisser : copie de tout le lot. Flèches : 10 cm (Maj : 1 m). Maj + clic : ajouter ou retirer un élément. Échap : désélectionner.</p>`;
+    $('msDup').onclick = () => pedMultiDup(1); $('msDel').onclick = pedMultiDelete; return; }
   if (ped.tool === 'brush') {
     const B = ped.br;
     el.innerHTML = `<h3>Pinceau de mobilier</h3>
@@ -3027,9 +3101,9 @@ function pedSide() {
   }
   if (!s) {
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
-      <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> lignes (potelets, Vauban, Heras, passe-câbles) : cliquer les points, cotes et nombre en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
+      <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> lignes (potelets, Vauban, Heras, passe-câbles) : cliquer les points, cotes et nombre en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>Glisser sur le fond</b> : rectangle de sélection (Maj : ajouter), puis ⌥ + glisser pour dupliquer le lot, Suppr. pour le supprimer · ⌘A : tout</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
       <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : déplacer la vue (Maj : plus vite) ; avec une sélection, la déplacer de 10 cm (Maj : 1 m) · + / − : zoom</li>
-      <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · glisser le fond, Espace ou clic droit : déplacer la vue · <b>C</b> recadrer</li></ul>
+      <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · Espace ou clic droit + glisser : déplacer la vue · <b>C</b> recadrer</li></ul>
       <p class="e2note">Le matériel est le même qu'en 3D. Textes, cotes, zones et pictos n'apparaissent que sur les plans (export, fiches) et sont sauvés avec le setup.</p>`;
     return;
   }
