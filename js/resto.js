@@ -85,9 +85,11 @@ export function fillZone(poly, opts = {}) {
   const m = Math.max(0, +o.margin || 0), gx = Math.max(0, +o.gx || 0), gy = Math.max(0, +o.gy || 0), sx = W + gx, sz = D + gy;
   const nx = Math.floor((bx1 - bx0 - W - 2 * m) / sx) + 1, nz = Math.floor((bz1 - bz0 - D - 2 * m) / sz) + 1;
   if (nx < 1 || nz < 1 || nx * nz > 20000) return [];
-  const ox = bx0 + (bx1 - bx0 - (nx - 1) * sx) / 2, oz = bz0 + (bz1 - bz0 - (nz - 1) * sz) / 2; // grille centrée sur la zone
+  // grille centrée sur la zone, décalée de dx / dz (fraction du pas) pour chercher le meilleur calage
+  const fx = ((+o.dx || 0) % 1 + 1) % 1, fz = ((+o.dz || 0) % 1 + 1) % 1, ex = fx ? 1 : 0, ez = fz ? 1 : 0;
+  const ox = bx0 + (bx1 - bx0 - (nx - 1) * sx) / 2 - (fx ? sx * fx : 0), oz = bz0 + (bz1 - bz0 - (nz - 1) * sz) / 2 - (fz ? sz * fz : 0);
   const out = [];
-  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+  for (let j = 0; j < nz + ez; j++) for (let i = 0; i < nx + ex; i++) {
     const px = ox + i * sx, pz = oz + j * sz, h = [W / 2 + m, D / 2 + m];
     const q = [[px - h[0], pz - h[1]], [px + h[0], pz - h[1]], [px + h[0], pz + h[1]], [px - h[0], pz + h[1]]];
     if (!quadInPoly(q, rp)) continue;
@@ -95,6 +97,27 @@ export function fillZone(poly, opts = {}) {
   }
   return out;
 }
+
+// capacité maximale : essaie plusieurs sens de rangées (0°, 90° et le sens de chaque bord de la zone) et plusieurs calages
+// de la grille ; garde le remplissage qui place le plus de places (à égalité : le plus de tables)
+export function zoneAngles(poly) {
+  const set = new Set([0, 90]);
+  poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (L < 1) return;
+    const a = ((Math.round(Math.atan2(q[1] - p[1], q[0] - p[0]) * 180 / Math.PI) % 180) + 180) % 180; set.add(a); set.add((a + 90) % 180); });
+  return [...set].sort((a, b) => a - b);
+}
+export function bestFill(poly, opts = {}, steps = 4, angles = zoneAngles(poly)) {
+  // à égalité : le plus de tables, puis des rangées droites (0° / 90°)
+  const base = { ...RESTO_DEFAULT, ...opts }, score = (it, ang) => { const s = restoStats(it, poly); return s.places * 1000 + s.tables * 2 + (ang % 90 === 0 ? 1 : 0); };
+  let best = { items:[], ang:+base.ang || 0, dx:0, dz:0, score:-1 };
+  for (const ang of angles) for (let i = 0; i < steps; i++) for (let j = 0; j < steps; j++) {
+    const o = { ...base, ang, dx:i / steps, dz:j / steps }, items = fillZone(poly, o), sc = score(items, ang);
+    if (sc > best.score) best = { items, ang, dx:o.dx, dz:o.dz, score:sc };
+  }
+  return { ...best, ...restoStats(best.items, poly) };
+}
+// capacité maximale de la zone pour chaque module (mêmes allées et marge)
+export const capacityTable = (poly, opts = {}, angles) => Object.keys(RESTO_MODS).map(mod => ({ mod, name:RESTO_MODS[mod].name, ...bestFill(poly, { ...opts, mod }, 4, angles) }));
 
 export function restoStats(items, poly) {
   const n = k => items.filter(i => i[0] === k).length;
@@ -135,11 +158,14 @@ export function furnitureSvg(items) {
   return out.join('');
 }
 // zone : fond rose hachuré de rouge, contour en tirets (comme le plan DACAM), puis le mobilier
-export function zoneSvg(poly, id) {
+// couleurs proposées pour les zones et les lignes de potelets (la 1re : rouge du plan DACAM)
+export const RESTO_COLORS = ['#e8262b', '#e67e00', '#e6b800', '#1a8f3c', '#0f9d9a', '#1f5fbf', '#7b2fbf', '#d6008f', '#555555'];
+export const isHex = c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
+export function zoneSvg(poly, id, col = RESTO_COLORS[0]) {
   if (!Array.isArray(poly) || poly.length < 3) return '';
   const pts = poly.map(q => q.map(n3).join(',')).join(' ');
-  return `<defs><pattern id="${id}" width="0.6" height="0.6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="0.6" stroke="#e8262b" stroke-width="0.035"/></pattern></defs>`
-    + `<polygon points="${pts}" fill="#f2d6d6" fill-opacity="0.8"/><polygon points="${pts}" fill="url(#${id})"/>`
+  return `<defs><pattern id="${id}" width="0.6" height="0.6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="0.6" stroke="${col}" stroke-width="0.035"/></pattern></defs>`
+    + `<polygon points="${pts}" fill="${col}" fill-opacity="0.18"/><polygon points="${pts}" fill="url(#${id})"/>`
     + `<polygon points="${pts}" fill="none" stroke="#777" stroke-width="0.07" stroke-dasharray="0.45 0.25"/>`;
 }
 
@@ -159,8 +185,8 @@ export function cleanResto(r, lim = 500) {
     items.push([it[0], ...v]);
   }
   const a = r.auto && typeof r.auto === 'object' && RESTO_MODS[r.auto.mod]
-    ? { mod:r.auto.mod, gx:fin(r.auto.gx, 0, 20) ?? RESTO_DEFAULT.gx, gy:fin(r.auto.gy, 0, 20) ?? RESTO_DEFAULT.gy, margin:fin(r.auto.margin, 0, 10) ?? RESTO_DEFAULT.margin, ang:fin(r.auto.ang, -360, 360) ?? 0 } : null;
-  return { name:String(r.name || 'Zone de restauration').slice(0, 80), poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
+    ? { mod:r.auto.mod, gx:fin(r.auto.gx, 0, 20) ?? RESTO_DEFAULT.gx, gy:fin(r.auto.gy, 0, 20) ?? RESTO_DEFAULT.gy, margin:fin(r.auto.margin, 0, 10) ?? RESTO_DEFAULT.margin, ang:fin(r.auto.ang, -360, 360) ?? 0, dx:fin(r.auto.dx, 0, 1) ?? 0, dz:fin(r.auto.dz, 0, 1) ?? 0 } : null;
+  return { name:String(r.name || 'Zone de restauration').slice(0, 80), col:isHex(r.col) ? r.col.toLowerCase() : RESTO_COLORS[0], poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
 }
 
 // --- scinder une zone par un trait (a -> b, repère local de la zone) ---

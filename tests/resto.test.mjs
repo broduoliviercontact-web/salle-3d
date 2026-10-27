@@ -76,3 +76,20 @@ test('restauration : scinder une zone (droite, zone en L, mobilier réparti)', a
   const auto = splitResto({ ...r, auto:{ mod:'r_t4', gx:1.2, gy:1.2, margin:0.3, ang:0 } }, [5, -1], [5, 7]);
   assert.ok(auto.every(p => p.items.length && p.items.every(it => itemCorners(it).every(q => pointInPoly(q, p.poly))))); // remplissage refait par morceau
 });
+test('restauration : capacité maximale (meilleur sens et calage, jamais moins que le remplissage simple)', async () => {
+  const { bestFill, capacityTable, zoneAngles } = await import('../js/resto.js');
+  const Z = rect(12, 8), simple = restoStats(fillZone(Z, { mod:'r_t4' }), Z), best = bestFill(Z, { mod:'r_t4' });
+  assert.ok(best.places >= simple.places); assert.ok(best.items.every(it => itemCorners(it).every(p => pointInPoly(p, Z))));
+  // zone étroite et longue en biais : le meilleur sens suit le bord
+  const c = Math.cos(Math.PI / 6), s = Math.sin(Math.PI / 6), slant = rect(20, 2.6).map(([x, z]) => [x * c - z * s, x * s + z * c]);
+  assert.ok(zoneAngles(slant).includes(30));
+  const b = bestFill(slant, { mod:'r_t2', gx:0.6, gy:1 }); assert.equal(b.ang % 90 === 0, false); assert.ok(b.places >= 16, `places ${b.places}`);
+  const tab = capacityTable(Z, { gx:1.2, gy:1.2, margin:0.3 });
+  assert.equal(tab.length, 5); assert.ok(tab.find(t => t.mod === 'r_md').places === 0 && tab.find(t => t.mod === 'r_md').tables > 0);
+});
+test('restauration : couleur de zone (validée, reprise dans le dessin)', async () => {
+  const { cleanResto, zoneSvg, RESTO_COLORS } = await import('../js/resto.js');
+  assert.equal(cleanResto({ poly:rect(2, 2), col:'#1F5FBF' }).col, '#1f5fbf');
+  assert.equal(cleanResto({ poly:rect(2, 2), col:'red;}<script>' }).col, RESTO_COLORS[0]);
+  assert.match(zoneSvg(rect(2, 2), 'z', '#1f5fbf'), /stroke="#1f5fbf"/);
+});
