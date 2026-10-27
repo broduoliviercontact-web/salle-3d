@@ -106,10 +106,39 @@
   </details>
   <details id="trashBox" hidden><summary>Corbeille de la bibliothèque <span id="trashN"></span></summary><ul id="trashList"></ul></details>
   <div class="row"><button id="compare" class="grow" disabled title="Coche deux setups dans la liste">Comparer les 2 setups cochés</button></div>
-  <div class="row"><label class="cb"><input type="checkbox" id="svgGrill"> Grill et palans sur les plans 2D</label></div>
-  <div class="row"><button id="dxf" class="grow">Export AutoCAD (DXF)</button><button id="plan2d">Aperçu 2D (SVG)</button></div>
+  <div class="row"><button id="dxf" class="grow">Export AutoCAD (DXF)</button><button id="plan2d" title="Choisir la zone (éléments, salle, bâtiment entier, vue actuelle, zone tracée), l'échelle, le format et le contenu du plan, puis télécharger en SVG ou imprimer en PDF">Plan 2D…</button></div>
   <div class="row"><button id="exp">Exporter JSON</button><label><button onclick="this.nextElementSibling.click()">Importer</button><input type="file" id="imp" accept=".json" hidden></label></div>
 </div>
+<dialog id="exp2d">
+  <div class="e2h"><b>Exporter le plan 2D</b><span id="e2info" class="grow"></span><button id="e2Close" title="Fermer (Échap)">✕</button></div>
+  <div class="e2b">
+    <div class="e2side">
+      <h3>Zone exportée</h3>
+      <label class="e2r"><input type="radio" name="e2ext" value="items"><span>Éléments ajoutés + marge de <input id="e2margin" type="number" min="0" max="50" step="1"> m</span></label>
+      <label class="e2r"><input type="radio" name="e2ext" value="salle"><span>Salle active (<span id="e2salle">Agora</span>) entière</span></label>
+      <label class="e2r"><input type="radio" name="e2ext" value="building"> Bâtiment entier</label>
+      <label class="e2r"><input type="radio" name="e2ext" value="view"> Ce que montre la vue 3D</label>
+      <label class="e2r"><input type="radio" name="e2ext" value="custom"> Zone tracée sur l'aperçu</label>
+      <h3>Échelle et format</h3>
+      <div class="row"><select id="e2scale" class="grow"><option value="50">1:50</option><option value="100">1:100</option><option value="200">1:200</option><option value="500">1:500</option><option value="fit">Ajuster au format →</option></select>
+        <select id="e2paper"><option>A4</option><option>A3</option><option>A2</option><option>A1</option><option>A0</option></select></div>
+      <div id="e2size" class="e2note"></div>
+      <h3>Contenu</h3>
+      <label class="cb"><input type="checkbox" data-l="fond"> Fond de plan (bâti)</label>
+      <label class="cb"><input type="checkbox" data-l="grille"> Grille 1 m / 5 m</label>
+      <label class="cb"><input type="checkbox" data-l="regles"> Règles graduées</label>
+      <label class="cb"><input type="checkbox" data-l="trappes"> Trappes de sol / boîtiers</label>
+      <label class="cb"><input type="checkbox" data-l="axe"> Axe de l'Agora et piliers</label>
+      <label class="cb"><input type="checkbox" data-l="cotes"> Cotes des éléments</label>
+      <label class="cb"><input type="checkbox" data-l="labels"> Noms des éléments</label>
+      <label class="cb"><input type="checkbox" data-l="cables"> Câbles depuis les trappes</label>
+      <label class="cb"><input type="checkbox" data-l="bandeau"> Titre, échelle et légende</label>
+      <label class="cb" title="Vaut aussi pour la fiche setup, la fiche auditorium et la comparaison"><input type="checkbox" id="svgGrill"> Grill et palans (aussi sur les fiches)</label>
+    </div>
+    <div class="e2prev"><div id="e2hint" class="e2note"></div><div id="e2wrap"><img id="e2img" alt="Aperçu du plan 2D" draggable="false"><div id="e2rect" hidden></div></div></div>
+  </div>
+  <div class="e2f"><button id="e2reset" title="Revenir aux réglages par défaut">Réglages par défaut</button><span class="grow"></span><button id="e2svg">Télécharger le SVG</button><button id="e2print" class="acc">Imprimer / PDF</button></div>
+</dialog>
 <dialog id="catalog">
   <div class="cat-head"><b>Ajouter un élément</b><input id="catSearch" class="grow" placeholder="Rechercher (ex : sub, barrière, LED…)"><button id="catClose" title="Fermer (Échap)">✕</button></div>
   <div id="catBody"></div>
@@ -2082,31 +2111,64 @@ function cote(out, g, a, b, dir, len) {
     + `<text transform="translate(${f(mx)} ${f(my)}) rotate(${f(ang)})" y="-0.08" font-size="0.25" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="0.05" paint-order="stroke">${len.toFixed(2)} m</text>`);
 }
 let fondSrc = null; // fond de plan complet (plan_fond.svg), chargé au premier export seulement
-// whole = true : cadre sur toute l'Agora (fiche setup) ; sinon sur les éléments ajoutés + 8 m
+// Plan 2D. opts = true : cadre sur la salle active (fiches, comparaison) ; false : éléments ajoutés + 8 m ;
+// ou un objet de réglages (menu « Exporter le plan 2D ») : étendue, marge, échelle, format, calques.
 const AGORA_BOX = [[-12, -36], [92, 17]]; // emprise de l'Agora (x, z), de la cloison CTA à la façade est
-async function planSvg(whole = false) {
+const BUILDING_BOX = [[-91, -40], [91, 18]]; // emprise du bâtiment entier (d'après le fond de plan DXF)
+const PAPER = { A4:[297, 210], A3:[420, 297], A2:[594, 420], A1:[841, 594], A0:[1189, 841] }; // paysage, en mm
+const NICE_SCALES = [20, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000, 1250, 1500, 2000];
+const PLAN_DEF = { ext:'items', margin:8, custom:null, scale:'100', paper:'A3',
+  fond:true, grille:true, regles:true, trappes:true, axe:true, cotes:true, labels:true, cables:true, bandeau:true };
+const boxOverlap = (a, b) => a[0][0] < b[1][0] && b[0][0] < a[1][0] && a[0][1] < b[1][1] && b[0][1] < a[1][1];
+// plus petit format (portrait ou paysage) où tient un plan de w × h mm avec 10 mm de marge
+function paperFor(w, h) {
+  for (const [n, [a, b]] of Object.entries(PAPER)) {
+    if (w + 20 <= a && h + 20 <= b) return { n, o:'paysage', pw:a, ph:b };
+    if (w + 20 <= b && h + 20 <= a) return { n, o:'portrait', pw:b, ph:a };
+  }
+  return null;
+}
+// emprise au sol de la vue 3D actuelle (coins de l'écran projetés sur le sol, bornés au bâtiment)
+function viewExtent() {
+  const pl = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), B = BUILDING_BOX, pts = [];
+  for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) {
+    ray.setFromCamera(new THREE.Vector2(i / 2 - 1, j / 2 - 1), camera);
+    const p = ray.ray.intersectPlane(pl, new THREE.Vector3());
+    if (p) pts.push([THREE.MathUtils.clamp(p.x, B[0][0] - 5, B[1][0] + 5), THREE.MathUtils.clamp(p.z, B[0][1] - 5, B[1][1] + 5)]);
+  }
+  if (pts.length < 3) return null;
+  const r = [[Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1]))], [Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))]];
+  return r[1][0] - r[0][0] < 2 || r[1][1] - r[0][1] < 2 ? null : r;
+}
+let planMeta = null; // dimensions du dernier plan produit (pour le menu d'export)
+async function planSvg(opts = false) {
+  const o = typeof opts === 'object' && opts ? { ...PLAN_DEF, ...opts } : { ...PLAN_DEF, ext:opts ? 'salle' : 'items' };
   const grill = $('svgGrill').checked; // grill, cotes et palans masqués par défaut : ils chargent le plan
-  const items = props.children.filter(g => shown(g) && (salle !== 'audi' || AUDI.containsPoint(new THREE.Vector3(g.position.x, 1, g.position.z))) && (grill || g.userData.kind !== 'grill')).map(g => {
+  // cadre imposé (bâtiment, vue, zone tracée) : on garde les éléments dont le centre tombe dedans
+  const fixed = o.ext === 'building' ? BUILDING_BOX : o.ext === 'view' ? viewExtent() : o.ext === 'custom' ? o.custom : null;
+  const inFixed = g => g.position.x >= fixed[0][0] - 0.5 && g.position.x <= fixed[1][0] + 0.5 && g.position.z >= fixed[0][1] - 0.5 && g.position.z <= fixed[1][1] + 0.5;
+  const zone = box => fixed ? boxOverlap(fixed, box) : (box === AUDI_BOX) === (salle === 'audi'); // calques propres à une salle
+  const items = props.children.filter(g => shown(g) && (fixed ? inFixed(g) : salle !== 'audi' || AUDI.containsPoint(new THREE.Vector3(g.position.x, 1, g.position.z))) && (grill || g.userData.kind !== 'grill')).map(g => {
     const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
     return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
   });
   const bar = venue.children.find(o => o.userData.src?.pieces);
   if (fondSrc === null) fondSrc = await fetch('plan_fond.svg').then(r => r.ok ? r.text() : '').catch(() => '');
-  // cadrage : éléments ajoutés + 8 m ; sinon tout le bâtiment
-  const BOX = salle === 'audi' ? AUDI_BOX : AGORA_BOX;
-  let pts = [...items.flatMap(i => i.poly), ...(whole ? BOX : [])], M = whole ? 2 : 8;
-  if (!pts.length) { pts = salle === 'audi' ? BOX : [[-95, -45], [95, 45]]; M = 2; }
+  // cadrage : cadre imposé, salle active (+ éléments qui débordent) ou éléments ajoutés + marge ; rien d'ajouté : la salle
+  const BOX = salle === 'audi' ? AUDI_BOX : AGORA_BOX, whole = o.ext === 'salle';
+  let pts = fixed || [...items.flatMap(i => i.poly), ...(whole ? BOX : [])], M = fixed ? (o.ext === 'building' ? 2 : 0) : whole ? 2 : Math.max(0, +o.margin || 0);
+  if (!pts.length) { pts = BOX; M = 2; }
   // cadre calé sur le mètre : règles et grille tombent juste
   const x0 = Math.floor(Math.min(...pts.map(p => p[0])) - M), W = Math.ceil(Math.max(...pts.map(p => p[0])) + M - x0);
   // bandeau titre / légende en haut, agrandi d'un facteur k sur un grand cadre pour rester lisible une fois réduit sur la page
-  const k = Math.max(1, W / 60), HU = 6; let H0 = HU * k;
+  const k = Math.max(1, W / 60), HU = 6; let H0 = o.bandeau ? HU * k : 0;
   let y0 = Math.floor(Math.min(...pts.map(p => p[1])) - M) - H0, H = Math.ceil(Math.max(...pts.map(p => p[1])) + M - y0 - H0) + H0;
   const f = v => +v.toFixed(2), out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${f(W * 10)}mm" height="${f(H * 10)}mm" viewBox="${f(x0)} ${f(y0)} ${f(W)} ${f(H)}" font-family="Helvetica, Arial, sans-serif">`);
   out.push(`<defs><clipPath id="cadre"><rect x="${f(x0)}" y="${f(y0 + H0)}" width="${f(W)}" height="${f(H - H0)}"/></clipPath></defs>`);
   out.push(`<rect x="${f(x0)}" y="${f(y0)}" width="${f(W)}" height="${f(H)}" fill="#fff"/>`);
   // fond : plan DXF complet en gris, seulement les dalles de 10 m visibles (repère DXF = site − DWG_SHIFT)
-  if (fondSrc) {
+  if (fondSrc && o.fond) {
     const T = 10, FX0 = -80, FY0 = -130, dx0 = x0 - DWG_SHIFT[0], dx1 = x0 + W - DWG_SHIFT[0], dy0 = -(y0 + H) - DWG_SHIFT[1], dy1 = -y0 - DWG_SHIFT[1];
     const keep = t => { const [i, j] = t.split(',').map(Number); return FX0 + (i + 1) * T >= dx0 && FX0 + i * T <= dx1 && FY0 + (j + 1) * T >= dy0 && FY0 + j * T <= dy1; };
     const g0 = fondSrc.indexOf('<g id="fond"'), g1 = fondSrc.lastIndexOf('</svg>');
@@ -2116,9 +2178,10 @@ async function planSvg(whole = false) {
   // grille de lecture : 1 m très léger, 5 m plus marqué
   const py0 = y0 + H0, gx0 = Math.ceil(x0), gy0 = Math.ceil(py0);
   let g1 = '', g5 = '';
+  if (o.grille) {
   for (let x = gx0; x <= x0 + W; x++) (x % 5 ? (v => g1 += v) : (v => g5 += v))(`M${x} ${f(py0)}V${f(y0 + H)}`);
   for (let y = gy0; y <= y0 + H; y++) (y % 5 ? (v => g1 += v) : (v => g5 += v))(`M${f(x0)} ${y}H${f(x0 + W)}`);
-  out.push(`<path d="${g1}" stroke="#4a90d9" stroke-opacity="0.12" stroke-width="0.01"/><path d="${g5}" stroke="#4a90d9" stroke-opacity="0.35" stroke-width="0.02"/>`);
+  out.push(`<path d="${g1}" stroke="#4a90d9" stroke-opacity="0.12" stroke-width="0.01"/><path d="${g5}" stroke="#4a90d9" stroke-opacity="0.35" stroke-width="0.02"/>`); }
   // bar, à sa position actuelle
   if (bar && shown(bar)) for (const p of bar.userData.src.pieces) {
     const poly = p.pts.map(([x, y]) => toPlan(bar, x - bar.userData.src.c[0], -(y - bar.userData.src.c[1])));
@@ -2127,7 +2190,7 @@ async function planSvg(whole = false) {
   const legend = new Map();
   // trappes de sol
   const traps = venue.children.find(o => o.name === 'Trappes de sol (PDF)');
-  if (traps && shown(traps) && salle !== 'audi') for (const g of traps.children) { // trappes de l'Agora
+  if (o.trappes && traps && shown(traps) && zone(AGORA_BOX)) for (const g of traps.children) { // trappes de l'Agora
     if (!g.visible) continue;
     const t = g.userData.trap, [cx, cy] = toPlan(g, 0, 0), col = TRAP[t.kind].css, key = `Trappe de sol ${t.label}`;
     legend.set(key, { col, n:(legend.get(key)?.n || 0) + 1 });
@@ -2136,7 +2199,7 @@ async function planSvg(whole = false) {
   }
   // boîtiers de l'auditorium
   const terms = termGroup();
-  if (terms && shown(terms) && salle === 'audi') for (const g of terms.children) {
+  if (o.trappes && terms && shown(terms) && zone(AUDI_BOX)) for (const g of terms.children) {
     if (!g.visible) continue;
     const t = g.userData.term, st = TERM[t.kind], [cx, cy] = toPlan(g, 0, 0), key = `${st.name} (${t.kind})`;
     legend.set(key, { col:st.css, n:(legend.get(key)?.n || 0) + 1 });
@@ -2144,7 +2207,7 @@ async function planSvg(whole = false) {
       + `<text x="${f(cx + 0.22)}" y="${f(cy + 0.08)}" font-size="0.2" font-weight="bold" fill="${st.css}" stroke="#fff" stroke-width="0.05" paint-order="stroke">${esc(t.id)}</text></g>`);
   }
   // axe de l'Agora et piliers (délai)
-  if (agora.visible && agora.children.length && salle !== 'audi') {
+  if (o.axe && agora.visible && agora.children.length && zone(AGORA_BOX)) {
     out.push(`<line x1="${AXE_X[0]}" y1="${f(AXE_AGORA)}" x2="${AXE_X[1]}" y2="${f(AXE_AGORA)}" stroke="#d6008f" stroke-width="0.05" stroke-dasharray="1 0.5" clip-path="url(#cadre)"/>`);
     legend.set("Axe de l'Agora / piliers (délai)", { col:'#d6008f', n:1 });
     for (const g of agora.children) { const p = g.userData.pilier; if (!p) continue;
@@ -2168,11 +2231,11 @@ async function planSvg(whole = false) {
       for (const [x1, z1, x2, z2] of a.gc || []) { const [p1, p2] = [lp(x1, z1), lp(x2, z2)]; out.push(`<line x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(p2[0])}" y2="${f(p2[1])}" stroke="#000" stroke-width="0.07"/>`); }
     }
     if (front) out.push(`<polygon points="${front.map(q => q.map(f).join(',')).join(' ')}" fill="#d0021b"/>`);
-    if (!SPEAKERS.has(g.userData.kind) && Math.max(w, d) >= 1 && Math.min(w, d) >= 0.5) { // cotes : largeur devant, profondeur à droite (pas sur passe-câbles / barrières)
+    if (o.cotes && !SPEAKERS.has(g.userData.kind) && Math.max(w, d) >= 1 && Math.min(w, d) >= 0.5) { // cotes : largeur devant, profondeur à droite (pas sur passe-câbles / barrières)
       cote(out, g, [-w / 2, d / 2], [w / 2, d / 2], [0, 1], w);
       cote(out, g, [w / 2, d / 2], [w / 2, -d / 2], [1, 0], d);
     }
-    if (['vauban', 'heras', 'plot_heras', 'defender_c', 'tcorner30', 'tcorner40', 'hoist'].includes(g.userData.kind)) continue; // une étiquette par barrière / angle surchargerait le plan : la légende les compte
+    if (!o.labels || ['vauban', 'heras', 'plot_heras', 'defender_c', 'tcorner30', 'tcorner40', 'hoist'].includes(g.userData.kind)) continue; // une étiquette par barrière / angle surchargerait le plan : la légende les compte
     const [cx, cy] = toPlan(g, 0, 0), fs = f(Math.min(0.4, Math.max(0.18, Math.min(w, d) / 3)));
     out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${fs}" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="${f(fs / 5)}" paint-order="stroke"><tspan x="${f(cx)}" dy="0" font-weight="bold">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w} × ${d} m</tspan></text>`);
   }
@@ -2185,26 +2248,34 @@ async function planSvg(whole = false) {
     if (hp.length) legend.set('Moteur de pont (charge)', { col:'#1f6fb2', n:hp.length });
     for (const p of hp) { const x = p.h.position.x, y = p.h.position.z, col = p.kg > cap ? '#d0021b' : '#1f6fb2';
       out.push(`<circle cx="${f(x)}" cy="${f(y)}" r="0.22" fill="${col}"/><text x="${f(x + 0.3)}" y="${f(y - 0.25)}" font-size="0.3" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">M${p.n} ${Math.round(p.kg)} kg</text>`); } }
-  for (const e of cabling()) for (const { a, b, len } of e.items)
+  if (o.cables) for (const e of cabling()) for (const { a, b, len } of e.items)
     out.push(`<polyline points="${f(a.x)},${f(a.z)} ${f(b.x)},${f(a.z)} ${f(b.x)},${f(b.z)}" fill="none" stroke="${TRAP[e.t.userData.trap.kind].css}" stroke-width="0.06" stroke-dasharray="0.4 0.2"/><text x="${f((a.x + b.x) / 2)}" y="${f(a.z - 0.15)}" font-size="0.28" text-anchor="middle" fill="${TRAP[e.t.userData.trap.kind].css}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${Math.ceil(len)} m</text>`);
   // règles graduées (distance depuis le bord du cadre) en haut et à gauche
   const RW = 0.6; let tk = '', lb = '';
+  if (o.regles) {
   out.push(`<rect x="${f(x0)}" y="${f(py0)}" width="${f(W)}" height="${RW}" fill="#fff" fill-opacity="0.9"/><rect x="${f(x0)}" y="${f(py0)}" width="${RW}" height="${f(H - H0)}" fill="#fff" fill-opacity="0.9"/>`);
   for (let i = 0; i <= W; i++) { const L = i % 5 ? 0.15 : 0.35; tk += `M${f(x0 + i)} ${f(py0)}v${L}`; if (!(i % 5) && i) lb += `<text x="${f(x0 + i)}" y="${f(py0 + 0.55)}" font-size="0.22" text-anchor="middle">${i} m</text>`; }
   for (let i = 0; i <= H - H0; i++) { const L = i % 5 ? 0.15 : 0.35; tk += `M${f(x0)} ${f(py0 + i)}h${L}`; if (!(i % 5) && i) lb += `<text transform="translate(${f(x0 + 0.5)} ${f(py0 + i)}) rotate(-90)" font-size="0.22" text-anchor="middle">${i} m</text>`; }
-  out.push(`<path d="${tk}" stroke="#000" stroke-width="0.02"/>${lb}`);
+  out.push(`<path d="${tk}" stroke="#000" stroke-width="0.02"/>${lb}`); }
   // bandeau : titre, infos, échelle, légende (en unités de bandeau, mises à l'échelle k)
   // légende trop longue : on agrandit le bandeau vers le haut (le plan, les règles et le cadre ne bougent pas)
-  { const lx0 = 1 + Math.max((W > 40 ? 10 : 5) / k + 3, 20); let lx = lx0, ly = 0.8;
+  if (o.bandeau) { const lx0 = 1 + Math.max((W > 40 ? 10 : 5) / k + 3, 20); let lx = lx0, ly = 0.8;
     for (const [kind] of legend) { const wi = 1.4 + (kind.length + 3) * 0.22; if (lx + wi > W / k - 0.5 && lx > lx0) { lx = lx0; ly += 0.8; } lx += wi; }
     const extra = Math.max(0, Math.ceil((ly + 1.2 - HU) * k));
     if (extra) { y0 -= extra; H += extra; H0 += extra;
-      out[0] = out[0].replace(/height="[^"]+mm" viewBox="[^"]+"/, `height="${f(H * 10)}mm" viewBox="${f(x0)} ${f(y0)} ${f(W)} ${f(H)}"`);
       out[2] = `<rect x="${f(x0)}" y="${f(y0)}" width="${f(W)}" height="${f(H)}" fill="#fff"/>`; } }
+  // échelle : fixe (1:100 → 10 mm par mètre) ou la plus grande échelle « ronde » qui tient sur le format choisi
+  let sc = +o.scale || 100;
+  if (o.scale === 'fit') { const [a, b] = PAPER[o.paper] || PAPER.A3, need = Math.min(Math.max(W * 1000 / (a - 20), H * 1000 / (b - 20)), Math.max(W * 1000 / (b - 20), H * 1000 / (a - 20)));
+    sc = NICE_SCALES.find(v => v >= need) || Math.ceil(need / 100) * 100; }
+  const u = 1000 / sc; // mm par mètre
+  out[0] = out[0].replace(/width="[^"]+mm" height="[^"]+mm" viewBox="[^"]+"/, `width="${f(W * u)}mm" height="${f(H * u)}mm" viewBox="${f(x0)} ${f(y0)} ${f(W)} ${f(H)}"`);
+  planMeta = { x0, y0, W, H, H0, sc, wmm:W * u, hmm:H * u, paper:paperFor(W * u, H * u), empty:!items.length && !fixed && !whole };
+  if (!o.bandeau) { out.push('</svg>'); return out.join('\n'); }
   out.push(`<line x1="${f(x0)}" y1="${f(y0 + H0)}" x2="${f(x0 + W)}" y2="${f(y0 + H0)}" stroke="#000" stroke-width="${f(0.04 * k)}"/><g transform="translate(${f(x0)} ${f(y0)}) scale(${f(k)})">`);
   const tx = 1, ty = 1.3, sb = W > 40 ? 10 : 5, WU = W / k; // échelle graphique : longueur réelle sb m -> sb / k unités de bandeau
   out.push(`<text x="${f(tx)}" y="${f(ty)}" font-size="0.9" font-weight="bold">${esc(setupName || 'Plan de scène')}</text>`);
-  out.push(`<text x="${f(tx)}" y="${f(ty + 0.9)}" font-size="0.4" fill="#444">Salle 3D · ${new Date().toLocaleDateString('fr')} · 1:100 imprimé à 100 % · ▲ rouge = face avant</text>`);
+  out.push(`<text x="${f(tx)}" y="${f(ty + 0.9)}" font-size="0.4" fill="#444">Salle 3D · ${new Date().toLocaleDateString('fr')} · 1:${sc} imprimé à 100 % · ▲ rouge = face avant</text>`);
   if (charges()) out.push(`<text x="${f(tx)}" y="${f(ty + 1.5)}" font-size="0.4" fill="#444">${charges()}</text>`);
   out.push(`<g transform="translate(${f(tx)} ${f(ty + 2.3)})"><rect width="${f(sb / k)}" height="0.18" fill="#000"/><rect width="${f(sb / 2 / k)}" height="0.18" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="0" y="0.75" font-size="0.35">0</text><text x="${f(sb / 2 / k)}" y="0.75" font-size="0.35" text-anchor="middle">${sb / 2}</text><text x="${f(sb / k)}" y="0.75" font-size="0.35" text-anchor="middle">${sb} m</text></g>`);
   // légende sur plusieurs lignes à droite du titre
@@ -2218,11 +2289,87 @@ async function planSvg(whole = false) {
   out.push('</g></svg>');
   return out.join('\n');
 }
-async function exportPlan2D() {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([await planSvg(true)], { type:'image/svg+xml' }));
-  a.download = `plan-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}.svg`; a.click();
+// menu « Exporter le plan 2D » : réglages gardés sur l'appareil, aperçu en direct, zone tracée à la souris sur le plan du bâtiment
+const E2KEY = 'salle3d.plan2d';
+let e2 = { ...PLAN_DEF };
+try { Object.assign(e2, JSON.parse(localStorage.getItem(E2KEY) || '{}')); } catch {}
+const e2save = () => { try { localStorage.setItem(E2KEY, JSON.stringify(e2)); } catch {} };
+let e2url = null, e2seq = 0, e2timer = 0, e2view = null; // e2view : cadre de l'aperçu (repère plan) pour le tracé de zone
+const e2opts = () => ({ ...e2, ext:e2.ext === 'custom' && !e2.custom ? 'building' : e2.ext });
+const EXT_NAME = { items:'elements', salle:'salle', building:'batiment', view:'vue', custom:'zone' };
+function e2form() {
+  document.querySelectorAll('[name=e2ext]').forEach(r => r.checked = r.value === e2.ext);
+  $('e2margin').value = e2.margin; $('e2scale').value = e2.scale; $('e2paper').value = e2.paper;
+  $('e2paper').disabled = e2.scale !== 'fit';
+  document.querySelectorAll('#exp2d [data-l]').forEach(c => c.checked = !!e2[c.dataset.l]);
+  $('e2salle').textContent = salle === 'audi' ? 'Auditorium' : 'Agora';
 }
+async function e2refresh() {
+  const n = ++e2seq, custom = e2.ext === 'custom';
+  $('e2info').textContent = 'Calcul de l\'aperçu…';
+  // zone tracée : l'aperçu montre le bâtiment entier sur lequel on trace, le cadre choisi en surimpression
+  const svg = await planSvg(custom ? { ...e2, ext:'building', bandeau:false, regles:false } : e2opts());
+  if (n !== e2seq) return;
+  const m = planMeta, out = custom ? null : m;
+  e2view = custom ? m : null;
+  if (e2url) URL.revokeObjectURL(e2url);
+  e2url = URL.createObjectURL(new Blob([svg], { type:'image/svg+xml' })); $('e2img').src = e2url;
+  if (custom && e2.custom) { await planSvg(e2opts()); if (n !== e2seq) return; } // dimensions du résultat
+  const r = planMeta, p = r.paper;
+  $('e2size').textContent = custom && !e2.custom ? 'Trace d\'abord la zone sur l\'aperçu (sans zone : bâtiment entier).' : `Plan de ${Math.round(r.W)} × ${Math.round(r.H)} m → ${Math.round(r.wmm)} × ${Math.round(r.hmm)} mm à 1:${r.sc}`
+    + (p ? ` · tient sur ${p.n} ${p.o}` : ' · plus grand que A0 : choisir une échelle plus petite');
+  $('e2info').textContent = `1:${r.sc}` + (p ? ` · ${p.n} ${p.o}` : '');
+  $('e2hint').textContent = custom ? (e2.custom ? `Zone : ${Math.round(e2.custom[1][0] - e2.custom[0][0])} × ${Math.round(e2.custom[1][1] - e2.custom[0][1])} m. Glisse sur le plan pour la retracer.` : 'Glisse sur le plan pour tracer la zone à exporter.')
+    : e2.ext === 'view' && !viewExtent() ? 'La vue 3D regarde trop à l\'horizontale : plan de la salle à la place. Penche la caméra vers le sol.'
+    : e2.ext === 'items' && out?.empty ? 'Aucun élément ajouté : plan de la salle active.' : '';
+  e2drawRect();
+}
+const e2later = () => { e2save(); e2form(); clearTimeout(e2timer); e2timer = setTimeout(e2refresh, 250); };
+function e2drawRect(sel = e2.ext === 'custom' && e2.custom) {
+  const R = $('e2rect'), v = e2view, img = $('e2img');
+  if (!sel || !v || !img.clientWidth) { R.hidden = true; return; }
+  const sx = img.clientWidth / v.W, sy = img.clientHeight / v.H;
+  Object.assign(R.style, { left:`${(sel[0][0] - v.x0) * sx}px`, top:`${(sel[0][1] - v.y0) * sy}px`, width:`${(sel[1][0] - sel[0][0]) * sx}px`, height:`${(sel[1][1] - sel[0][1]) * sy}px` });
+  R.hidden = false;
+}
+$('e2img').onload = () => e2drawRect();
+// tracé de la zone : glisser sur l'aperçu du bâtiment, calé au mètre
+const e2pt = e => { const v = e2view, b = $('e2img').getBoundingClientRect();
+  return [Math.round(v.x0 + (e.clientX - b.left) / b.width * v.W), Math.round(v.y0 + (e.clientY - b.top) / b.height * v.H)]; };
+let e2drag = null;
+$('e2img').onpointerdown = e => { if (e2.ext !== 'custom' || !e2view) return; e.preventDefault(); $('e2img').setPointerCapture(e.pointerId); e2drag = e2pt(e); };
+$('e2img').onpointermove = e => { if (!e2drag) return; const p = e2pt(e);
+  e2drawRect([[Math.min(e2drag[0], p[0]), Math.min(e2drag[1], p[1])], [Math.max(e2drag[0], p[0]), Math.max(e2drag[1], p[1])]]); };
+$('e2img').onpointerup = e => { if (!e2drag) return; const p = e2pt(e), a = e2drag; e2drag = null;
+  const r = [[Math.min(a[0], p[0]), Math.min(a[1], p[1])], [Math.max(a[0], p[0]), Math.max(a[1], p[1])]];
+  if (r[1][0] - r[0][0] >= 2 && r[1][1] - r[0][1] >= 2) { e2.custom = r; e2save(); e2refresh(); } else e2drawRect(); };
+document.querySelectorAll('[name=e2ext]').forEach(r => r.onchange = () => { e2.ext = r.value; e2later(); });
+$('e2margin').onchange = () => { e2.margin = THREE.MathUtils.clamp(+$('e2margin').value || 0, 0, 50); e2later(); };
+$('e2scale').onchange = () => { e2.scale = $('e2scale').value; e2later(); };
+$('e2paper').onchange = () => { e2.paper = $('e2paper').value; e2later(); };
+document.querySelectorAll('#exp2d [data-l]').forEach(c => c.onchange = () => { e2[c.dataset.l] = c.checked; e2later(); });
+$('svgGrill').onchange = e2later;
+$('e2reset').onclick = () => { e2 = { ...PLAN_DEF }; e2later(); };
+$('e2Close').onclick = () => $('exp2d').close();
+$('exp2d').onclose = () => { e2seq++; clearTimeout(e2timer); };
+const planFile = ext => `plan-${(setupName || 'scene').replace(/[^\w-]+/g, '_')}-${EXT_NAME[e2opts().ext]}.${ext}`;
+$('e2svg').onclick = async () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([await planSvg(e2opts())], { type:'image/svg+xml' }));
+  a.download = planFile('svg'); a.click();
+};
+// impression à l'échelle : page au format qui contient le plan (ou sur mesure s'il dépasse l'A0), marges 10 mm
+$('e2print').onclick = async () => {
+  const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour imprimer le plan.');
+  w.document.write('<p style="font:14px sans-serif">Préparation du plan…</p>');
+  const svg = await planSvg(e2opts()), m = planMeta, p = m.paper || { pw:Math.ceil(m.wmm + 20), ph:Math.ceil(m.hmm + 20) };
+  w.document.open();
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(planFile('pdf').replace(/\.pdf$/, ''))}</title><style>
+    @page { size:${p.pw}mm ${p.ph}mm; margin:10mm } html, body { margin:0 } svg { display:block }
+    </style></head><body>${svg}</body></html>`);
+  w.document.close(); setTimeout(() => w.print(), 500);
+};
+async function exportPlan2D() { e2form(); $('exp2d').showModal(); await e2refresh(); }
 $('plan2d').onclick = exportPlan2D;
 // matériel du setup courant : désignation -> quantité, poids unitaire, puissance totale
 function materiel() {
