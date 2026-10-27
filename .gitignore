@@ -6,3 +6,4 @@ tools/work/
 *.mtl
 salle.glb
 node_modules/
+__pycache__/
