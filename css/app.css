@@ -81,3 +81,24 @@ li.libh { color:var(--fg); } li.note { color:var(--mute); font-size:11px; }
 #e2rect { position:absolute; border:2px solid var(--acc); background:rgba(240,165,58,.15); pointer-events:none; }
 button.acc { background:var(--acc); color:#111; border-color:var(--acc); }
 @media (max-width:760px) { #exp2d .e2b { grid-template-columns:1fr; overflow-y:auto; } #exp2d .e2side { border-right:0; } }
+/* éditeur de plan 2D : plein écran, barre d'outils, plan, panneau de propriétés */
+#ped { width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:0; border:0; background:var(--bg); color:var(--fg); }
+#ped[open] { display:flex; flex-direction:column; }
+#ped .pedh { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:8px 12px; background:var(--panel); border-bottom:1px solid var(--line); }
+#ped .pedh b { font-size:15px; margin-right:6px; }
+#pedTools { display:flex; gap:4px; flex-wrap:wrap; } #pedIcon.on { border-color:var(--acc); background:var(--acc); color:#111; }
+#ped .pedb { display:grid; grid-template-columns:1fr 280px; flex:1; min-height:0; }
+#ped .pedc { position:relative; min-width:0; min-height:0; background:#3a404a; }
+#pedSvg { position:absolute; inset:0; width:100%; height:100%; touch-action:none; user-select:none; cursor:default; }
+#pedSvg [data-u], #pedSvg [data-a] { cursor:pointer; }
+#ped .pedst { position:absolute; left:8px; bottom:6px; display:flex; gap:14px; font-size:12px; color:#fff; text-shadow:0 1px 2px #000; pointer-events:none; }
+#pedSide { padding:4px 14px 14px; overflow-y:auto; border-left:1px solid var(--line); background:var(--panel); }
+#pedSide h3 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); margin:14px 0 6px; }
+#pedSide input[type=number] { width:76px; } #pedSide label { display:flex; gap:4px; align-items:center; }
+#pedSide .pedl { display:flex; flex-direction:column; align-items:stretch; gap:4px; margin:8px 0; color:var(--mute); }
+#pedSide textarea { font:inherit; color:var(--fg); background:#2a2f39; border:1px solid var(--line); border-radius:5px; padding:5px 8px; resize:vertical; }
+.pedcols button { width:24px; height:24px; padding:0; border:2px solid transparent; border-radius:50%; } .pedcols button.on { border-color:#fff; box-shadow:0 0 0 2px var(--acc); }
+.pedhelp { margin:0; padding-left:16px; color:var(--mute); font-size:12px; } .pedhelp li { margin:3px 0; }
+@media (max-width:760px) { #ped .pedb { grid-template-columns:1fr; grid-template-rows:1fr 220px; } #pedSide { border-left:0; border-top:1px solid var(--line); } }
+#exp2d .e2r { flex-wrap:nowrap; align-items:center; } #exp2d .e2r > span { flex:1; }
+.pedhelp li { display:list-item; }
