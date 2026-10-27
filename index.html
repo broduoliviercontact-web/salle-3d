@@ -179,7 +179,7 @@
 import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
-import { pointInPoly, itemsBox, RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
+import { pointInPoly, itemsBox, moveItems, RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
 import { annotSvg, annotBox, annotLength, zoneArea, zoneRect, edgeCotesSvg, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -1498,7 +1498,7 @@ function setResto(g, r) {
   [...buildRestoFloor(r.poly, r.col || RESTO_COLORS[0]), ...buildFurniture(r.items)].forEach(o => g.add(o));
   const xs = r.poly.map(p => p[0]), zs = r.poly.map(p => p[1]), st = restoStats(r.items, r.poly);
   g.userData.dims = r.poly.length ? [+(Math.max(...xs) - Math.min(...xs)).toFixed(2), +(Math.max(...zs) - Math.min(...zs)).toFixed(2), 0.01] : [1, 1, 0.01];
-  g.name = `${r.name} · ${st.places} places · ${Math.round(st.area)} m²`;
+  g.name = r.poly.length ? `${r.name} · ${st.places} places · ${Math.round(st.area)} m²` : `${r.name} · ${st.tables} tables · ${st.places} places`;
   return g;
 }
 const refillResto = g => { ped.cap = null; const r = g.userData.resto; if (r.auto) r.items = fillZone(r.poly, r.auto); setResto(g, r); };
@@ -2179,6 +2179,8 @@ function viewExtent() {
 // un élément ajouté sur le plan (aussi utilisé par l'éditeur 2D)
 function planItem(g) {
   if (g.userData.resto?.poly.length) { const [w, d] = g.userData.dims; return { g, w, d, poly:g.userData.resto.poly.map(([x, z]) => toPlan(g, x, z)), front:null }; }
+  if (g.userData.resto) { const [[x0, z0], [x1, z1]] = itemsBox(g.userData.resto.items); // mobilier libre : son emprise
+    return { g, w:x1 - x0, d:z1 - z0, poly:[[x0, z0], [x1, z0], [x1, z1], [x0, z1]].map(([x, z]) => toPlan(g, x, z)), front:null }; }
   const [w, d] = g.userData.dims, poly = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(g, x, z));
   return { g, w, d, poly, front:SPEAKERS.has(g.userData.kind) ? [toPlan(g, -0.15, d / 2), toPlan(g, 0.15, d / 2), toPlan(g, 0, d / 2 + 0.4)] : null };
 }
@@ -2190,7 +2192,7 @@ function drawItem(out, { g, w, d, poly, front }, o = PLAN_DEF, legend = new Map(
   if (R || MOD_) { // restauration : dessinée dans le repère de l'élément (zone hachurée + mobilier), nom et compte en clair
     const [px, pz] = toPlan(g, 0, 0), items = R ? R.items : MOD_.items;
     out.push(`<g transform="translate(${f(px)} ${f(pz)}) rotate(${f(-g.rotation.y * 180 / Math.PI)})">${R ? zoneSvg(R.poly, 'hr' + g.id, R.col) : ''}${furnitureSvg(items)}${R?.cotes ? edgeCotesSvg(R.poly, '#111') : ''}</g>`);
-    if (!R || !o.labels) return;
+    if (!R || !o.labels || R.poly.length < 3) return; // mobilier libre : pas de nom ni de surface
     const st = restoStats(R.items, R.poly), [cx, cz] = toPlan(g, ...polyCentroid(R.poly)), fs = 0.55;
     out.push(`<text x="${f(cx)}" y="${f(cz)}" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="${R.col || '#9a1c1c'}" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke"><tspan x="${f(cx)}">${esc(R.name)}</tspan><tspan x="${f(cx)}" dy="${fs * 1.15}" font-weight="normal">${st.places ? `${st.places} places` : `${st.tables} ${st.tables > 1 ? 'tables' : 'table'}`} · ${Math.round(st.area)} m²</tspan></text>`);
     return;
@@ -2711,35 +2713,56 @@ function potFinish(closed = false) {
 ped.br = { mod:'r_t4', ang:0, gap:0.6, erase:false, rad:0.8, pick:false, custom:null }; // custom : élément pris à la pipette
 const brMod = () => ped.br.custom?.items || ped.br.mod;
 const brushZone = p => { // zone sous le pointeur (la zone sélectionnée d'abord)
-  const L = [ped.sel?.g, ...props.children].filter(g => g?.userData.resto && shown(g));
+  const L = [ped.sel?.g, ...props.children].filter(g => g?.userData.resto && shown(g) && g.userData.resto.poly.length >= 3);
   return L.find(g => pointInPoly(toLocal(g, p), g.userData.resto.poly)) || null; };
+const restoGroups = () => props.children.filter(g => g.userData.resto && shown(g));
+// mobilier des autres groupes (zones, mobilier libre) dans le repère local de g, près du point p : pour ne rien poser par-dessus
+function itemsNear(g, p, R = 8) {
+  const out = [];
+  for (const h of restoGroups()) { if (h === g) continue;
+    const plan = moveItems(h.userData.resto.items, h.position.x, h.position.z, -h.rotation.y).filter(it => Math.hypot(it[1] - p[0], it[2] - p[1]) < R);
+    out.push(...(g ? moveItems(moveItems(plan, -g.position.x, -g.position.z), 0, 0, g.rotation.y) : plan)); } // g absent : repère du plan
+  return out;
+}
+// groupe dont le mobilier est sous le point (pipette hors zone)
+const furnGroupAt = p => restoGroups().find(g => pickGroup(g.userData.resto.items, ...toLocal(g, p))) || null;
 function brushAt(d, p, e) {
-  const g = d.g, r = g.userData.resto, q = toLocal(g, p), a = ped.br.ang * Math.PI / 180;
+  const a = ped.br.ang * Math.PI / 180;
   if (ped.br.pick) { // pipette : l'élément cliqué devient le motif du pinceau
-    const G = pickGroup(r.items, q[0], q[1]); if (!G) { $('pedInfo').textContent = 'Clique sur une table ou une chaise de la zone'; return; }
+    const g = brushZone(p) || furnGroupAt(p), G = g && pickGroup(g.userData.resto.items, ...toLocal(g, p));
+    if (!G) { $('pedInfo').textContent = 'Clique sur une table ou une chaise'; return; }
     ped.br.custom = { items:G, name:groupName(G) }; ped.br.pick = false; d.picked = true; pedSide(); $('pedInfo').textContent = `Pinceau : ${ped.br.custom.name}`; return; }
-  if (ped.br.erase || e.altKey) { const n = r.items.length; r.items = eraseItems(r.items, q[0], q[1], ped.br.rad); if (r.items.length !== n) d.changed = true; }
-  else {
-    const pos = d.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
-    if (canPlace(r.poly, r.items, brMod(), pos[0], pos[1], a, ped.br.gap, 0.05)) { r.items.push(...moduleItemsAt(brMod(), pos[0], pos[1], a)); d.anchor ||= pos; d.changed = true; }
-  }
+  if (ped.br.erase || e.altKey) { // gomme : dans tous les groupes sous le cercle (zones et mobilier libre)
+    for (const g of restoGroups()) { const r = g.userData.resto, q = toLocal(g, p), n = r.items.length; r.items = eraseItems(r.items, q[0], q[1], ped.br.rad);
+      if (r.items.length !== n) { d.changed = true; d.touched.add(g); r.auto = null; } }
+    if (d.changed) pedLater(); return; }
+  let g = d.g;
+  if (!g) { // hors zone : le mobilier va dans un groupe « Mobilier libre » (sans contour), créé au 1er module posé
+    if (!canPlace(null, itemsNear(null, p).map(it => [it[0], it[1] - p[0], it[2] - p[1], ...it.slice(3)]), brMod(), 0, 0, a, ped.br.gap)) return;
+    g = d.g = makeProp('resto', [1, 1, 0.01]); g.position.set(p[0], 0, p[1]); g.position.y = floorAt(g.position);
+    Object.assign(g.userData.resto, { name:'Mobilier libre', poly:[], items:[], auto:null }); d.free = true; }
+  const r = g.userData.resto, q = toLocal(g, p);
+  const pos = d.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
+  if (canPlace(r.poly, [...r.items, ...itemsNear(g, p)], brMod(), pos[0], pos[1], a, ped.br.gap, 0.05)) {
+    r.items.push(...moduleItemsAt(brMod(), pos[0], pos[1], a)); r.auto = null; d.anchor ||= pos; d.changed = true; d.touched.add(g); }
   if (d.changed) { pedLater(); const st = restoStats(r.items, r.poly); $('pedInfo').textContent = `${r.name} : ${st.tables} tables · ${st.places} places`; }
 }
 function brushGhost(p, e) { // aperçu : emprise du module (vert : posable, rouge : non) ou cercle de la gomme
   const u = pedUnit(), g = brushZone(p);
   if (ped.br.pick) { // pipette : surligne le groupe sous le pointeur
-    const g = brushZone(p); if (!g) { $('pedDraft').innerHTML = ''; return; }
+    const g = brushZone(p) || furnGroupAt(p); if (!g) { $('pedDraft').innerHTML = ''; return; }
     const G = pickGroup(g.userData.resto.items, ...toLocal(g, p)); if (!G) { $('pedDraft').innerHTML = ''; return; }
     const q = toLocal(g, p), hit = g.userData.resto.items, u = pedUnit();
     $('pedDraft').innerHTML = `<circle cx="${p[0]}" cy="${p[1]}" r="${6 * u}" fill="none" stroke="#1f5fbf" stroke-width="${2 * u}" pointer-events="none"/><text x="${p[0] + 9 * u}" y="${p[1] - 9 * u}" font-size="${13 * u}" fill="#1f5fbf" stroke="#fff" stroke-width="${3 * u}" paint-order="stroke" pointer-events="none">${esc(groupName(G))}</text>`; return; }
   if (ped.br.erase || e.altKey) { $('pedDraft').innerHTML = `<circle cx="${p[0]}" cy="${p[1]}" r="${ped.br.rad}" fill="#fff" fill-opacity="0.25" stroke="#e8262b" stroke-width="${2 * u}" stroke-dasharray="${5 * u} ${3 * u}" pointer-events="none"/>`; return; }
-  if (!g) { $('pedDraft').innerHTML = ''; return; }
-  const r = g.userData.resto, q = toLocal(g, p), a = ped.br.ang * Math.PI / 180, d = ped.drag?.k === 'brush' ? ped.drag : null;
+  const d = ped.drag?.k === 'brush' ? ped.drag : null, G = g || d?.g; // hors zone : aperçu dans le repère du plan (ou du groupe libre en cours)
+  const frame = G || { position:{ x:0, z:0 }, rotation:{ y:0 }, userData:{ resto:{ poly:[], items:[] } } };
+  const r = frame.userData.resto, q = G ? toLocal(G, p) : p, a = ped.br.ang * Math.PI / 180;
   const pos = d?.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
-  const ok = canPlace(r.poly, r.items, brMod(), pos[0], pos[1], a, ped.br.gap, 0.05), col = ok ? '#1a8f3c' : '#e8262b';
-  const F = moduleFootprint(brMod(), pos[0], pos[1], a).map(([x, z]) => toPlan(g, x, z));
+  const ok = canPlace(r.poly, [...r.items, ...(G ? itemsNear(G, p) : itemsNear(null, p))], brMod(), pos[0], pos[1], a, ped.br.gap, 0.05), col = ok ? '#1a8f3c' : '#e8262b';
+  const F = moduleFootprint(brMod(), pos[0], pos[1], a).map(([x, z]) => G ? toPlan(G, x, z) : [x, z]);
   $('pedDraft').innerHTML = `<polygon points="${F.map(v => v.join(',')).join(' ')}" fill="${col}" fill-opacity="0.25" stroke="${col}" stroke-width="${2 * u}" pointer-events="none"/>`
-    + `<g transform="translate(${toPlan(g, 0, 0).join(' ')}) rotate(${-g.rotation.y * 180 / Math.PI})" opacity="0.55" pointer-events="none">${furnitureSvg(moduleItemsAt(brMod(), pos[0], pos[1], a))}</g>`;
+    + `<g transform="translate(${G ? toPlan(G, 0, 0).join(' ') : '0 0'}) rotate(${G ? -G.rotation.y * 180 / Math.PI : 0})" opacity="0.55" pointer-events="none">${furnitureSvg(moduleItemsAt(brMod(), pos[0], pos[1], a))}</g>`;
 }
 // scinder : trait à travers les zones (la zone sélectionnée seule, sinon toutes celles que le trait traverse)
 function pedLetterName(name, taken) { // « Bar » -> « Bar A » / « Bar B » ; « Bar A » -> garde A, l'autre morceau prend la lettre libre suivante
@@ -2777,9 +2800,8 @@ $('pedSvg').addEventListener('pointerdown', e => {
   if (h && ped.sel?.a) { ped.drag = { k:'pt', a:ped.sel.a, i:+h.dataset.h, undo:false }; return; }
   if (ped.tool === 'split') { ped.drag = { k:'cut', a:pedSnap(p, e), b:null }; return; }
   if (ped.tool === 'brush') {
-    const g = brushZone(p); if (!g) { $('pedInfo').textContent = 'Le pinceau peint dans une zone de restauration : trace-en une (Q) ou pose « Restauration DACAM »'; return; }
-    pushUndo(); const r = g.userData.resto; r.auto = null; // la zone devient « posée à la main »
-    ped.drag = { k:'brush', g, anchor:null, changed:false }; brushAt(ped.drag, p, e); return;
+    pushUndo(); // dans une zone : la zone devient « posée à la main » ; hors zone : groupe « Mobilier libre »
+    ped.drag = { k:'brush', g:brushZone(p), anchor:null, changed:false, touched:new Set() }; brushAt(ped.drag, p, e); return;
   }
   if (ped.tool === 'pot') {
     const T = ped.pot || (ped.pot = { pts:[] }), q = potSnap(p, e);
@@ -2851,7 +2873,10 @@ $('pedSvg').addEventListener('pointerup', () => {
   if (d.k === 'new') { if (annotLength(d.a) < 0.2) { ANNOT.splice(ANNOT.indexOf(d.a), 1); undoStack.pop(); pedSelect(null); } pedSetTool('sel'); }
   if (d.k === 'moveG' && d.undo) drawCotes();
   if (d.k === 'vtx' && d.undo) { refillResto(d.g); drawCotes(); }
-  if (d.k === 'brush') { if (d.changed) { setResto(d.g, d.g.userData.resto); drawCotes(); } else undoStack.pop(); pedDraw(); return; }
+  if (d.k === 'brush') {
+    if (d.changed) { for (const g of d.touched) { const r = g.userData.resto; if (!r.poly.length && !r.items.length) props.remove(g); else setResto(g, r); } drawCotes(); }
+    else { undoStack.pop(); if (d.free && d.g && !d.g.userData.resto.items.length) props.remove(d.g); }
+    pedDraw(); return; }
   if (d.k === 'cut') { $('pedDraft').innerHTML = ''; if (d.b && Math.hypot(d.b[0] - d.a[0], d.b[1] - d.a[1]) > 0.3) pedSplit(d.a, d.b); return; } // l'outil reste actif pour enchaîner les coupes
   if (d.k === 'size') { $('pedInfo').textContent = ''; if (d.dims) return pedResize(d.g, d.dims, d.side); }
   pedDraw(); pedSide();
@@ -2924,6 +2949,9 @@ function pratPanel(g) {
 }
 // panneau d'une zone de restauration : nom, module, allées, marge, sens des rangées, comptes
 function restoPanel(g) {
+  if (!g.userData.resto.poly.length) { const r = g.userData.resto, st = restoStats(r.items, []);
+    return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label><p><b>${st.tables} tables · ${st.places} places</b> (${st.chairs} chaises, ${st.stools} tabourets)</p>
+      <p class="e2note">Mobilier posé au pinceau hors zone de restauration. Le pinceau (B) en ajoute, la gomme en retire ; il se déplace, tourne et se duplique d'un bloc.</p>`; }
   const r = g.userData.resto, st = restoStats(r.items, r.poly), a = r.auto || { ...RESTO_DEFAULT, mod:'' };
   const opts = Object.entries(RESTO_MODS).map(([k, m]) => `<option value="${k}"${k === a.mod ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
   return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label>
@@ -2940,6 +2968,7 @@ function restoPanel(g) {
     <p class="e2note">Allées : espace libre entre deux modules (1,40 m pour un passage PMR). Points rouges : glisser pour modifier le contour, Alt+clic pour en retirer un, double-clic sur un bord pour en ajouter.${r.auto ? '' : ' Choisir un module remplace le mobilier actuel.'}</p>`;
 }
 function bindRestoPanel(g) {
+  if (!g.userData.resto.poly.length) { const r = g.userData.resto; $('rsName').onchange = () => { pushUndo(); r.name = $('rsName').value.trim().slice(0, 80) || 'Mobilier libre'; setResto(g, r); pedDraw(); pedSide(); }; return; }
   const r = g.userData.resto, apply = () => { ped.cap = null; refillResto(g); pedDraw(); pedSide(); drawCotes(); };
   $('rsCotes').onchange = () => { pushUndo(); if ($('rsCotes').checked) r.cotes = true; else delete r.cotes; pedDraw(); };
   document.querySelectorAll('#rsCols [data-c]').forEach(b => b.onclick = () => { pushUndo(); r.col = b.dataset.c; setResto(g, r); pedDraw(); pedSide(); });
@@ -2971,7 +3000,7 @@ function pedSide() {
       ${B.custom ? `<svg class="brprev" viewBox="${(([[a, b], [c, d]]) => `${a - 0.2} ${b - 0.2} ${c - a + 0.4} ${d - b + 0.4}`)(itemsBox(B.custom.items))}">${furnitureSvg(B.custom.items)}</svg>` : ''}
       <div class="row"><label>Sens <select id="brAng"><option value="0"${B.ang === 0 ? ' selected' : ''}>0°</option><option value="90"${B.ang === 90 ? ' selected' : ''}>90°</option></select></label><label>Écart <input id="brGap" type="number" step="0.1" min="0" value="${B.gap}"> m</label></div>
       <label class="pedl">Taille de la gomme<input id="brRad" type="range" min="0.3" max="3" step="0.1" value="${B.rad}"></label>
-      <p class="e2note">Cliquer ou glisser dans une zone de restauration : les modules se posent en rangées alignées sur le 1er du trait (Maj : placement libre), seulement là où ils tiennent sans toucher le mobilier déjà posé (écart minimum ci-dessus). Alt ou mode Gomme : effacer sous le cercle. Pipette (I) : cliquer une table de la zone pour peindre la même (avec ses chaises ou tabourets). R : tourner le module de 90°. ⌘Z annule tout le trait.</p>`;
+      <p class="e2note">Cliquer ou glisser, dans une zone de restauration ou ailleurs (le mobilier hors zone forme un groupe « Mobilier libre ») : les modules se posent en rangées alignées sur le 1er du trait (Maj : placement libre), seulement là où ils tiennent sans toucher le mobilier déjà posé (écart minimum ci-dessus). Alt ou mode Gomme : effacer sous le cercle. Pipette (I) : cliquer une table de la zone pour peindre la même (avec ses chaises ou tabourets). R : tourner le module de 90°. ⌘Z annule tout le trait.</p>`;
     el.querySelectorAll('#brMode [data-m]').forEach(b => b.onclick = () => { B.erase = b.dataset.m === '1'; B.pick = b.dataset.m === '2'; pedSide(); $('pedDraft').innerHTML = ''; });
     $('brMod').onchange = () => { if ($('brMod').value !== '__custom') { B.mod = $('brMod').value; B.custom = null; } B.erase = B.pick = false; pedSide(); };
     $('brAng').onchange = () => { B.ang = +$('brAng').value; };
@@ -3006,7 +3035,7 @@ function pedSide() {
   }
   if (s.g) {
     const g = s.g, [X, Y] = toDwg([g.position.x, g.position.z]);
-    el.innerHTML = `<h3>${esc(LABELS[g.userData.kind] || g.userData.kind)}</h3><p>${esc(g.name)}</p>
+    el.innerHTML = `<h3>${esc(g.userData.resto && !g.userData.resto.poly.length ? 'Mobilier libre' : LABELS[g.userData.kind] || g.userData.kind)}</h3><p>${esc(g.name)}</p>
       <div class="row"><label>X <input id="pedX" type="number" step="0.1" value="${+X.toFixed(2)}"></label><label>Y <input id="pedY" type="number" step="0.1" value="${+Y.toFixed(2)}"></label></div>
       <div class="row"><label>Cap <input id="pedA" type="number" step="5" value="${capOf(g)}"> °</label><button id="pedR1" title="R">↻ 15°</button><button id="pedR2" title="Maj+R">↺ 15°</button></div>
       ${pedAxes(g) ? `<h3>Taille</h3><div class="row"><label>L <input id="pedW" type="number" step="0.5" min="0.5" value="${+g.userData.dims[0].toFixed(2)}"></label>${pedAxes(g).d ? `<label>P <input id="pedD" type="number" step="0.5" min="0.5" value="${+g.userData.dims[1].toFixed(2)}"></label><label>H <input id="pedH" type="number" step="0.1" min="0.1" value="${+g.userData.dims[2].toFixed(2)}"></label>` : ''}</div>
