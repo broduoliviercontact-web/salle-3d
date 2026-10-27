@@ -114,7 +114,7 @@
   <div class="pedh"><b>Éditeur de plan 2D</b>
     <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="pot" title="Potelets (P) : cliquer chaque point de la ligne ; cotes et nombre de potelets affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Potelets</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
     <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
-    <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label>
+    <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label><label class="cb" title="Dessine chaque praticable 2 × 1 des scènes et régies (ce qui dépasse en rouge)"><input type="checkbox" id="pedPrat"> Praticables</label>
     <span class="grow"></span>
     <button id="pedUndo" title="Annuler (⌘Z)">↶</button><button id="pedRedo" title="Rétablir (⌘⇧Z)">↷</button><button id="pedFit" title="Recadrer sur le matériel et les annotations (C)">Recadrer</button><button id="pedExport" class="acc" title="Exporter le plan (SVG / PDF)">Exporter…</button><button id="pedClose" title="Fermer (Échap)">✕</button>
   </div>
@@ -142,6 +142,7 @@
       <label class="cb"><input type="checkbox" data-l="axe"> Axe de l'Agora et piliers</label>
       <label class="cb"><input type="checkbox" data-l="cotes"> Cotes des éléments</label>
       <label class="cb"><input type="checkbox" data-l="labels"> Noms des éléments</label>
+      <label class="cb"><input type="checkbox" data-l="prat"> Praticables en détail (calepinage 2 × 1)</label>
       <label class="cb"><input type="checkbox" data-l="cables"> Câbles depuis les trappes</label>
       <label class="cb"><input type="checkbox" data-l="annot"> Annotations (textes, cotes, zones, pictos)</label>
       <label class="cb"><input type="checkbox" data-l="bandeau"> Titre, échelle et légende</label>
@@ -2159,7 +2160,7 @@ const BUILDING_BOX = [[-91, -40], [91, 18]]; // emprise du bâtiment entier (d'a
 const PAPER = { A4:[297, 210], A3:[420, 297], A2:[594, 420], A1:[841, 594], A0:[1189, 841] }; // paysage, en mm
 const NICE_SCALES = [20, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000, 1250, 1500, 2000];
 const PLAN_DEF = { ext:'items', margin:8, custom:null, scale:'100', paper:'A3',
-  fond:true, grille:true, regles:true, trappes:true, axe:true, cotes:true, labels:true, cables:true, annot:true, bandeau:true };
+  fond:true, grille:true, regles:true, trappes:true, axe:true, cotes:true, labels:true, cables:true, annot:true, prat:false, bandeau:true };
 const boxOverlap = (a, b) => a[0][0] < b[1][0] && b[0][0] < a[1][0] && a[0][1] < b[1][1] && b[0][1] < a[1][1];
 // plus petit format (portrait ou paysage) où tient un plan de w × h mm avec 10 mm de marge
 function paperFor(w, h) {
@@ -2206,6 +2207,18 @@ function drawItem(out, { g, w, d, poly, front }, o = PLAN_DEF, legend = new Map(
   } else if (g.userData.kind === 'potelet') { const [cx, cy] = toPlan(g, 0, 0); out.push(`<circle cx="${f(cx)}" cy="${f(cy)}" r="0.16" fill="${g.userData.col || '#9aa3b2'}" stroke="#000" stroke-width="0.03"/>`); return; }
   else if (g.userData.kind === 'cordon') { const [p1, p2] = [toPlan(g, -w / 2, 0), toPlan(g, w / 2, 0)]; out.push(`<line x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(p2[0])}" y2="${f(p2[1])}" stroke="${g.userData.col || '#a0783c'}" stroke-width="0.06"/>`); return; }
   else out.push(`<polygon points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.04"/>`);
+  if (o.prat && PRAT_KINDS.has(g.userData.kind) && !g.userData.asd) { // calepinage : chaque praticable 2 × 1 (ce qui dépasse de la scène en hachuré)
+    const W = w, D = d, pts = v => v.map(q => q.map(f).join(',')).join(' ');
+    for (const [x, z, pw, pd] of pratLayout(W, D)) {
+      const x0 = x - W / 2, z0 = z - D / 2, q = [[x0, z0], [x0 + pw, z0], [x0 + pw, z0 + pd], [x0, z0 + pd]].map(([a, b]) => toPlan(g, a, b)), over = x0 + pw > W / 2 + 1e-6 || z0 + pd > D / 2 + 1e-6;
+      out.push(`<polygon points="${pts(q)}" fill="${over ? '#e8262b' : '#fff'}" fill-opacity="${over ? 0.25 : 0.12}" stroke="#5a3e12" stroke-width="0.03"/>`);
+      if (pw !== pd) { // trait pointillé le long du grand côté : sens du praticable
+        const [a, b] = pw > pd ? [[x0 + 0.2, z0 + pd / 2], [x0 + pw - 0.2, z0 + pd / 2]] : [[x0 + pw / 2, z0 + 0.2], [x0 + pw / 2, z0 + pd - 0.2]], [p1, p2] = [a, b].map(([u, v]) => toPlan(g, u, v));
+        out.push(`<line x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(p2[0])}" y2="${f(p2[1])}" stroke="#5a3e12" stroke-width="0.015" stroke-dasharray="0.1 0.08"/>`); }
+    }
+    const n = pratLayout(W, D).length, [cx, cz] = toPlan(g, 0, D / 2 - 0.35);
+    out.push(`<text x="${f(cx)}" y="${f(cz)}" font-size="0.3" text-anchor="middle" fill="#5a3e12" stroke="#fff" stroke-width="0.06" paint-order="stroke" font-weight="bold">${n} praticables 2 × 1 m</text>`);
+  }
   if (g.userData.asd) { // scène ASD : plateaux, escaliers et garde-corps
     const a = g.userData.asd, lp = (x, z) => toPlan(g, z - a.D / 2, -(x - a.W / 2)), pts = v => v.map(q => q.map(f).join(',')).join(' ');
     for (const q of a.plats) out.push(`<polygon points="${pts(q.p.map(([x, z]) => lp(x, z)))}" fill="none" stroke="#3a2a1a" stroke-width="0.02"/>`);
@@ -2491,7 +2504,7 @@ async function pedDetailNow() {
 }
 const pedItem = u => props.children.find(g => g.uuid === u);
 function pedDraw() {
-  const o = { ...PLAN_DEF, cotes:$('pedCotes').checked };
+  const o = { ...PLAN_DEF, cotes:$('pedCotes').checked, prat:$('pedPrat').checked };
   $('pedItems').innerHTML = props.children.filter(shown).map(g => { const out = []; drawItem(out, planItem(g), o); return `<g data-u="${g.uuid}">${out.join('')}</g>`; }).join('');
   // flèches et cotes : trait invisible plus large pour les attraper facilement
   const hit = a => a.t === 'arrow' || a.t === 'dim' ? `<line x1="${a.p[0][0]}" y1="${a.p[0][1]}" x2="${a.p[1][0]}" y2="${a.p[1][1]}" stroke="transparent" stroke-width="0.6"/>` : '';
@@ -2855,6 +2868,12 @@ addEventListener('keydown', e => {
   if (k === 'b') pedSetTool('brush'); if (k === 'p') pedSetTool('pot'); if (k === 'q') pedSetTool('resto'); if (k === 'x') pedSetTool('split'); if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
   if (k === 'r' && ped.sel?.g) pedRotate(ped.sel.g, (e.altKey ? 5 : 15) * (e.shiftKey ? -1 : 1));
   if (k === 'c') pedFit();
+  if (e.key.startsWith('Arrow') && !ped.sel) { // flèches sans sélection : déplacer la vue (Maj : plus vite)
+    e.preventDefault(); const v = ped.vb, st = v.w * (e.shiftKey ? 0.25 : 0.08), [dx, dz] = { ArrowLeft:[-st, 0], ArrowRight:[st, 0], ArrowUp:[0, -st], ArrowDown:[0, st] }[e.key];
+    v.x += dx; v.y += dz; pedApplyVb(); return; }
+  if ((e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') && ped.vb) { // + / - : zoom au centre
+    e.preventDefault(); const v = ped.vb, k = e.key === '-' || e.key === '_' ? 1.25 : 0.8, w = THREE.MathUtils.clamp(v.w * k, 3, 400), r = w / v.w;
+    ped.vb = { x:v.x + v.w / 2 - v.w * r / 2, y:v.y + v.h / 2 - v.h * r / 2, w, h:v.h * r }; pedApplyVb(); return; }
   if (e.key.startsWith('Arrow') && ped.sel) { // flèches : 10 cm (Maj : 1 m)
     e.preventDefault(); const st = e.shiftKey ? 1 : 0.1, [dx, dz] = { ArrowLeft:[-st, 0], ArrowRight:[st, 0], ArrowUp:[0, -st], ArrowDown:[0, st] }[e.key];
     pushUndo();
@@ -2864,6 +2883,13 @@ addEventListener('keydown', e => {
   }
 });
 addEventListener('keyup', e => { if (e.key === ' ') ped.space = false; });
+// scène / régie : praticables nécessaires (calepinage 2 × 1 ou nomenclature ASD)
+function pratPanel(g) {
+  if (g.userData.asd) { const a = g.userData.asd; return `<h3>Praticables (scène ASD)</h3><p><b>${a.plats.length} plateaux</b>${(a.stairs || []).length ? ` · ${a.stairs.length} escalier(s)` : ''} · ≈ ${Math.round(+a.kg || 0)} kg</p>${(a.bom || []).length ? `<table class="pottab">${a.bom.map(([ref, nom, n]) => `<tr><td>${esc(String(n))}</td><td>${esc(nom)}${ref ? ` <small>${esc(ref)}</small>` : ''}</td></tr>`).join('')}</table>` : ''}`; }
+  const [w, d, h] = g.userData.dims, L = pratLayout(w, d), big = L.filter(p => p[2] * p[3] === 2).length, extra = L.length * 2 - w * d;
+  return `<h3>Praticables</h3><p><b>${L.length} praticables 2 × 1 m</b> pour ${fr(w, 2)} × ${fr(d, 2)} m (${fr(w * d, 1)} m²), hauteur ${fr(h, 2)} m${extra > 0.01 ? `<br><span style="color:#e8262b">${fr(extra, 1)} m² dépassent : à recouper ou à compléter en 1 × 1</span>` : ''}</p>
+    <label class="cb"><input type="checkbox" id="pedPrat2"${$('pedPrat').checked ? ' checked' : ''}> Voir le calepinage en détail</label>`;
+}
 // panneau d'une zone de restauration : nom, module, allées, marge, sens des rangées, comptes
 function restoPanel(g) {
   const r = g.userData.resto, st = restoStats(r.items, r.poly), a = r.auto || { ...RESTO_DEFAULT, mod:'' };
@@ -2936,7 +2962,7 @@ function pedSide() {
   if (!s) {
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
       <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> potelets : cliquer les points de la ligne, cotes et nombre de potelets en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
-      <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : 10 cm (Maj : 1 m)</li>
+      <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : déplacer la vue (Maj : plus vite) ; avec une sélection, la déplacer de 10 cm (Maj : 1 m) · + / − : zoom</li>
       <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · glisser le fond, Espace ou clic droit : déplacer la vue · <b>C</b> recadrer</li></ul>
       <p class="e2note">Le matériel est le même qu'en 3D. Textes, cotes, zones et pictos n'apparaissent que sur les plans (export, fiches) et sont sauvés avec le setup.</p>`;
     return;
@@ -2949,6 +2975,7 @@ function pedSide() {
       ${pedAxes(g) ? `<h3>Taille</h3><div class="row"><label>L <input id="pedW" type="number" step="0.5" min="0.5" value="${+g.userData.dims[0].toFixed(2)}"></label>${pedAxes(g).d ? `<label>P <input id="pedD" type="number" step="0.5" min="0.5" value="${+g.userData.dims[1].toFixed(2)}"></label><label>H <input id="pedH" type="number" step="0.1" min="0.1" value="${+g.userData.dims[2].toFixed(2)}"></label>` : ''}</div>
       <p class="e2note">Ou glisser les poignées orange autour de l'élément (pas de 0,5 m, Maj : 10 cm) ; le côté opposé ne bouge pas.</p>` : ''}
       ${g.userData.resto ? restoPanel(g) : ''}
+      ${PRAT_KINDS.has(g.userData.kind) ? pratPanel(g) : ''}
       <p class="e2note">Coordonnées du plan AutoCAD (m). Hauteur au sol et autres réglages : dans le panneau 3D.</p>
       <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button><button id="ped3d" class="grow">Voir en 3D</button></div>`;
     const fromSide = () => { select(g); $('pX').value = $('pedX').value; $('pY').value = $('pedY').value; $('pA').value = $('pedA').value; applyPos(); pedDraw(); };
@@ -2956,6 +2983,7 @@ function pedSide() {
     for (const id of ['pedW', 'pedD', 'pedH']) if ($(id)) $(id).onchange = () => pedResize(g, [+$('pedW').value || g.userData.dims[0], +($('pedD')?.value || g.userData.dims[1]), +($('pedH')?.value || g.userData.dims[2])]);
     $('pedR1').onclick = () => pedRotate(g, 15); $('pedR2').onclick = () => pedRotate(g, -15);
     if (g.userData.resto) bindRestoPanel(g);
+    if ($('pedPrat2')) $('pedPrat2').onchange = () => { $('pedPrat').checked = $('pedPrat2').checked; pedDraw(); };
     if (['potelet', 'cordon'].includes(g.userData.kind) && g.userData.grp) { // ligne de potelets : compte du groupe
       const grp = props.children.filter(o => o.userData.grp === g.userData.grp), np = grp.filter(o => o.userData.kind === 'potelet').length, cs = grp.filter(o => o.userData.kind === 'cordon');
       el.querySelector('h3').insertAdjacentHTML('afterend', `<p><b>Ligne : ${np} potelets · ${cs.length} cordons · ${fr(cs.reduce((s, o) => s + o.userData.dims[0], 0), 2)} m</b></p>`
@@ -2985,6 +3013,7 @@ function pedSide() {
 document.querySelectorAll('#pedTools [data-t]').forEach(b => b.onclick = () => pedSetTool(b.dataset.t));
 $('pedIcon').onchange = () => { if ($('pedIcon').value) pedSetTool('icon', $('pedIcon').value); else pedSetTool('sel'); $('pedIcon').blur(); };
 $('pedCotes').onchange = pedDraw;
+$('pedPrat').onchange = () => { pedDraw(); pedSide(); };
 $('pedAdd').onclick = () => $('addBtn').click();
 $('pedDacam').onclick = pedDacam;
 $('catalog').addEventListener('close', () => { if ($('ped').open && selected && props.children.includes(selected)) { ped.sel = { g:selected }; pedDraw(); pedSide(); } });
