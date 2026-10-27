@@ -112,7 +112,7 @@
 </div>
 <dialog id="ped">
   <div class="pedh"><b>Éditeur de plan 2D</b>
-    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
+    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
     <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
     <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label>
     <span class="grow"></span>
@@ -178,7 +178,7 @@
 import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
-import { RESTO_MODS, RESTO_DEFAULT, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
+import { RESTO_MODS, RESTO_DEFAULT, splitResto, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
 import { annotSvg, annotBox, annotLength, zoneArea, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -2595,6 +2595,27 @@ async function pedDacam() {
   pedSelect(null); pedFit(); pedDraw(); drawCotes();
   $('pedInfo').textContent = `${made.length} zones DACAM posées · ${st[0]} places · ${Math.round(st[1])} m²`;
 }
+// scinder : trait à travers les zones (la zone sélectionnée seule, sinon toutes celles que le trait traverse)
+function pedLetterName(name, taken) { // « Bar » -> « Bar A » / « Bar B » ; « Bar A » -> garde A, l'autre morceau prend la lettre libre suivante
+  const m = name.match(/^(.*) ([A-Z])$/), base = m ? m[1] : name, used = new Set(taken.map(n => n.match(/^(.*) ([A-Z])$/)).filter(x => x && x[1] === base).map(x => x[2]));
+  const first = m ? m[2] : 'A'; used.add(first); const next = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].find(c => !used.has(c)) || '+';
+  return [`${base} ${first}`, `${base} ${next}`];
+}
+function pedSplit(a, b) {
+  const cands = ped.sel?.g?.userData.resto ? [ped.sel.g] : props.children.filter(g => g.userData.resto && shown(g));
+  const done = [];
+  for (const g of cands) {
+    const parts = splitResto(g.userData.resto, toLocal(g, a), toLocal(g, b)); if (!parts) continue;
+    if (!done.length) pushUndo();
+    const names = pedLetterName(g.userData.resto.name, props.children.filter(o => o.userData.resto).map(o => o.userData.resto.name));
+    parts[0].name = names[0]; parts[1].name = names[1];
+    setResto(g, parts[0]);
+    const g2 = makeProp('resto', [1, 1, 0.01]); g2.position.copy(g.position); g2.quaternion.copy(g.quaternion); setResto(g2, parts[1]);
+    done.push(names.join(' / '));
+  }
+  if (done.length) { ped.sel = null; select(null); pedDraw(); pedSide(); drawCotes(); }
+  $('pedInfo').textContent = done.length ? `Scindé : ${done.join(' · ')}` : 'Le trait doit traverser une zone de restauration de part en part';
+}
 $('pedSvg').addEventListener('dblclick', e => {
   const eh = e.target.closest?.('[data-e]');
   if (eh && ped.sel?.g?.userData.resto) { const g = ped.sel.g, r = g.userData.resto; pushUndo(); r.poly.splice(+eh.dataset.e + 1, 0, toLocal(g, pedPt(e)).map(v => +v.toFixed(3))); refillResto(g); pedDraw(); pedSide(); return; } if (ped.tool === 'resto' && ped.poly) { e.preventDefault(); pedRestoFinish(); } }); // les 2 clics du double-clic tombent au même endroit : un seul point
@@ -2607,6 +2628,7 @@ $('pedSvg').addEventListener('pointerdown', e => {
   if (rh && ped.sel?.g) { const g = ped.sel.g; ped.drag = { k:'size', g, side:rh.dataset.r.split(',').map(Number), dims:null }; return; }
   const h = tgt.closest('[data-h]');
   if (h && ped.sel?.a) { ped.drag = { k:'pt', a:ped.sel.a, i:+h.dataset.h, undo:false }; return; }
+  if (ped.tool === 'split') { ped.drag = { k:'cut', a:pedSnap(p, e), b:null }; return; }
   if (ped.tool === 'resto') {
     const q = pedSnap(p, e), P = ped.poly || (ped.poly = []);
     if (P.length >= 3 && Math.hypot(q[0] - P[0][0], q[1] - P[0][1]) < 10 * pedUnit()) return pedRestoFinish(); // retour au 1er point : fermé
@@ -2637,6 +2659,9 @@ $('pedSvg').addEventListener('pointermove', e => {
   const p = pedPt(e), [X, Y] = toDwg(p); $('pedPos').textContent = `X ${X.toFixed(2)} · Y ${Y.toFixed(2)} m (repère DWG)`;
   if (ped.tool === 'resto' && ped.poly) pedDraftDraw(pedSnap(p, e));
   const d = ped.drag; if (!d) return;
+  if (d.k === 'cut') { d.b = pedSnap(p, e); const u = pedUnit();
+    $('pedDraft').innerHTML = `<line x1="${d.a[0]}" y1="${d.a[1]}" x2="${d.b[0]}" y2="${d.b[1]}" stroke="#e8262b" stroke-width="${3 * u}" stroke-dasharray="${8 * u} ${5 * u}" pointer-events="none"/>`
+      + `<text x="${d.b[0] + 8 * u}" y="${d.b[1] - 8 * u}" font-size="${18 * u}" pointer-events="none">✂</text>`; return; }
   if (d.k === 'vtx') { if (!d.undo) { pushUndo(); d.undo = true; } const r = d.g.userData.resto; r.poly[d.i] = toLocal(d.g, pedSnap(p, e)).map(v => +v.toFixed(3)); pedLater(); return; }
   if (d.k === 'pan') { const u = pedUnit(); ped.vb.x = d.vb.x - (e.clientX - d.c[0]) * u; ped.vb.y = d.vb.y - (e.clientY - d.c[1]) * u; pedApplyVb(); return; }
   if (d.k === 'new') { d.a.p[1] = pedSnap(p, e, d.a); pedLater(); pedSide(); return; }
@@ -2658,6 +2683,7 @@ $('pedSvg').addEventListener('pointerup', () => {
   if (d.k === 'new') { if (annotLength(d.a) < 0.2) { ANNOT.splice(ANNOT.indexOf(d.a), 1); undoStack.pop(); pedSelect(null); } pedSetTool('sel'); }
   if (d.k === 'moveG' && d.undo) drawCotes();
   if (d.k === 'vtx' && d.undo) { refillResto(d.g); drawCotes(); }
+  if (d.k === 'cut') { $('pedDraft').innerHTML = ''; if (d.b && Math.hypot(d.b[0] - d.a[0], d.b[1] - d.a[1]) > 0.3) pedSplit(d.a, d.b); return; } // l'outil reste actif pour enchaîner les coupes
   if (d.k === 'size') { $('pedInfo').textContent = ''; if (d.dims) return pedResize(d.g, d.dims, d.side); }
   pedDraw(); pedSide();
 });
@@ -2699,7 +2725,7 @@ addEventListener('keydown', e => {
     e.preventDefault(); if (e.key === 'Enter') pedRestoFinish(); else if (e.key === 'Escape') pedSetTool('sel'); else { ped.poly.pop(); pedDraftDraw(); } return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); pedDelete(); }
   if (e.key === 'Escape') { e.preventDefault(); if (ped.tool !== 'sel') pedSetTool('sel'); else if (ped.sel) pedSelect(null); else $('ped').close(); }
-  if (k === 'q') pedSetTool('resto'); if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
+  if (k === 'q') pedSetTool('resto'); if (k === 'x') pedSetTool('split'); if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
   if (k === 'r' && ped.sel?.g) pedRotate(ped.sel.g, (e.altKey ? 5 : 15) * (e.shiftKey ? -1 : 1));
   if (k === 'c') pedFit();
   if (e.key.startsWith('Arrow') && ped.sel) { // flèches : 10 cm (Maj : 1 m)
@@ -2720,10 +2746,12 @@ function restoPanel(g) {
     <label class="pedl">Remplissage<select id="rsMod">${r.auto ? '' : `<option value="" selected>${r.src === 'dacam' ? 'Mobilier du plan DACAM (fixe)' : 'Mobilier posé à la main'}</option>`}${opts}<option value="__vide">Vider la zone</option></select></label>
     <div class="row"><label>Allée ↔ <input id="rsGx" type="number" step="0.1" min="0" value="${a.gx}"> m</label><label>Allée ↕ <input id="rsGy" type="number" step="0.1" min="0" value="${a.gy}"> m</label></div>
     <div class="row"><label>Marge <input id="rsM" type="number" step="0.1" min="0" value="${a.margin}"> m</label><label>Sens <input id="rsA" type="number" step="15" value="${a.ang}"> °</label></div>
+    <div class="row"><button id="rsSplit" class="grow" title="Tracer un trait à travers la zone pour la couper en deux (X)">✂ Scinder cette zone</button></div>
     <p class="e2note">Allées : espace libre entre deux modules (1,40 m pour un passage PMR). Points rouges : glisser pour modifier le contour, Alt+clic pour en retirer un, double-clic sur un bord pour en ajouter.${r.auto ? '' : ' Choisir un module remplace le mobilier actuel.'}</p>`;
 }
 function bindRestoPanel(g) {
   const r = g.userData.resto, apply = () => { refillResto(g); pedDraw(); pedSide(); drawCotes(); };
+  $('rsSplit').onclick = () => { pedSetTool('split'); $('pedInfo').textContent = 'Trace un trait à travers la zone (Échap : terminer)'; };
   $('rsName').onchange = () => { pushUndo(); r.name = $('rsName').value.trim().slice(0, 80) || 'Zone de restauration'; setResto(g, r); pedDraw(); pedSide(); };
   $('rsMod').onchange = () => { const v = $('rsMod').value; if (!v) return; pushUndo();
     if (v === '__vide') { r.auto = null; r.items = []; r.src = ''; } else { r.auto = { ...RESTO_DEFAULT, ...(r.auto || {}), mod:v }; r.src = ''; } apply(); };
@@ -2735,7 +2763,7 @@ function pedSide() {
   const s = ped.sel, el = $('pedSide');
   if (!s) {
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
-      <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
+      <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
       <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : 10 cm (Maj : 1 m)</li>
       <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · glisser le fond, Espace ou clic droit : déplacer la vue · <b>C</b> recadrer</li></ul>
       <p class="e2note">Le matériel est le même qu'en 3D. Textes, cotes, zones et pictos n'apparaissent que sur les plans (export, fiches) et sont sauvés avec le setup.</p>`;

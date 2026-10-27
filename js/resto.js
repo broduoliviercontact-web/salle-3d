@@ -162,3 +162,39 @@ export function cleanResto(r, lim = 500) {
     ? { mod:r.auto.mod, gx:fin(r.auto.gx, 0, 20) ?? RESTO_DEFAULT.gx, gy:fin(r.auto.gy, 0, 20) ?? RESTO_DEFAULT.gy, margin:fin(r.auto.margin, 0, 10) ?? RESTO_DEFAULT.margin, ang:fin(r.auto.ang, -360, 360) ?? 0 } : null;
   return { name:String(r.name || 'Zone de restauration').slice(0, 80), poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
 }
+
+// --- scinder une zone par un trait (a -> b, repère local de la zone) ---
+// La droite (a, b) coupe le contour en plusieurs cordes intérieures ; on garde celle qui recouvre le plus le trait tracé
+// (un trait qui ne traverse qu'un bras d'une zone en L ne coupe que ce bras). Le mobilier suit le morceau où tombe son centre.
+export function splitPoly(poly, a, b) {
+  const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz; if (L2 < 1e-6 || poly.length < 3) return null;
+  const hits = []; // intersections droite / bords : paramètre t le long de (a, b), bord i, point
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i], q = poly[(i + 1) % poly.length], ex = q[0] - p[0], ez = q[1] - p[1], den = dx * ez - dz * ex;
+    if (Math.abs(den) < 1e-12) continue;
+    const wx = p[0] - a[0], wz = p[1] - a[1], t = (wx * ez - wz * ex) / den, u = (wx * dz - wz * dx) / den;
+    if (u >= 0 && u < 1) hits.push({ t, i, pt:[a[0] + t * dx, a[1] + t * dz] });
+  }
+  hits.sort((h, k) => h.t - k.t);
+  let best = null;
+  for (let k = 0; k + 1 < hits.length; k++) {
+    const h1 = hits[k], h2 = hits[k + 1]; if (h2.t - h1.t < 1e-6) continue;
+    const mid = [(h1.pt[0] + h2.pt[0]) / 2, (h1.pt[1] + h2.pt[1]) / 2]; if (!pointInPoly(mid, poly)) continue; // corde intérieure
+    const ov = Math.min(1, h2.t) - Math.max(0, h1.t); // recouvrement avec le trait [0, 1]
+    if (ov > 0 && (!best || ov > best.ov)) best = { h1, h2, ov };
+  }
+  if (!best) return null;
+  const { h1, h2 } = best, n = poly.length, walk = (from, to) => { const out = []; for (let i = (from + 1) % n; ; i = (i + 1) % n) { out.push(poly[i]); if (i === to) break; } return out; };
+  const A = [h1.pt, ...walk(h1.i, h2.i), h2.pt], B = [h2.pt, ...walk(h2.i, h1.i), h1.pt];
+  const clean = P => P.filter((p, i) => { const q = P[(i + 1) % P.length]; return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-6; }).map(p => p.map(v => Math.round(v * 1000) / 1000));
+  const r = [clean(A), clean(B)];
+  return r.every(P => P.length >= 3 && polyArea(P) > 0.05) ? r : null;
+}
+export function splitResto(r, a, b) {
+  const parts = splitPoly(r.poly, a, b); if (!parts) return null;
+  const [P1, P2] = parts, c1 = polyCentroid(P1), c2 = polyCentroid(P2);
+  const side = it => pointInPoly([it[1], it[2]], P1) ? 0 : pointInPoly([it[1], it[2]], P2) ? 1
+    : Math.hypot(it[1] - c1[0], it[2] - c1[1]) <= Math.hypot(it[1] - c2[0], it[2] - c2[1]) ? 0 : 1;
+  const items = [[], []]; for (const it of r.items) items[side(it)].push(it);
+  return parts.map((poly, k) => ({ ...r, poly, items:r.auto ? fillZone(poly, r.auto) : items[k], auto:r.auto ? { ...r.auto } : null }));
+}
