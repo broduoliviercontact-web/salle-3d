@@ -2466,10 +2466,38 @@ function pedDraw() {
   if (ped.sel?.a && !ANNOT.includes(ped.sel.a)) ped.sel = null;
   pedDrawSel();
 }
+// redimensionnement d'un élément dans le plan : poignées sur les côtés et les coins (même règles que L / P / H en 3D)
+const pedAxes = g => { const k = g.userData.kind; if (!RESIZABLE.has(k) || k === 'tower') return null;
+  return { w:true, d:!(TRUSS[k] || ['perche', 'defender', 'led'].includes(k)) }; };
+const toLocal = (g, [X, Z]) => { const c = Math.cos(g.rotation.y), s = Math.sin(g.rotation.y), dx = X - g.position.x, dz = Z - g.position.z; return [dx * c - dz * s, dx * s + dz * c]; };
+// nouvelles dimensions : le côté opposé à la poignée reste en place
+function pedResize(g, dims, side) {
+  const [w0, d0] = g.userData.dims; select(g);
+  $('sW').value = dims[0]; $('sD').value = dims[1]; $('sH').value = dims[2] ?? g.userData.dims[2];
+  resizeSelected(); const n = selected; if (n === g || !n) return;
+  if (side) { const [w, d] = n.userData.dims, [x, z] = toPlan(n, side[0] * (w - w0) / 2, side[1] * (d - d0) / 2); n.position.x = x; n.position.z = z; n.position.y = floorAt(n.position) + (g.position.y - floorAt(g.position)); }
+  ped.sel = { g:n }; syncPos(); drawCotes(); pedDraw(); pedSide();
+}
 function pedDrawSel() {
   const S = $('pedSel'), s = ped.sel; if (!s || !ped.vb) { S.innerHTML = ''; return; }
   const u = pedUnit(), sw = `stroke-width="${2 * u}"`, dash = `stroke-dasharray="${6 * u} ${4 * u}"`;
-  if (s.g) { const p = planItem(s.g).poly; S.innerHTML = `<polygon points="${p.map(q => q.join(',')).join(' ')}" fill="none" stroke="#f0a53a" ${sw} ${dash}/>`; return; }
+  if (s.g) {
+    const it = planItem(s.g), ax = pedAxes(s.g), r = 6 * u, rz = ped.drag?.k === 'size' ? ped.drag : null;
+    let h = `<polygon points="${it.poly.map(q => q.join(',')).join(' ')}" fill="none" stroke="#f0a53a" ${sw} ${dash} pointer-events="none"/>`;
+    if (rz?.dims) { // aperçu de la nouvelle taille pendant le glisser
+      const [w, d] = rz.dims, [cx, cz] = [rz.side[0] * (w - it.w) / 2, rz.side[1] * (d - it.d) / 2];
+      const q = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, z]) => toPlan(s.g, cx + x, cz + z)), fs = 14 * u;
+      const c = [(Math.min(...q.map(p => p[0])) + Math.max(...q.map(p => p[0]))) / 2, Math.max(...q.map(p => p[1])) + fs * 1.4]; // valeur sous le cadre, hors du nom de l'élément
+      h += `<polygon points="${q.map(p => p.join(',')).join(' ')}" fill="#f0a53a" fill-opacity="0.15" stroke="#f0a53a" ${sw} pointer-events="none"/>`
+        + `<text x="${c[0]}" y="${c[1]}" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="#111" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke" pointer-events="none">${fr(w, 2)} × ${fr(d, 2)} m</text>`;
+    } else if (ax) for (const [sx, sz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      if ((sx && !ax.w) || (sz && !ax.d)) continue;
+      const [x, z] = toPlan(s.g, sx * it.w / 2, sz * it.d / 2), corner = sx && sz;
+      h += corner ? `<circle data-r="${sx},${sz}" cx="${x}" cy="${z}" r="${r}" fill="#fff" stroke="#f0a53a" ${sw} style="cursor:nwse-resize"/>`
+        : `<rect data-r="${sx},${sz}" x="${x - r}" y="${z - r}" width="${2 * r}" height="${2 * r}" fill="#f0a53a" stroke="#fff" ${sw} style="cursor:${sx ? 'ew' : 'ns'}-resize"/>`;
+    }
+    S.innerHTML = h; return;
+  }
   const b = annotBox(s.a), r = 5 * u;
   S.innerHTML = `<rect x="${b[0][0]}" y="${b[0][1]}" width="${b[1][0] - b[0][0]}" height="${b[1][1] - b[0][1]}" fill="none" stroke="#f0a53a" ${sw} ${dash} pointer-events="none"/>`
     + (s.a.p.length > 1 ? s.a.p.map((p, i) => `<circle data-h="${i}" cx="${p[0]}" cy="${p[1]}" r="${r}" fill="#fff" stroke="#f0a53a" ${sw} style="cursor:move"/>`).join('') : '');
@@ -2504,6 +2532,8 @@ $('pedSvg').addEventListener('pointerdown', e => {
   const p = pedPt(e), tgt = e.target;
   $('pedSvg').setPointerCapture(e.pointerId);
   if (e.button === 1 || ped.space || e.button === 2) { ped.drag = { k:'pan', c:[e.clientX, e.clientY], vb:{ ...ped.vb } }; return; }
+  const rh = tgt.closest('[data-r]');
+  if (rh && ped.sel?.g) { const g = ped.sel.g; ped.drag = { k:'size', g, side:rh.dataset.r.split(',').map(Number), dims:null }; return; }
   const h = tgt.closest('[data-h]');
   if (h && ped.sel?.a) { ped.drag = { k:'pt', a:ped.sel.a, i:+h.dataset.h, undo:false }; return; }
   if (ped.tool === 'text' || ped.tool === 'icon') {
@@ -2525,6 +2555,10 @@ $('pedSvg').addEventListener('pointermove', e => {
   const d = ped.drag; if (!d) return;
   if (d.k === 'pan') { const u = pedUnit(); ped.vb.x = d.vb.x - (e.clientX - d.c[0]) * u; ped.vb.y = d.vb.y - (e.clientY - d.c[1]) * u; pedApplyVb(); return; }
   if (d.k === 'new') { d.a.p[1] = pedSnap(p, e, d.a); pedLater(); pedSide(); return; }
+  if (d.k === 'size') { // côté opposé fixe ; pas de 0,5 m (Maj : 10 cm)
+    const g = d.g, [lx, lz] = toLocal(g, p), [w0, d0, h0] = g.userData.dims, st = e.shiftKey ? 0.1 : 0.5, q = v => Math.max(0.5, Math.round(v / st) * st);
+    d.dims = [d.side[0] ? q(d.side[0] * lx + w0 / 2) : w0, d.side[1] ? q(d.side[1] * lz + d0 / 2) : d0, h0];
+    pedDrawSel(); $('pedInfo').textContent = `${fr(d.dims[0], 2)} × ${fr(d.dims[1], 2)} m`; return; }
   if (d.k === 'pt') { if (!d.undo) { pushUndo(); d.undo = true; } d.a.p[d.i] = pedSnap(p, e, d.a); pedLater(); pedSide(); return; }
   let dx = p[0] - d.p0[0], dz = p[1] - d.p0[1];
   if (!d.undo && Math.hypot(dx, dz) < 3 * pedUnit()) return; // simple clic : pas de déplacement
@@ -2538,6 +2572,7 @@ $('pedSvg').addEventListener('pointerup', () => {
   const d = ped.drag; ped.drag = null; if (!d) return;
   if (d.k === 'new') { if (annotLength(d.a) < 0.2) { ANNOT.splice(ANNOT.indexOf(d.a), 1); undoStack.pop(); pedSelect(null); } pedSetTool('sel'); }
   if (d.k === 'moveG' && d.undo) drawCotes();
+  if (d.k === 'size') { $('pedInfo').textContent = ''; if (d.dims) return pedResize(d.g, d.dims, d.side); }
   pedDraw(); pedSide();
 });
 $('pedSvg').addEventListener('contextmenu', e => e.preventDefault());
@@ -2604,10 +2639,13 @@ function pedSide() {
     el.innerHTML = `<h3>${esc(LABELS[g.userData.kind] || g.userData.kind)}</h3><p>${esc(g.name)}</p>
       <div class="row"><label>X <input id="pedX" type="number" step="0.1" value="${+X.toFixed(2)}"></label><label>Y <input id="pedY" type="number" step="0.1" value="${+Y.toFixed(2)}"></label></div>
       <div class="row"><label>Cap <input id="pedA" type="number" step="5" value="${capOf(g)}"> °</label><button id="pedR1" title="R">↻ 15°</button><button id="pedR2" title="Maj+R">↺ 15°</button></div>
-      <p class="e2note">Coordonnées du plan AutoCAD (m). Dimensions, hauteur et réglages : dans le panneau 3D.</p>
+      ${pedAxes(g) ? `<h3>Taille</h3><div class="row"><label>L <input id="pedW" type="number" step="0.5" min="0.5" value="${+g.userData.dims[0].toFixed(2)}"></label>${pedAxes(g).d ? `<label>P <input id="pedD" type="number" step="0.5" min="0.5" value="${+g.userData.dims[1].toFixed(2)}"></label><label>H <input id="pedH" type="number" step="0.1" min="0.1" value="${+g.userData.dims[2].toFixed(2)}"></label>` : ''}</div>
+      <p class="e2note">Ou glisser les poignées orange autour de l'élément (pas de 0,5 m, Maj : 10 cm) ; le côté opposé ne bouge pas.</p>` : ''}
+      <p class="e2note">Coordonnées du plan AutoCAD (m). Hauteur au sol et autres réglages : dans le panneau 3D.</p>
       <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button><button id="ped3d" class="grow">Voir en 3D</button></div>`;
     const fromSide = () => { select(g); $('pX').value = $('pedX').value; $('pY').value = $('pedY').value; $('pA').value = $('pedA').value; applyPos(); pedDraw(); };
     ['pedX', 'pedY', 'pedA'].forEach(id => $(id).onchange = fromSide);
+    for (const id of ['pedW', 'pedD', 'pedH']) if ($(id)) $(id).onchange = () => pedResize(g, [+$('pedW').value || g.userData.dims[0], +($('pedD')?.value || g.userData.dims[1]), +($('pedH')?.value || g.userData.dims[2])]);
     $('pedR1').onclick = () => pedRotate(g, 15); $('pedR2').onclick = () => pedRotate(g, -15);
     $('ped3d').onclick = () => { $('ped').close(); select(g); frame(g); };
   } else {
