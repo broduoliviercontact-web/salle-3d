@@ -9,7 +9,7 @@ const rect = (w, d) => [[0, 0], [w, 0], [w, d], [0, d]];
 
 test('restauration : modules (places, emprise)', () => {
   const places = k => restoStats(RESTO_MODS[k].items, []).places;
-  assert.deepEqual(['r_t2', 'r_t4', 'r_h8', 'r_r4', 'r_md'].map(places), [2, 4, 8, 4, 0]);
+  assert.deepEqual(['r_t2', 'r_t4', 'r_h8', 'r_r4', 'r_md', 'r_tc', 'r_tr', 'r_ch'].map(places), [2, 4, 8, 4, 0, 0, 0, 1]);
   const [[x0, z0], [x1, z1]] = itemsBox(RESTO_MODS.r_t2.items);
   near(x1 - x0, 0.9 + 2 * 0.45, 1e-9); near(z1 - z0, 0.7, 1e-9); // chaises collées aux bouts de la table
 });
@@ -85,7 +85,16 @@ test('restauration : capacité maximale (meilleur sens et calage, jamais moins q
   assert.ok(zoneAngles(slant).includes(30));
   const b = bestFill(slant, { mod:'r_t2', gx:0.6, gy:1 }); assert.equal(b.ang % 90 === 0, false); assert.ok(b.places >= 16, `places ${b.places}`);
   const tab = capacityTable(Z, { gx:1.2, gy:1.2, margin:0.3 });
-  assert.equal(tab.length, 5); assert.ok(tab.find(t => t.mod === 'r_md').places === 0 && tab.find(t => t.mod === 'r_md').tables > 0);
+  assert.equal(tab.length, Object.keys(RESTO_MODS).length); assert.ok(tab.find(t => t.mod === 'r_md').places === 0 && tab.find(t => t.mod === 'r_md').tables > 0);
+});
+test('restauration : passages (allées traversantes entre rangées, largeur en UP)', async () => {
+  const { zonePassages, dominantAngle } = await import('../js/resto.js');
+  const Z = rect(12, 8), items = fillZone(Z, { mod:'r_t4', gx:1.2, gy:1.4, margin:0.3 }), P = zonePassages(Z, items);
+  // 2 rangées de tables (1,8 m) séparées par 1,40 m ; 4 colonnes séparées par 1,20 m
+  assert.equal(P.rows.length, 1); near(P.rows[0].w, 1.4, 0.03); assert.equal(P.rows[0].up, 2);
+  assert.equal(P.cols.length, 3); assert.ok(P.cols.every(c => Math.abs(c.w - 1.2) < 0.03 && c.up === 1));
+  assert.equal(zonePassages(Z, fillZone(Z, { mod:'r_t4', gx:0.4, gy:0.4 })).cols.length, 0); // allées de 40 cm : pas de passage
+  assert.equal(dominantAngle(fillZone(rect(8, 12), { mod:'r_h8', ang:90 })), 0); // 90° ≡ 0° modulo 90
 });
 test('restauration : couleur de zone (validée, reprise dans le dessin)', async () => {
   const { cleanResto, zoneSvg, RESTO_COLORS } = await import('../js/resto.js');

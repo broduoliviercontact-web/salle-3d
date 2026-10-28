@@ -179,7 +179,7 @@
 import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
-import { pointInPoly, itemsBox, moveItems, RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
+import { pointInPoly, itemsBox, moveItems, zonePassages, passagesSvg, RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
 import { annotSvg, annotBox, annotLength, zoneArea, zoneRect, edgeCotesSvg, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -2191,7 +2191,7 @@ function drawItem(out, { g, w, d, poly, front }, o = PLAN_DEF, legend = new Map(
   const R = g.userData.resto, MOD_ = RESTO_MODS[g.userData.kind];
   if (R || MOD_) { // restauration : dessinée dans le repère de l'élément (zone hachurée + mobilier), nom et compte en clair
     const [px, pz] = toPlan(g, 0, 0), items = R ? R.items : MOD_.items;
-    out.push(`<g transform="translate(${f(px)} ${f(pz)}) rotate(${f(-g.rotation.y * 180 / Math.PI)})">${R ? zoneSvg(R.poly, 'hr' + g.id, R.col) : ''}${furnitureSvg(items)}${R?.cotes ? edgeCotesSvg(R.poly, '#111') : ''}</g>`);
+    out.push(`<g transform="translate(${f(px)} ${f(pz)}) rotate(${f(-g.rotation.y * 180 / Math.PI)})">${R ? zoneSvg(R.poly, 'hr' + g.id, R.col) : ''}${furnitureSvg(items)}${R?.passages && R.poly.length >= 3 ? passagesSvg(zonePassages(R.poly, R.items, R.auto?.ang ?? undefined)) : ''}${R?.cotes ? edgeCotesSvg(R.poly, '#111') : ''}</g>`);
     if (!R || !o.labels || R.poly.length < 3) return; // mobilier libre : pas de nom ni de surface
     const st = restoStats(R.items, R.poly), [cx, cz] = toPlan(g, ...polyCentroid(R.poly)), fs = 0.55;
     out.push(`<text x="${f(cx)}" y="${f(cz)}" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="${R.col || '#9a1c1c'}" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke"><tspan x="${f(cx)}">${esc(R.name)}</tspan><tspan x="${f(cx)}" dy="${fs * 1.15}" font-weight="normal">${st.places ? `${st.places} places` : `${st.tables} ${st.tables > 1 ? 'tables' : 'table'}`} · ${Math.round(st.area)} m²</tspan></text>`);
@@ -3013,6 +3013,16 @@ function pratPanel(g) {
   return `<h3>Praticables</h3><p><b>${L.length} praticables 2 × 1 m</b> pour ${fr(w, 2)} × ${fr(d, 2)} m (${fr(w * d, 1)} m²), hauteur ${fr(h, 2)} m${extra > 0.01 ? `<br><span style="color:#e8262b">${fr(extra, 1)} m² dépassent : à recouper ou à compléter en 1 × 1</span>` : ''}</p>
     <label class="cb"><input type="checkbox" id="pedPrat2"${$('pedPrat').checked ? ' checked' : ''}> Voir le calepinage en détail</label>`;
 }
+// passages d'une zone : allées traversantes entre le mobilier, largeur et unités de passage (UP)
+function passagesPanel(r) {
+  const P = zonePassages(r.poly, r.items, r.auto?.ang ?? undefined), all = [...P.rows.map(p => ['↔', p]), ...P.cols.map(p => ['↕', p])].sort((a, b) => b[1].w - a[1].w);
+  const ok = all.filter(([, p]) => p.up >= 1).length, pmr = all.filter(([, p]) => p.w >= 1.4 - 0.03).length;
+  return `<h3>Passages</h3><p><b>${all.length ? `${all.length} passage${all.length > 1 ? 's' : ''}` : 'Aucun passage traversant'}</b>${all.length ? ` · ${ok} d'au moins 1 UP (0,90 m) · ${pmr} PMR (1,40 m)` : ''}</p>
+    ${all.length ? `<table class="pottab">${[...all.reduce((m, [d, p]) => { const k = `${d}|${fr(p.w, 2)}|${p.up}|${fr(p.len, 1)}`; m.set(k, [(m.get(k)?.[0] || 0) + 1, d, p]); return m; }, new Map()).values()] // passages identiques regroupés
+      .map(([n, d, p]) => `<tr><td style="white-space:nowrap">${n > 1 ? `${n} ×` : ''} ${d}</td><td><b>${fr(p.w, 2)} m</b></td><td style="color:${p.up ? '#1a8f3c' : '#e67e00'}">${p.up ? `${p.up} UP` : '< 1 UP'}</td><td>${fr(p.len, 1)} m de long</td></tr>`).join('')}</table>` : ''}
+    <label class="cb"><input type="checkbox" id="rsPass"${r.passages ? ' checked' : ''}> Afficher les passages sur le plan</label>
+    <p class="e2note">Allée = bande libre d'au moins 0,60 m de large et 2,50 m de long, bordée de mobilier des deux côtés ; recalculé à chaque changement. 1 UP : 0,90 m, 2 UP : 1,40 m, puis 0,60 m par UP.</p>`;
+}
 // panneau d'une zone de restauration : nom, module, allées, marge, sens des rangées, comptes
 function restoPanel(g) {
   if (!g.userData.resto.poly.length) { const r = g.userData.resto, st = restoStats(r.items, []);
@@ -3028,6 +3038,7 @@ function restoPanel(g) {
     <div class="row"><button id="rsMax" class="grow" title="Essaie tous les sens de rangées (0°, 90°, sens de chaque bord) et plusieurs calages de la grille avec le module, les allées et la marge choisis, et garde celui qui place le plus de places">⤢ Remplir au maximum</button><button id="rsCap" title="Nombre maximum de tables et de places de la zone pour chaque module (mêmes allées et marge)">Capacité max…</button></div>
     <label class="cb" title="Coché : seul le calage de la grille est optimisé, les rangées gardent le sens indiqué ci-dessus"><input type="checkbox" id="rsLock"${ped.capLock ? ' checked' : ''}> Garder le sens des rangées</label>
     ${ped.cap?.u === g.uuid ? `<table class="pottab captab"><tr><td>Module</td><td>Tables</td><td>Places</td><td></td></tr>${ped.cap.rows.map(t => `<tr><td>${esc(t.name)}</td><td>${t.tables}</td><td><b>${t.places}</b></td><td><button data-cap="${t.mod}" title="Remplir la zone avec ce module (sens ${Math.round(t.ang)}°)">Remplir</button></td></tr>`).join('')}</table><p class="e2note">Allées ${fr(ped.cap.gx, 2)} × ${fr(ped.cap.gy, 2)} m, marge ${fr(ped.cap.margin, 2)} m.</p>` : ''}
+    ${passagesPanel(r)}
     <label class="cb"><input type="checkbox" id="rsCotes"${r.cotes ? ' checked' : ''}> Afficher les cotes de la zone</label>
     <div class="row pedcols" id="rsCols">${RESTO_COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === (r.col || RESTO_COLORS[0]) ? 'on' : ''}" title="Couleur de la zone"></button>`).join('')}</div>
     <div class="row"><button id="rsSplit" class="grow" title="Tracer un trait à travers la zone pour la couper en deux (X)">✂ Scinder cette zone</button></div>
@@ -3036,6 +3047,7 @@ function restoPanel(g) {
 function bindRestoPanel(g) {
   if (!g.userData.resto.poly.length) { const r = g.userData.resto; $('rsName').onchange = () => { pushUndo(); r.name = $('rsName').value.trim().slice(0, 80) || 'Mobilier libre'; setResto(g, r); pedDraw(); pedSide(); }; return; }
   const r = g.userData.resto, apply = () => { ped.cap = null; refillResto(g); pedDraw(); pedSide(); drawCotes(); };
+  $('rsPass').onchange = () => { pushUndo(); if ($('rsPass').checked) r.passages = true; else delete r.passages; pedDraw(); };
   $('rsCotes').onchange = () => { pushUndo(); if ($('rsCotes').checked) r.cotes = true; else delete r.cotes; pedDraw(); };
   document.querySelectorAll('#rsCols [data-c]').forEach(b => b.onclick = () => { pushUndo(); r.col = b.dataset.c; setResto(g, r); pedDraw(); pedSide(); });
   const cur = () => ({ ...RESTO_DEFAULT, ...(r.auto || {}) });
