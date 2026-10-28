@@ -9,7 +9,10 @@ const rect = (w, d) => [[0, 0], [w, 0], [w, d], [0, d]];
 
 test('restauration : modules (places, emprise)', () => {
   const places = k => restoStats(RESTO_MODS[k].items, []).places;
-  assert.deepEqual(['r_t2', 'r_t4', 'r_h8', 'r_r4', 'r_md', 'r_tc', 'r_tr', 'r_th', 'r_ch'].map(places), [2, 4, 8, 4, 0, 0, 0, 0, 1]);
+  assert.deepEqual(['r_t2', 'r_t4', 'r_h8', 'r_r4', 'r_md', 'r_tc', 'r_tr', 'r_th', 'r_hb', 'r_ch'].map(places), [2, 4, 8, 4, 0, 0, 0, 0, 8, 1]);
+  const hb = restoStats(RESTO_MODS.r_hb.items, []); assert.equal(hb.benches, 4); assert.equal(hb.benchSeats, 8);
+  assert.equal(restoBom(RESTO_MODS.r_hb.items).get('Banc haut 1,35 m'), 4);
+  assert.ok(itemCorners(RESTO_MODS.r_hb.items[1]).every(p => Math.abs(p[1]) > 0.4)); // bancs le long de la table, pas dessous
   assert.equal(RESTO_MODS.r_th.items[0][6], 1.1); // table haute
   const [[x0, z0], [x1, z1]] = itemsBox(RESTO_MODS.r_t2.items);
   near(x1 - x0, 0.9 + 2 * 0.45, 1e-9); near(z1 - z0, 0.7, 1e-9); // chaises collées aux bouts de la table

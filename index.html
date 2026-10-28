@@ -3017,16 +3017,18 @@ function pratPanel(g) {
 }
 // total de la restauration (zones, mobilier libre, tables du catalogue) d'une liste d'éléments
 function restoTotals(list) {
-  const t = { places:0, chairs:0, stools:0, tables:0, zones:0, area:0, rows:[] };
+  const t = { places:0, chairs:0, stools:0, benches:0, benchSeats:0, tables:0, zones:0, area:0, rows:[] };
   for (const o of list) {
     const R = o.userData.resto, it = R ? R.items : RESTO_MODS[o.userData.kind]?.items; if (!it) continue;
-    const st = restoStats(it, R?.poly || []); t.places += st.places; t.chairs += st.chairs; t.stools += st.stools; t.tables += st.tables;
+    const st = restoStats(it, R?.poly || []); t.places += st.places; t.chairs += st.chairs; t.stools += st.stools; t.benches += st.benches; t.benchSeats += st.benchSeats; t.tables += st.tables;
     if (R?.poly.length >= 3) { t.zones++; t.area += st.area; }
     t.rows.push({ o, name:R ? R.name : LABELS[o.userData.kind], places:st.places, tables:st.tables });
   }
   return t;
 }
-const restoLine = t => t.places || t.tables ? `Restauration : ${t.places} places assises (${t.chairs} chaises, ${t.stools} tabourets) · ${t.tables} tables${t.zones ? ` · ${t.zones} zone${t.zones > 1 ? 's' : ''}, ${Math.round(t.area)} m²` : ''}` : '';
+// détail des assises : « 12 chaises, 8 tabourets, 4 bancs (8 places) »
+const seatsTxt = st => [`${st.chairs} chaises`, `${st.stools} tabourets`, st.benches ? `${st.benches} bancs (${st.benchSeats} places)` : ''].filter(Boolean).join(', ');
+const restoLine = t => t.places || t.tables ? `Restauration : ${t.places} places assises (${seatsTxt(t)}) · ${t.tables} tables${t.zones ? ` · ${t.zones} zone${t.zones > 1 ? 's' : ''}, ${Math.round(t.area)} m²` : ''}` : '';
 // passages d'une zone : allées traversantes entre le mobilier, largeur et unités de passage (UP)
 function passagesPanel(r) {
   const P = zonePassages(r.poly, r.items, r.auto?.ang ?? undefined), all = [...P.rows.map(p => ['↔', p]), ...P.cols.map(p => ['↕', p])].sort((a, b) => b[1].w - a[1].w);
@@ -3040,12 +3042,12 @@ function passagesPanel(r) {
 // panneau d'une zone de restauration : nom, module, allées, marge, sens des rangées, comptes
 function restoPanel(g) {
   if (!g.userData.resto.poly.length) { const r = g.userData.resto, st = restoStats(r.items, []);
-    return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label><p><b>${st.tables} tables · ${st.places} places</b> (${st.chairs} chaises, ${st.stools} tabourets)</p>
+    return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label><p><b>${st.tables} tables · ${st.places} places</b> (${seatsTxt(st)})</p>
       <p class="e2note">Mobilier posé au pinceau hors zone de restauration. Le pinceau (B) en ajoute, la gomme en retire ; il se déplace, tourne et se duplique d'un bloc.</p>`; }
   const r = g.userData.resto, st = restoStats(r.items, r.poly), a = r.auto || { ...RESTO_DEFAULT, mod:'' };
   const opts = Object.entries(RESTO_MODS).map(([k, m]) => `<option value="${k}"${k === a.mod ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
   return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label>
-    <p><b>${st.tables} tables · ${st.places} places</b> (${st.chairs} chaises, ${st.stools} tabourets)<br>${fmtArea(st.area)}${st.places ? ` · ${fr(st.perPlace, 1)} m² par place` : ''}</p>
+    <p><b>${st.tables} tables · ${st.places} places</b> (${seatsTxt(st)})<br>${fmtArea(st.area)}${st.places ? ` · ${fr(st.perPlace, 1)} m² par place` : ''}</p>
     <label class="pedl">Remplissage<select id="rsMod">${r.auto ? '' : `<option value="" selected>${r.src === 'dacam' ? 'Mobilier du plan DACAM (fixe)' : 'Mobilier posé à la main'}</option>`}${opts}<option value="__vide">Vider la zone</option></select></label>
     <div class="row"><label>Allée ↔ <input id="rsGx" type="number" step="0.1" min="0" value="${a.gx}"> m</label><label>Allée ↕ <input id="rsGy" type="number" step="0.1" min="0" value="${a.gy}"> m</label></div>
     <div class="row"><label>Marge <input id="rsM" type="number" step="0.1" min="0" value="${a.margin}"> m</label><label>Sens <input id="rsA" type="number" step="15" value="${a.ang}"> °</label></div>
@@ -3128,7 +3130,7 @@ function pedSide() {
   if (!s) {
     const RT = restoTotals(props.children.filter(shown));
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
-      ${RT.places || RT.tables ? `<h3>Restauration sur le plan</h3><p><b>${RT.places} places assises</b> · ${RT.tables} tables<br>${RT.chairs} chaises · ${RT.stools} tabourets${RT.zones ? ` · ${RT.zones} zone${RT.zones > 1 ? 's' : ''} (${Math.round(RT.area)} m²)` : ''}</p>
+      ${RT.places || RT.tables ? `<h3>Restauration sur le plan</h3><p><b>${RT.places} places assises</b> · ${RT.tables} tables<br>${seatsTxt(RT)}${RT.zones ? ` · ${RT.zones} zone${RT.zones > 1 ? 's' : ''} (${Math.round(RT.area)} m²)` : ''}</p>
         <table class="pottab" id="rtTab">${RT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places).map((r, i) => `<tr data-i="${i}" style="cursor:pointer" title="Sélectionner"><td>${esc(r.name)}</td><td><b>${r.places}</b> pl.</td><td>${r.tables} t.</td></tr>`).join('')}</table>` : ''}
       <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> lignes (potelets, Vauban, Heras, passe-câbles) : cliquer les points, cotes et nombre en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>Glisser sur le fond</b> : rectangle de sélection (Maj : ajouter), puis ⌥ + glisser pour dupliquer le lot, Suppr. pour le supprimer · ⌘A : tout</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
       <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : déplacer la vue (Maj : plus vite) ; avec une sélection, la déplacer de 10 cm (Maj : 1 m) · + / − : zoom</li>

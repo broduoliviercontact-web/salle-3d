@@ -5,9 +5,11 @@
 //   ['o', x, z, Ø, h]        table ronde ou mange-debout
 //   ['c', x, z, a]           chaise tournée vers a (le dossier est derrière)
 //   ['s', x, z]              tabouret haut
+//   ['b', x, z, L, P, a, h]  banc (L le long de la direction a), assise à h ; une place par 0,60 m
 
 import { upFromWidth } from './calc.js';
 export const CHAIR = 0.45, STOOL = 0.45;
+export const benchPlaces = L => Math.max(1, Math.floor(L / 0.6 + 1e-9));
 const P2 = Math.PI / 2;
 // modules du catalogue (mesurés sur le plan DACAM, au 1:200)
 export const RESTO_MODS = {
@@ -23,6 +25,8 @@ export const RESTO_MODS = {
     items:[['o', 0, 0, 0.6, 1.1]] },
   r_tc:{ name:'Table carrée seule', desc:'Table 0,9 × 0,9 m, sans chaise', items:[['t', 0, 0, 0.9, 0.9, 0, 0.75]] },
   r_tr:{ name:'Table ronde seule', desc:'Table ronde Ø 0,9 m, sans chaise', items:[['o', 0, 0, 0.9, 0.75]] },
+  r_hb:{ name:'Table haute + 4 bancs', desc:'Table haute 2,8 × 0,8 m, 2 bancs hauts de 1,35 m de chaque côté (8 places)',
+    items:[['t', 0, 0, 2.8, 0.8, 0, 1.1], ...[-0.7, 0.7].flatMap(x => [['b', x, -0.625, 1.35, 0.35, 0, 0.75], ['b', x, 0.625, 1.35, 0.35, 0, 0.75]])] },
   r_th:{ name:'Table haute seule', desc:'Table haute 2,8 × 0,8 m (1,10 m), sans tabouret', items:[['t', 0, 0, 2.8, 0.8, 0, 1.1]] },
   r_ch:{ name:'Chaise seule', desc:'Chaise 0,45 × 0,45 m', items:[['c', 0, 0, 0]] },
 };
@@ -32,7 +36,7 @@ export const RESTO_DEFAULT = { mod:'r_t4', gx:1.2, gy:1.2, margin:0.3, ang:0 }; 
 export function itemCorners(it) {
   const [k, x, z] = it;
   let w, d, a = 0;
-  if (k === 't') [w, d, a] = [it[3], it[4], it[5]];
+  if (k === 't' || k === 'b') [w, d, a] = [it[3], it[4], it[5]];
   else if (k === 'o') w = d = it[3];
   else if (k === 'c') { w = d = CHAIR; a = it[3]; }
   else w = d = STOOL;
@@ -49,7 +53,7 @@ export function moveItems(items, dx, dz, a = 0) {
   const c = Math.cos(a), s = Math.sin(a), r = v => Math.round(v * 1000) / 1000;
   return items.map(it => {
     const x = it[1] * c - it[2] * s + dx, z = it[1] * s + it[2] * c + dz, o = [it[0], r(x), r(z), ...it.slice(3)];
-    if (it[0] === 't') o[5] = r(it[5] + a); if (it[0] === 'c') o[3] = r(it[3] + a);
+    if (it[0] === 't' || it[0] === 'b') o[5] = r(it[5] + a); if (it[0] === 'c') o[3] = r(it[3] + a);
     return o;
   });
 }
@@ -126,8 +130,9 @@ export const capacityTable = (poly, opts = {}, angles) => Object.keys(RESTO_MODS
 
 export function restoStats(items, poly) {
   const n = k => items.filter(i => i[0] === k).length;
-  const area = Array.isArray(poly) && poly.length >= 3 ? polyArea(poly) : 0, places = n('c') + n('s');
-  return { tables:n('t') + n('o'), places, chairs:n('c'), stools:n('s'), area, perPlace:places ? area / places : 0 };
+  const benches = items.filter(i => i[0] === 'b'), benchSeats = benches.reduce((s, b) => s + benchPlaces(b[3]), 0);
+  const area = Array.isArray(poly) && poly.length >= 3 ? polyArea(poly) : 0, places = n('c') + n('s') + benchSeats;
+  return { tables:n('t') + n('o'), places, chairs:n('c'), stools:n('s'), benches:benches.length, benchSeats, area, perPlace:places ? area / places : 0 };
 }
 // nomenclature : désignation -> nombre
 export function restoBom(items) {
@@ -137,6 +142,7 @@ export function restoBom(items) {
     else if (it[0] === 'o') add(it[4] > 0.9 ? `Mange-debout Ø ${f(it[3])} m` : `Table ronde Ø ${f(it[3])} m`);
     else if (it[0] === 'c') add('Chaise');
     else if (it[0] === 's') add('Tabouret haut');
+    else if (it[0] === 'b') add(`Banc${it[6] > 0.6 ? ' haut' : ''} ${f(Math.max(it[3], it[4]))} m`);
   }
   return m;
 }
@@ -158,6 +164,10 @@ export function furnitureSvg(items) {
       const h = CHAIR / 2;
       out.push(`<g transform="translate(${n3(x)} ${n3(z)}) rotate(${n3(it[3] * 180 / Math.PI)})"><rect x="${-h}" y="${-h}" width="${CHAIR}" height="${CHAIR}" fill="#fff" fill-opacity="0.85" ${st}/>`
         + `<line x1="${n3(-h + 0.03)}" y1="${-h}" x2="${n3(-h + 0.03)}" y2="${h}" stroke="#000" stroke-width="0.06"/></g>`);
+    } else if (k === 'b') { // banc : rectangle et lattes
+      const [L, P, a] = [it[3], it[4], it[5]];
+      out.push(`<g transform="translate(${n3(x)} ${n3(z)}) rotate(${n3(a * 180 / Math.PI)})"><rect x="${n3(-L / 2)}" y="${n3(-P / 2)}" width="${n3(L)}" height="${n3(P)}" fill="#fff" fill-opacity="0.85" ${st}/>`
+        + `<line x1="${n3(-L / 2 + 0.05)}" y1="0" x2="${n3(L / 2 - 0.05)}" y2="0" stroke="#000" stroke-width="0.012"/></g>`);
     } else if (k === 's') out.push(`<circle cx="${n3(x)}" cy="${n3(z)}" r="${n3(STOOL / 2)}" fill="#fff" fill-opacity="0.85" ${st}/>`);
   }
   return out.join('');
@@ -176,7 +186,7 @@ export function zoneSvg(poly, id, col = RESTO_COLORS[0]) {
 
 // zone venue d'un setup, d'un lien ou d'un fichier : valeurs bornées
 const fin = (v, lo, hi) => Number.isFinite(+v) && v !== null && v !== '' ? Math.min(hi, Math.max(lo, +v)) : null;
-const ARITY = { t:7, o:5, c:4, s:3 };
+const ARITY = { t:7, o:5, c:4, s:3, b:7 };
 export function cleanResto(r, lim = 500) {
   if (!r || typeof r !== 'object') return null;
   const poly = (Array.isArray(r.poly) ? r.poly : []).slice(0, 400).map(q => Array.isArray(q) ? [fin(q[0], -lim, lim), fin(q[1], -lim, lim)] : [null, null]).filter(q => q[0] !== null && q[1] !== null);
@@ -185,7 +195,7 @@ export function cleanResto(r, lim = 500) {
     if (!Array.isArray(it) || !ARITY[it[0]] || it.length < ARITY[it[0]]) continue;
     const v = it.slice(1, ARITY[it[0]]).map((x, i) => fin(x, i < 2 ? -lim : -100, i < 2 ? lim : 100));
     if (v.includes(null)) continue;
-    if (it[0] === 't' && (v[2] <= 0 || v[3] <= 0 || v[2] > 20 || v[3] > 20 || v[5] <= 0 || v[5] > 3)) continue;
+    if ((it[0] === 't' || it[0] === 'b') && (v[2] <= 0 || v[3] <= 0 || v[2] > 20 || v[3] > 20 || v[5] <= 0 || v[5] > 3)) continue;
     if (it[0] === 'o' && (v[2] <= 0 || v[2] > 5 || v[3] <= 0 || v[3] > 3)) continue;
     items.push([it[0], ...v]);
   }
@@ -283,14 +293,14 @@ export function pickGroup(items, x, z) {
   const reach = t => (t[0] === 't' ? Math.max(t[3], t[4]) : t[3]) / 2 + 0.75; // une assise appartient à la table la plus proche, à portée
   const tableOf = s => { const t = tables.reduce((b, t) => !b || dist(t, s) < dist(b, s) ? t : b, null); return t && dist(t, s) <= reach(t) ? t : null; };
   const T = hit[0] === 't' || hit[0] === 'o' ? hit : tableOf(hit);
-  const group = T ? [T, ...items.filter(it => (it[0] === 'c' || it[0] === 's') && tableOf(it) === T)] : [hit];
+  const group = T ? [T, ...items.filter(it => (it[0] === 'c' || it[0] === 's' || it[0] === 'b') && tableOf(it) === T)] : [hit];
   const [[x0, z0], [x1, z1]] = itemsBox(group);
   return moveItems(group, -(x0 + x1) / 2, -(z0 + z1) / 2);
 }
 export function groupName(g) {
   const n = k => g.filter(i => i[0] === k).length, t = g.find(i => i[0] === 't' || i[0] === 'o'), f = v => (Math.round(v * 100) / 100).toLocaleString('fr');
   const tn = !t ? '' : t[0] === 't' ? `${t[6] > 0.9 ? 'Table haute' : 'Table'} ${f(Math.max(t[3], t[4]))} × ${f(Math.min(t[3], t[4]))}` : `${t[4] > 0.9 ? 'Mange-debout' : 'Table ronde'} Ø ${f(t[3])}`;
-  const seats = [n('c') && `${n('c')} chaise${n('c') > 1 ? 's' : ''}`, n('s') && `${n('s')} tabouret${n('s') > 1 ? 's' : ''}`].filter(Boolean).join(', ');
+  const seats = [n('c') && `${n('c')} chaise${n('c') > 1 ? 's' : ''}`, n('s') && `${n('s')} tabouret${n('s') > 1 ? 's' : ''}`, n('b') && `${n('b')} banc${n('b') > 1 ? 's' : ''}`].filter(Boolean).join(', ');
   return [tn, seats].filter(Boolean).join(' + ') || 'Élément';
 }
 

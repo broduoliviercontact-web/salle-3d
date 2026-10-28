@@ -423,6 +423,8 @@ export function buildFurniture(items) {
     else if (k === 'o') { const [D, h] = it.slice(3); put('round', x, h - 0.02, z, 0, D, 0.04, D); put('leg', x, (h - 0.04) / 2, z, 0, 1, h - 0.04, 1); }
     else if (k === 'c') { const a = it[3], c = Math.cos(a), s = Math.sin(a), b = CHAIR / 2 - 0.02; // dossier derrière (opposé à a)
       put('seat', x, 0.45, z, -a, CHAIR, 0.05, CHAIR); put('back', x - c * b, 0.68, z - s * b, -a, 0.04, 0.45, CHAIR); put('leg', x, 0.22, z, 0, 0.8, 0.45, 0.8); }
+    else if (k === 'b') { const [L, P, a, h] = it.slice(3); put('seat', x, h - 0.025, z, -a, L, 0.05, P); // banc : assise + 2 pieds
+      for (const sgn of [-1, 1]) { const dx = Math.cos(a) * sgn * (L / 2 - 0.12), dz = Math.sin(a) * sgn * (L / 2 - 0.12); put('leg', x + dx, (h - 0.05) / 2, z + dz, 0, 1.2, h - 0.05, 1.2); } }
     else if (k === 's') { put('stool', x, 0.75, z, 0, STOOL * 0.85, 0.05, STOOL * 0.85); put('leg', x, 0.37, z, 0, 0.8, 0.74, 0.8); }
   }
   const geo = { top:new THREE.BoxGeometry(1, 1, 1), seat:new THREE.BoxGeometry(1, 1, 1), back:new THREE.BoxGeometry(1, 1, 1), round:new THREE.CylinderGeometry(0.5, 0.5, 1, 24), stool:new THREE.CylinderGeometry(0.5, 0.5, 1, 16), leg:new THREE.CylinderGeometry(0.025, 0.025, 1, 6) };
