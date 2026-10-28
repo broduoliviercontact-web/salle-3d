@@ -25,8 +25,8 @@ export const RESTO_MODS = {
     items:[['o', 0, 0, 0.6, 1.1]] },
   r_tc:{ name:'Table carrée seule', desc:'Table 0,9 × 0,9 m, sans chaise', items:[['t', 0, 0, 0.9, 0.9, 0, 0.75]] },
   r_tr:{ name:'Table ronde seule', desc:'Table ronde Ø 0,9 m, sans chaise', items:[['o', 0, 0, 0.9, 0.75]] },
-  r_hb:{ name:'Table haute + 4 bancs', desc:'Table haute 2,8 × 0,8 m, 2 bancs hauts de 1,35 m de chaque côté (8 places)',
-    items:[['t', 0, 0, 2.8, 0.8, 0, 1.1], ...[-0.7, 0.7].flatMap(x => [['b', x, -0.625, 1.35, 0.35, 0, 0.75], ['b', x, 0.625, 1.35, 0.35, 0, 0.75]])] },
+  r_hb:{ name:'Table haute + 2 bancs', desc:'Table haute 2,8 × 0,8 m, un banc haut de 2,8 m de chaque côté (8 places)',
+    items:[['t', 0, 0, 2.8, 0.8, 0, 1.1], ['b', 0, -0.625, 2.8, 0.35, 0, 0.75], ['b', 0, 0.625, 2.8, 0.35, 0, 0.75]] },
   r_th:{ name:'Table haute seule', desc:'Table haute 2,8 × 0,8 m (1,10 m), sans tabouret', items:[['t', 0, 0, 2.8, 0.8, 0, 1.1]] },
   r_ch:{ name:'Chaise seule', desc:'Chaise 0,45 × 0,45 m', items:[['c', 0, 0, 0]] },
 };
