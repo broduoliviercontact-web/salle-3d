@@ -84,6 +84,7 @@ function iconSvg(ic, x, y, S) {
 
 // une annotation en SVG (chaîne), dans le repère du plan
 export function annotSvg(a) {
+  if (a.hidden) return ''; // cote masquée (ligne de potelets / barrières : « Afficher les cotes » décoché)
   const s = a.s || 1, col = a.col || '#d0021b', [p0, p1] = a.p;
   switch (a.t) {
     case 'text': return lines(p0[0], p0[1], a.txt || 'Texte', 0.6 * s, col);
@@ -141,6 +142,7 @@ export function cleanAnnot(list, lim = 2000) {
     r.s = Number.isFinite(+a.s) && a.s !== null ? Math.min(5, Math.max(0.3, +a.s)) : 1;
     if (a.t === 'icon') r.ic = ICONS[a.ic] ? a.ic : 'info';
     if (a.t === 'zone' && a.cotes) r.cotes = true;
+    if (a.hidden) r.hidden = true; if (a.grp) r.grp = String(a.grp).slice(0, 40);
     out.push(r);
   }
   return out;

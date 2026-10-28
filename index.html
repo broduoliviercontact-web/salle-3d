@@ -112,7 +112,7 @@
 </div>
 <dialog id="ped">
   <div class="pedh"><b>Éditeur de plan 2D</b>
-    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="pot" title="Potelets (P) : cliquer chaque point de la ligne ; cotes et nombre de potelets affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Potelets</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
+    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
     <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
     <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label><label class="cb" title="Dessine chaque praticable 2 × 1 des scènes et régies (ce qui dépasse en rouge)"><input type="checkbox" id="pedPrat"> Praticables</label>
     <span class="grow"></span>
@@ -1501,12 +1501,6 @@ function setResto(g, r) {
   g.name = `${r.name} · ${st.places} places · ${Math.round(st.area)} m²`;
   return g;
 }
-// couleur d'une ligne de potelets : tête et anneau du potelet, cordon (plan et 3D)
-function setLineCol(g, col) {
-  if (!['potelet', 'cordon'].includes(g.userData.kind)) return;
-  g.userData.col = col; const m = () => new THREE.MeshStandardMaterial({ color:col, roughness:0.6 });
-  if (g.userData.kind === 'cordon') g.children[0].material = m(); else { g.children[3].material = m(); g.children[4].material = m(); }
-}
 const refillResto = g => { ped.cap = null; const r = g.userData.resto; if (r.auto) r.items = fillZone(r.poly, r.auto); setResto(g, r); };
 function rebuildProp(o, dims, kind = o.userData.kind) {
   const n = makeProp(kind, dims), keep = { ...o.userData }; delete keep.kind; delete keep.dims;
@@ -2190,7 +2184,7 @@ function planItem(g) {
 }
 function drawItem(out, { g, w, d, poly, front }, o = PLAN_DEF, legend = new Map()) {
   const f = v => +v.toFixed(2);
-  const col = hex(COLORS[g.userData.kind] ?? 0x888888), kind = LABELS[g.userData.kind] || g.userData.kind;
+  const col = g.userData.col || hex(COLORS[g.userData.kind] ?? 0x888888), kind = LABELS[g.userData.kind] || g.userData.kind;
   legend.set(kind, { col, n:(legend.get(kind)?.n || 0) + 1 });
   const R = g.userData.resto, MOD_ = RESTO_MODS[g.userData.kind];
   if (R || MOD_) { // restauration : dessinée dans le repère de l'élément (zone hachurée + mobilier), nom et compte en clair
@@ -2631,58 +2625,87 @@ async function pedDacam() {
 }
 // --- lignes de potelets tracées en 2D (même règle qu'en 3D : écart réparti à égalité, au plus l'écart max, potelets partagés aux angles) ---
 const potGap2 = () => THREE.MathUtils.clamp(+$('potGap').value || 2, 0.5, ROPE_L);
-function potPlan(pts, closed) { // tronçons : longueur, nombre d'intervalles, pas ; potelets et cordons
-  const segs = [], P = closed ? [...pts, pts[0]] : pts;
+// lignes tracées en 2D, mêmes règles qu'en 3D : potelets (écart réparti, au plus l'écart max), Vauban (une barrière par pas de 2,20 m),
+// Heras (panneaux de 3,50 m, un plot à chaque jonction), passe-câbles Defender (modules de ~1 m, tronçons droits)
+const LINE_OF = { potelet:'potelet', cordon:'potelet', vauban:'vauban', heras:'heras', plot_heras:'heras', defender:'defender', defender_c:'defender' };
+const LINE_KINDS = {
+  potelet:{ name:'Potelets + cordons', col:'#a0783c', grp:'Potelets #', fixed:0 },
+  vauban:{ name:'Barrières Vauban', col:'#8a9099', grp:'Ligne Vauban #', fixed:VAUBAN_PITCH },
+  heras:{ name:'Barrières Heras', col:'#8a9099', grp:'Ligne Heras #', fixed:HERAS_PITCH },
+  defender:{ name:'Passe-câbles Defender', col:'#f2c200', grp:'Passe-câbles #', fixed:MOD },
+};
+ped.lineKind = 'potelet'; ped.lineCols = {};
+const lineCol = () => ped.lineCols[ped.lineKind] || null;
+function potPlan(pts, closed, kind = ped.lineKind) { // tronçons : longueur, nombre d'unités, pas ; totaux
+  const K = LINE_KINDS[kind], segs = [], P = closed ? [...pts, pts[0]] : pts;
   for (let i = 0; i + 1 < P.length; i++) { const [a, b] = [P[i], P[i + 1]], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.05) continue;
-    const n = Math.max(1, Math.ceil(L / potGap2() - 1e-6)); segs.push({ a, b, L, n, p:L / n }); }
-  const ropes = segs.reduce((s, g) => s + g.n, 0);
-  return { segs, ropes, posts:closed ? ropes : ropes + (segs.length ? 1 : 0), len:segs.reduce((s, g) => s + g.L, 0) };
+    const n = K.fixed ? Math.max(1, Math.round(L / K.fixed)) : Math.max(1, Math.ceil(L / potGap2() - 1e-6)); segs.push({ a, b, L, n, p:K.fixed || L / n }); }
+  const units = segs.reduce((s, g) => s + g.n, 0), joints = closed ? units : units + (segs.length ? 1 : 0);
+  return { segs, kind, units, ropes:units, posts:joints, len:segs.reduce((s, g) => s + g.n * g.p, 0) };
 }
-// point suivant : coins des éléments (10 px) ; sinon angle au 45° et longueur au 5 cm ; Maj : libre
+function lineCount(plan) { // texte du compte selon le type
+  const k = plan.kind, n = plan.units;
+  return k === 'potelet' ? `${plan.posts} potelets · ${n} cordons` : k === 'vauban' ? `${n} barrières Vauban` : k === 'heras' ? `${n} panneaux Heras · ${plan.posts} plots` : `${n} modules Defender`;
+}
+// point suivant : coins des éléments (10 px) ; sinon angle au 45° et longueur au 5 cm (au pas pour Vauban, Heras, Defender) ; Maj : libre
 function potSnap(p, e) {
   const P = ped.pot?.pts; if (e.shiftKey || !P?.length) return pedSnap(p, e);
-  const c = pedSnap(p, { shiftKey:false }), last = P.at(-1);
+  const c = pedSnap(p, { shiftKey:false }), last = P.at(-1), K = LINE_KINDS[ped.lineKind];
   if (P.length >= 2 && Math.hypot(p[0] - P[0][0], p[1] - P[0][1]) < 10 * pedUnit()) return [...P[0]]; // retour au départ : boucle
-  if (props.children.some(g => shown(g) && planItem(g).poly.some(q => q[0] === c[0] && q[1] === c[1]))) return c; // accroché à un coin
+  if (!K.fixed && props.children.some(g => shown(g) && planItem(g).poly.some(q => q[0] === c[0] && q[1] === c[1]))) return c; // accroché à un coin
   let a = Math.atan2(p[1] - last[1], p[0] - last[0]), L = Math.hypot(p[0] - last[0], p[1] - last[1]);
-  if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4); L = Math.round(L * 20) / 20;
+  if ($('snap').checked) a = Math.round(a / (Math.PI / 4)) * (Math.PI / 4);
+  L = K.fixed ? Math.round(L / K.fixed) * K.fixed : Math.round(L * 20) / 20;
+  if (L < 0.05) return [...last]; // moins d'un demi-pas : pas de nouveau point (2e clic d'un double-clic)
   return [+(last[0] + Math.cos(a) * L).toFixed(3), +(last[1] + Math.sin(a) * L).toFixed(3)];
 }
 function potDraft(cur) {
   const T = ped.pot; if (!T) return;
   const u = pedUnit(), pts = cur ? [...T.pts, cur] : T.pts, closing = !!cur && T.pts.length >= 2 && cur[0] === T.pts[0][0] && cur[1] === T.pts[0][1];
-  const plan = potPlan(closing ? T.pts : pts, closing), fs = 13 * u;
-  let h = `<polyline points="${(closing ? [...T.pts, T.pts[0]] : pts).map(q => q.join(',')).join(' ')}" fill="none" stroke="#a0783c" stroke-width="${3 * u}" pointer-events="none"/>`;
+  const plan = potPlan(closing ? T.pts : pts, closing), fs = 13 * u, col = lineCol() || LINE_KINDS[ped.lineKind].col, k = ped.lineKind;
+  let h = `<polyline points="${(closing ? [...T.pts, T.pts[0]] : pts).map(q => q.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="${k === 'defender' ? 0.29 : 3 * u}" stroke-opacity="${k === 'defender' ? 0.8 : 1}" pointer-events="none"/>`;
   plan.segs.forEach((g, i) => {
     const dx = (g.b[0] - g.a[0]) / g.L, dz = (g.b[1] - g.a[1]) / g.L;
-    for (let k = (i === 0 ? 0 : 1); k <= g.n; k++) { if (closing && i === plan.segs.length - 1 && k === g.n) break;
-      h += `<circle cx="${g.a[0] + dx * g.p * k}" cy="${g.a[1] + dz * g.p * k}" r="${Math.max(0.16, 4 * u)}" fill="#9aa3b2" stroke="#000" stroke-width="${u}" pointer-events="none"/>`; }
+    for (let j = (i === 0 ? 0 : 1); j <= g.n; j++) { if (closing && i === plan.segs.length - 1 && j === g.n) break; // jonctions : potelets, plots, crochets
+      const x = g.a[0] + dx * g.p * j, z = g.a[1] + dz * g.p * j;
+      h += k === 'potelet' || k === 'heras' ? `<circle cx="${x}" cy="${z}" r="${Math.max(0.16, 4 * u)}" fill="${k === 'heras' ? '#3a3d42' : '#9aa3b2'}" stroke="#000" stroke-width="${u}" pointer-events="none"/>`
+        : `<line x1="${x - dz * 0.3}" y1="${z + dx * 0.3}" x2="${x + dz * 0.3}" y2="${z - dx * 0.3}" stroke="#000" stroke-width="${1.5 * u}" pointer-events="none"/>`; }
     let ang = Math.atan2(dz, dx) * 180 / Math.PI; if (ang > 90) ang -= 180; if (ang <= -90) ang += 180; // texte jamais à l'envers
     const r = ang * Math.PI / 180, m = [(g.a[0] + g.b[0]) / 2 + Math.sin(r) * 14 * u, (g.a[1] + g.b[1]) / 2 - Math.cos(r) * 14 * u]; // au-dessus du trait
-    h += `<text transform="translate(${m[0]} ${m[1]}) rotate(${ang})" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="#5a3e12" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke" pointer-events="none">${fr(g.L, 2)} m · ${g.n} × ${fr(g.p, 2)}</text>`;
+    h += `<text transform="translate(${m[0]} ${m[1]}) rotate(${ang})" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="#5a3e12" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke" pointer-events="none">${fr(g.n * g.p, 2)} m · ${g.n} × ${fr(g.p, 2)}</text>`;
   });
   if (T.pts[0]) h += `<circle cx="${T.pts[0][0]}" cy="${T.pts[0][1]}" r="${7 * u}" fill="none" stroke="#e8262b" stroke-width="${2 * u}" pointer-events="none"/>`;
   $('pedDraft').innerHTML = h;
-  $('pedInfo').textContent = plan.segs.length ? `${plan.posts} potelets · ${plan.ropes} cordons · ${fr(plan.len, 2)} m${closing ? ' (boucle)' : ''} — double-clic ou Entrée pour poser` : 'Clique le point suivant de la ligne';
+  $('pedInfo').textContent = plan.segs.length ? `${lineCount(plan)} · ${fr(plan.len, 2)} m${closing ? ' (boucle)' : ''} — double-clic ou Entrée pour poser` : 'Clique le point suivant de la ligne';
   T.live = plan; pedSide();
+}
+// couleur d'une ligne : potelets (tête, anneau) et cordons ; barrières et passe-câbles en entier (plan et 3D)
+function setLineCol(g, col) {
+  const k = g.userData.kind; if (!['potelet', 'cordon', 'vauban', 'heras', 'plot_heras', 'defender', 'defender_c'].includes(k)) return;
+  g.userData.col = col; const m = () => new THREE.MeshStandardMaterial({ color:col, roughness:0.6 });
+  if (k === 'cordon') g.children[0].material = m(); else if (k === 'potelet') { g.children[3].material = m(); g.children[4].material = m(); }
+  else g.traverse(o => { if (o.isMesh) o.material = m(); });
 }
 function potFinish(closed = false) {
   const T = ped.pot; ped.pot = null; $('pedDraft').innerHTML = '';
   if (!T || T.pts.length < 2) { pedSetTool('sel'); $('pedInfo').textContent = ''; return; }
-  const plan = potPlan(T.pts, closed); if (!plan.segs.length) return pedSetTool('sel');
-  const cotes = $('potCotes') ? $('potCotes').checked : true;
+  const kind = ped.lineKind, K = LINE_KINDS[kind], plan = potPlan(T.pts, closed); if (!plan.segs.length) return pedSetTool('sel');
+  const cotes = $('potCotes') ? $('potCotes').checked : true, col = lineCol();
   pushUndo();
-  const grp = 'Potelets #' + Date.now().toString(36), at = (x, z) => { const v = new THREE.Vector3(x, 0, z); v.y = floorAt(v); return v; };
+  const grp = K.grp + Date.now().toString(36), at = (x, z) => { const v = new THREE.Vector3(x, 0, z); v.y = floorAt(v); return v; };
+  const put = (k, dims, x, z, a3, dy = 0) => { const o = makeProp(k, dims); o.userData.grp = grp; o.position.copy(at(x, z)); o.position.y += dy; o.rotation.y = a3; if (col) setLineCol(o, col); return o; };
   plan.segs.forEach((g, i) => {
-    const dx = (g.b[0] - g.a[0]) / g.L, dz = (g.b[1] - g.a[1]) / g.L, a3 = Math.atan2(-dz, dx); // rotation 3D (repère du plan : z vers le bas)
-    for (let k = (i === 0 ? 0 : 1); k <= g.n; k++) { if (closed && i === plan.segs.length - 1 && k === g.n) break;
-      const o = makeProp('potelet', DEFAULT.potelet); o.userData.grp = grp; o.position.copy(at(g.a[0] + dx * g.p * k, g.a[1] + dz * g.p * k)); o.rotation.y = a3; if (ped.potCol) setLineCol(o, ped.potCol); }
-    for (let k = 0; k < g.n; k++) { const c = makeProp('cordon', [g.p, 0.03, ROPE_Y]); c.userData.grp = grp; c.position.copy(at(g.a[0] + dx * g.p * (k + 0.5), g.a[1] + dz * g.p * (k + 0.5))); c.rotation.y = a3; if (ped.potCol) setLineCol(c, ped.potCol); }
-    if (cotes) { const nx = dz * 0.6, nz = -dx * 0.6; // cote de chaque tronçon, décalée de 60 cm
-      ANNOT.push({ id:newId(), t:'dim', p:[[g.a[0] + nx, g.a[1] + nz], [g.b[0] + nx, g.b[1] + nz]], txt:`${g.n} × ${fr(g.p, 2)} m =`, col:ped.potCol && ped.potCol !== '#a0783c' ? ped.potCol : '#5a3e12', s:1 }); }
+    const dx = (g.b[0] - g.a[0]) / g.L, dz = (g.b[1] - g.a[1]) / g.L, a3 = Math.atan2(-dz, dx), P = (j, f = 0) => [g.a[0] + dx * g.p * (j + f), g.a[1] + dz * g.p * (j + f)]; // rotation 3D (repère du plan : z vers le bas)
+    const joint = (fn) => { for (let j = (i === 0 ? 0 : 1); j <= g.n; j++) { if (closed && i === plan.segs.length - 1 && j === g.n) break; fn(...P(j)); } };
+    if (kind === 'potelet') { joint((x, z) => put('potelet', DEFAULT.potelet, x, z, a3)); for (let j = 0; j < g.n; j++) put('cordon', [g.p, 0.03, ROPE_Y], ...P(j, 0.5), a3); }
+    else if (kind === 'vauban') for (let j = 0; j < g.n; j++) put('vauban', DEFAULT.vauban, ...P(j, 0.5), a3);
+    else if (kind === 'heras') { joint((x, z) => put('plot_heras', DEFAULT.plot_heras, x, z, a3)); for (let j = 0; j < g.n; j++) put('heras', DEFAULT.heras, ...P(j, 0.5), a3, 0.06); }
+    else put('defender', [g.n * MOD, 0.29, 0.05], ...P(0, g.n / 2), a3);
+    const nx = dz * 0.6, nz = -dx * 0.6, Lr = g.n * g.p; // cote de chaque tronçon, décalée de 60 cm ; masquable ensuite
+    ANNOT.push({ id:newId(), t:'dim', grp, ...(cotes ? {} : { hidden:true }), p:[[g.a[0] + nx, g.a[1] + nz], [g.a[0] + dx * Lr + nx, g.a[1] + dz * Lr + nz]], txt:`${g.n} × ${fr(g.p, 2)} m =`, col:col && col !== K.col ? col : '#5a3e12', s:1 });
   });
   pedSetTool('sel'); pedDraw(); drawCotes();
-  $('pedInfo').textContent = `Posé : ${plan.posts} potelets · ${plan.ropes} cordons · ${fr(plan.len, 2)} m`;
+  $('pedInfo').textContent = `Posé : ${lineCount(plan)} · ${fr(plan.len, 2)} m`;
 }
 // --- pinceau de mobilier dans les zones de restauration ---
 ped.br = { mod:'r_t4', ang:0, gap:0.6, erase:false, rad:0.8, pick:false, custom:null }; // custom : élément pris à la pipette
@@ -2956,22 +2979,26 @@ function pedSide() {
     $('brRad').oninput = () => { B.rad = +$('brRad').value; };
     return;
   }
-  if (ped.tool === 'pot') { // réglages et compte en direct pendant le tracé
-    const L = ped.pot?.live;
-    if (!$('potGap2')) {
-      el.innerHTML = `<h3>Ligne de potelets</h3><div class="row"><label>Écart max <input id="potGap2" type="number" step="0.1" min="0.5" max="${ROPE_L}" value="${potGap2()}"> m</label></div>
-        <label class="cb"><input type="checkbox" id="potCotes" checked> Garder les cotes sur le plan</label>
-        <div class="row pedcols" id="potCols" title="Couleur de la ligne">${['#a0783c', ...RESTO_COLORS].map(c => `<button data-c="${c}" style="background:${c}" class="${c === (ped.potCol || '#a0783c') ? 'on' : ''}"></button>`).join('')}</div><div id="potLive"></div>
-        <p class="e2note">Clic : point de la ligne (45° et 5 cm, ou coin d'un élément ; Maj : libre). Double-clic ou Entrée : poser. Clic sur le 1er point : boucle fermée. Retour arrière : enlever le dernier point. Potelets REXO100CHC, cordons CI2C de 2 m : l'écart est réparti à égalité sur chaque tronçon.</p>`;
-      document.querySelectorAll('#potCols [data-c]').forEach(b => b.onclick = () => { ped.potCol = b.dataset.c; document.querySelectorAll('#potCols [data-c]').forEach(x => x.classList.toggle('on', x === b)); });
-      $('potGap2').onchange = () => { $('potGap').value = THREE.MathUtils.clamp(+$('potGap2').value || 2, 0.5, ROPE_L); $('potGap2').value = potGap2(); if (ped.pot) potDraft(); };
+  if (ped.tool === 'pot') { // type de ligne, réglages et compte en direct pendant le tracé
+    const L = ped.pot?.live, K = LINE_KINDS[ped.lineKind];
+    if (!$('potLive')) {
+      el.innerHTML = `<h3>Tracer une ligne</h3>
+        <div class="row" id="lnKind">${Object.entries(LINE_KINDS).map(([k, v]) => `<button data-k="${k}" class="${k === ped.lineKind ? 'on' : ''}">${esc(v.name)}</button>`).join('')}</div>
+        ${ped.lineKind === 'potelet' ? `<div class="row"><label>Écart max <input id="potGap2" type="number" step="0.1" min="0.5" max="${ROPE_L}" value="${potGap2()}"> m</label></div>` : `<p class="e2note">Longueur au pas de ${fr(K.fixed, 2)} m (${ped.lineKind === 'vauban' ? 'une barrière' : ped.lineKind === 'heras' ? 'un panneau' : 'un module'}).</p>`}
+        <label class="cb"><input type="checkbox" id="potCotes" ${ped.lineCotes === false ? '' : 'checked'}> Afficher les cotes</label>
+        <div class="row pedcols" id="potCols" title="Couleur de la ligne">${[K.col, ...RESTO_COLORS].map(c => `<button data-c="${c}" style="background:${c}" class="${c === (lineCol() || K.col) ? 'on' : ''}"></button>`).join('')}</div><div id="potLive"></div>
+        <p class="e2note">Clic : point de la ligne (45° ; Maj : libre). Double-clic ou Entrée : poser. Clic sur le 1er point : boucle fermée. Retour arrière : enlever le dernier point.${ped.lineKind === 'potelet' ? ' Potelets REXO100CHC, cordons CI2C de 2 m : écart réparti à égalité sur chaque tronçon.' : ped.lineKind === 'defender' ? ' Tronçons droits ; les angles se font en 3D avec les pièces d\'angle.' : ''}</p>`;
+      el.querySelectorAll('#lnKind [data-k]').forEach(b => b.onclick = () => { ped.lineKind = b.dataset.k; ped.pot = null; $('pedDraft').innerHTML = ''; el.innerHTML = ''; pedSide(); });
+      document.querySelectorAll('#potCols [data-c]').forEach(b => b.onclick = () => { ped.lineCols[ped.lineKind] = b.dataset.c === K.col ? null : b.dataset.c; document.querySelectorAll('#potCols [data-c]').forEach(x => x.classList.toggle('on', x === b)); if (ped.pot) potDraft(); });
+      $('potCotes').onchange = () => { ped.lineCotes = $('potCotes').checked; };
+      if ($('potGap2')) $('potGap2').onchange = () => { $('potGap').value = THREE.MathUtils.clamp(+$('potGap2').value || 2, 0.5, ROPE_L); $('potGap2').value = potGap2(); if (ped.pot) potDraft(); };
     }
-    $('potLive').innerHTML = L?.segs.length ? `<p><b>${L.posts} potelets · ${L.ropes} cordons</b><br>${fr(L.len, 2)} m au total</p><table class="pottab">${L.segs.map((g, i) => `<tr><td>${i + 1}</td><td>${fr(g.L, 2)} m</td><td>${g.n} × ${fr(g.p, 2)} m</td></tr>`).join('')}</table>` : '';
+    $('potLive').innerHTML = L?.segs.length ? `<p><b>${lineCount(L)}</b><br>${fr(L.len, 2)} m au total</p><table class="pottab">${L.segs.map((g, i) => `<tr><td>${i + 1}</td><td>${fr(g.n * g.p, 2)} m</td><td>${g.n} × ${fr(g.p, 2)} m</td></tr>`).join('')}</table>` : '';
     return;
   }
   if (!s) {
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
-      <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> potelets : cliquer les points de la ligne, cotes et nombre de potelets en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
+      <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> lignes (potelets, Vauban, Heras, passe-câbles) : cliquer les points, cotes et nombre en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
       <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : déplacer la vue (Maj : plus vite) ; avec une sélection, la déplacer de 10 cm (Maj : 1 m) · + / − : zoom</li>
       <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · glisser le fond, Espace ou clic droit : déplacer la vue · <b>C</b> recadrer</li></ul>
       <p class="e2note">Le matériel est le même qu'en 3D. Textes, cotes, zones et pictos n'apparaissent que sur les plans (export, fiches) et sont sauvés avec le setup.</p>`;
@@ -2994,11 +3021,19 @@ function pedSide() {
     $('pedR1').onclick = () => pedRotate(g, 15); $('pedR2').onclick = () => pedRotate(g, -15);
     if (g.userData.resto) bindRestoPanel(g);
     if ($('pedPrat2')) $('pedPrat2').onchange = () => { $('pedPrat').checked = $('pedPrat2').checked; pedDraw(); };
-    if (['potelet', 'cordon'].includes(g.userData.kind) && g.userData.grp) { // ligne de potelets : compte du groupe
-      const grp = props.children.filter(o => o.userData.grp === g.userData.grp), np = grp.filter(o => o.userData.kind === 'potelet').length, cs = grp.filter(o => o.userData.kind === 'cordon');
-      el.querySelector('h3').insertAdjacentHTML('afterend', `<p><b>Ligne : ${np} potelets · ${cs.length} cordons · ${fr(cs.reduce((s, o) => s + o.userData.dims[0], 0), 2)} m</b></p>`
-        + `<div class="row pedcols" id="lnCols" title="Couleur de toute la ligne">${['#a0783c', ...RESTO_COLORS].map(c => `<button data-c="${c}" style="background:${c}" class="${c === (g.userData.col || '#a0783c') ? 'on' : ''}"></button>`).join('')}</div>`);
-      document.querySelectorAll('#lnCols [data-c]').forEach(b => b.onclick = () => { pushUndo(); grp.forEach(o => setLineCol(o, b.dataset.c)); pedDraw(); pedSide(); }); }
+    if (LINE_OF[g.userData.kind] && g.userData.grp) { // ligne (potelets, Vauban, Heras, passe-câbles) : compte, couleur et cotes de toute la ligne
+      const grp = props.children.filter(o => o.userData.grp === g.userData.grp), n = k => grp.filter(o => o.userData.kind === k), K = LINE_KINDS[LINE_OF[g.userData.kind]];
+      const txt = n('potelet').length || n('cordon').length ? `${n('potelet').length} potelets · ${n('cordon').length} cordons · ${fr(n('cordon').reduce((s, o) => s + o.userData.dims[0], 0), 2)} m`
+        : n('vauban').length ? `${n('vauban').length} barrières Vauban · ${fr(n('vauban').length * VAUBAN_PITCH, 2)} m`
+        : n('heras').length ? `${n('heras').length} panneaux Heras · ${n('plot_heras').length} plots · ${fr(n('heras').length * HERAS_PITCH, 2)} m`
+        : `${n('defender').reduce((s, o) => s + modules(o), 0)} modules Defender · ${n('defender_c').length} angles`;
+      const dims = ANNOT.filter(a => a.grp === g.userData.grp);
+      el.querySelector('h3').insertAdjacentHTML('afterend', `<p><b>Ligne : ${txt}</b></p>`
+        + `<div class="row pedcols" id="lnCols" title="Couleur de toute la ligne">${[K.col, ...RESTO_COLORS].map(c => `<button data-c="${c}" style="background:${c}" class="${c === (g.userData.col || K.col) ? 'on' : ''}"></button>`).join('')}</div>`
+        + (dims.length ? `<label class="cb"><input type="checkbox" id="lnCotes"${dims.some(a => !a.hidden) ? ' checked' : ''}> Afficher les cotes de la ligne</label>` : ''));
+      document.querySelectorAll('#lnCols [data-c]').forEach(b => b.onclick = () => { pushUndo(); grp.forEach(o => setLineCol(o, b.dataset.c));
+        dims.forEach(a => a.col = b.dataset.c === K.col ? '#5a3e12' : b.dataset.c); pedDraw(); pedSide(); });
+      if ($('lnCotes')) $('lnCotes').onchange = () => { pushUndo(); dims.forEach(a => { if ($('lnCotes').checked) delete a.hidden; else a.hidden = true; }); pedDraw(); }; }
     $('ped3d').onclick = () => { $('ped').close(); select(g); frame(g); };
   } else {
     const a = s.a, info = a.t === 'dim' ? `Longueur : ${fmtM(annotLength(a))}` : a.t === 'zone' ? `Surface : ${fmtArea(zoneArea(a))}` : a.t === 'arrow' ? `Longueur : ${fmtM(annotLength(a))}` : '';
