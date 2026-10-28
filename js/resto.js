@@ -6,6 +6,7 @@
 //   ['c', x, z, a]           chaise tournée vers a (le dossier est derrière)
 //   ['s', x, z]              tabouret haut
 
+import { upFromWidth } from './calc.js';
 export const CHAIR = 0.45, STOOL = 0.45;
 const P2 = Math.PI / 2;
 // modules du catalogue (mesurés sur le plan DACAM, au 1:200)
@@ -20,6 +21,9 @@ export const RESTO_MODS = {
     items:[['o', 0, 0, 0.9, 0.75], ['c', -0.72, 0, 0], ['c', 0.72, 0, Math.PI], ['c', 0, -0.72, P2], ['c', 0, 0.72, -P2]] },
   r_md:{ name:'Mange-debout', desc:'Table haute ronde Ø 0,6 m, sans siège',
     items:[['o', 0, 0, 0.6, 1.1]] },
+  r_tc:{ name:'Table carrée seule', desc:'Table 0,9 × 0,9 m, sans chaise', items:[['t', 0, 0, 0.9, 0.9, 0, 0.75]] },
+  r_tr:{ name:'Table ronde seule', desc:'Table ronde Ø 0,9 m, sans chaise', items:[['o', 0, 0, 0.9, 0.75]] },
+  r_ch:{ name:'Chaise seule', desc:'Chaise 0,45 × 0,45 m', items:[['c', 0, 0, 0]] },
 };
 export const RESTO_DEFAULT = { mod:'r_t4', gx:1.2, gy:1.2, margin:0.3, ang:0 }; // allées de 1,20 m entre modules, 30 cm du bord
 
@@ -186,7 +190,7 @@ export function cleanResto(r, lim = 500) {
   }
   const a = r.auto && typeof r.auto === 'object' && RESTO_MODS[r.auto.mod]
     ? { mod:r.auto.mod, gx:fin(r.auto.gx, 0, 20) ?? RESTO_DEFAULT.gx, gy:fin(r.auto.gy, 0, 20) ?? RESTO_DEFAULT.gy, margin:fin(r.auto.margin, 0, 10) ?? RESTO_DEFAULT.margin, ang:fin(r.auto.ang, -360, 360) ?? 0, dx:fin(r.auto.dx, 0, 1) ?? 0, dz:fin(r.auto.dz, 0, 1) ?? 0 } : null;
-  return { name:String(r.name || 'Zone de restauration').slice(0, 80), ...(r.cotes ? { cotes:true } : {}), col:isHex(r.col) ? r.col.toLowerCase() : RESTO_COLORS[0], poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
+  return { name:String(r.name || 'Zone de restauration').slice(0, 80), ...(r.cotes ? { cotes:true } : {}), ...(r.passages ? { passages:true } : {}), col:isHex(r.col) ? r.col.toLowerCase() : RESTO_COLORS[0], poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
 }
 
 // --- scinder une zone par un trait (a -> b, repère local de la zone) ---
@@ -287,4 +291,80 @@ export function groupName(g) {
   const tn = !t ? '' : t[0] === 't' ? `${t[6] > 0.9 ? 'Table haute' : 'Table'} ${f(Math.max(t[3], t[4]))} × ${f(Math.min(t[3], t[4]))}` : `${t[4] > 0.9 ? 'Mange-debout' : 'Table ronde'} Ø ${f(t[3])}`;
   const seats = [n('c') && `${n('c')} chaise${n('c') > 1 ? 's' : ''}`, n('s') && `${n('s')} tabouret${n('s') > 1 ? 's' : ''}`].filter(Boolean).join(', ');
   return [tn, seats].filter(Boolean).join(' + ') || 'Élément';
+}
+
+// --- passages (allées de circulation) d'une zone ---
+// On balaie la zone par bandes fines dans le sens des rangées (et dans l'autre sens) : une bande sans aucun mobilier d'un bord
+// à l'autre de la zone est libre ; des bandes libres voisines, entre deux rangées de mobilier, forment une allée traversante.
+// Largeur de l'allée -> unités de passage (1 UP : 0,90 m, 2 UP : 1,40 m, puis 0,60 m par UP).
+export function dominantAngle(items) { // sens des tables le plus courant (degrés, 0 à 89)
+  const c = new Map();
+  for (const it of items) if (it[0] === 't') { const d = ((Math.round(it[5] * 180 / Math.PI) % 90) + 90) % 90; c.set(d, (c.get(d) || 0) + 1); }
+  return [...c].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
+}
+function intervalsAt(poly, v) { // parties du polygone sur la ligne de cote v (repère u, v)
+  const xs = [];
+  for (let i = 0; i < poly.length; i++) { const [u1, v1] = poly[i], [u2, v2] = poly[(i + 1) % poly.length];
+    if ((v1 > v) !== (v2 > v)) xs.push(u1 + (v - v1) / (v2 - v1) * (u2 - u1)); }
+  xs.sort((a, b) => a - b); const out = []; for (let i = 0; i + 1 < xs.length; i += 2) out.push([xs[i], xs[i + 1]]); return out;
+}
+function quadAt(q, v) { // un quadrilatère convexe coupé par la ligne v : [umin, umax] ou null
+  const xs = [];
+  for (let i = 0; i < 4; i++) { const [u1, v1] = q[i], [u2, v2] = q[(i + 1) % 4];
+    if ((v1 - v) * (v2 - v) <= 0 && v1 !== v2) xs.push(u1 + (v - v1) / (v2 - v1) * (u2 - u1)); }
+  return xs.length ? [Math.min(...xs), Math.max(...xs)] : null;
+}
+function scanBands(P, Q, step, minW, minL = 2.5) {
+  // par bande fine : parties libres (dans la zone, hors mobilier) d'au moins minL ; des bandes voisines dont les parties libres se
+  // recouvrent forment une allée ; on la garde si du mobilier la borde des 2 côtés (pas une bande le long du bord de la zone)
+  const vs = P.map(p => p[1]), v0 = Math.min(...vs), v1 = Math.max(...vs), rows = [];
+  for (let v = v0 + step / 2; v < v1; v += step) {
+    const ins = intervalsAt(P, v), occ = Q.map(q => quadAt(q, v)).filter(Boolean).sort((a, b) => a[0] - b[0]), free = [];
+    for (const [c, d] of ins) { let u = c; for (const [a, b] of occ) { if (b <= u || a >= d) continue; if (a > u) free.push([u, a]); u = Math.max(u, b); } if (u < d) free.push([u, d]); }
+    rows.push({ v, occ, free:free.filter(([a, b]) => b - a >= minL) });
+  }
+  const blockedIn = (r, a, b) => r && r.occ.some(([c, d]) => c < b && d > a), out = [];
+  let act = [];
+  const close = (k, end) => { const w = (end - k.start + 1) * step; // au-delà de 4 m : espace libre (centre du bar…), pas une allée
+    if (w >= minW - 1e-9 && w <= 4 && blockedIn(rows[k.start - 1], k.u0, k.u1) && blockedIn(rows[end + 1], k.u0, k.u1))
+      out.push({ w:+w.toFixed(2), up:upFromWidth(w + step / 2), v0:rows[k.start].v - step / 2, v1:rows[end].v + step / 2, u0:k.u0, u1:k.u1, len:k.u1 - k.u0 }); };
+  rows.forEach((r, i) => {
+    const next = [], used = new Set();
+    for (const k of act) {
+      // la bande continue l'allée si ses parties libres recouvrent presque la même étendue (à 20 % près)
+      const j = r.free.findIndex(([a, b], n) => !used.has(n) && Math.min(b, k.u1) - Math.max(a, k.u0) >= 0.8 * Math.max(b - a, k.u1 - k.u0));
+      if (j < 0) { close(k, i - 1); continue; }
+      used.add(j); next.push({ ...k, u0:Math.max(k.u0, r.free[j][0]), u1:Math.min(k.u1, r.free[j][1]) });
+    }
+    r.free.forEach(([a, b], n) => { if (!used.has(n)) next.push({ start:i, u0:a, u1:b }); });
+    act = next;
+  });
+  act.forEach(k => close(k, rows.length - 1));
+  return out;
+}
+export function zonePassages(poly, items, ang = dominantAngle(items), step = 0.025, minW = 0.6) {
+  if (!Array.isArray(poly) || poly.length < 3 || !items.length) return { ang, rows:[], cols:[] };
+  const a = ang * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), toU = ([x, z]) => [x * c + z * s, -x * s + z * c]; // repère des rangées
+  const P = poly.map(toU), Q = items.map(it => itemCorners(it).map(toU));
+  const rows = scanBands(P, Q, step, minW); // allées le long des rangées (↔)
+  const cols = scanBands(P.map(([u, v]) => [v, u]), Q.map(q => q.map(([u, v]) => [v, u])), step, minW); // allées en travers (↕)
+  return { ang, rows, cols };
+}
+// rectangle d'une allée dans le repère de la zone (pour la dessiner)
+export function passageQuad(p, ang, cross = false) {
+  const a = ang * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), back = ([u, v]) => [u * c - v * s, u * s + v * c];
+  const R = cross ? [[p.v0, p.u0], [p.v1, p.u0], [p.v1, p.u1], [p.v0, p.u1]] : [[p.u0, p.v0], [p.u1, p.v0], [p.u1, p.v1], [p.u0, p.v1]];
+  return R.map(back);
+}
+
+// allées dessinées sur le plan : bande verte (orange si moins de 1 UP), largeur et UP au milieu
+export function passagesSvg(P) {
+  const out = [], fr2 = v => (Math.round(v * 100) / 100).toLocaleString('fr', { minimumFractionDigits:2 });
+  for (const [list, cross] of [[P.rows, false], [P.cols, true]]) for (const p of list) {
+    const q = passageQuad(p, P.ang, cross), col = p.up ? '#1a8f3c' : '#e67e00', m = [(q[0][0] + q[2][0]) / 2, (q[0][1] + q[2][1]) / 2];
+    let a = P.ang + (cross ? 90 : 0); a = ((a + 90) % 180 + 180) % 180 - 90; const fs = Math.min(0.32, p.w * 0.45);
+    out.push(`<polygon points="${q.map(v => v.map(n3).join(',')).join(' ')}" fill="${col}" fill-opacity="0.16" stroke="${col}" stroke-width="0.03" stroke-dasharray="0.25 0.15"/>`
+      + `<text transform="translate(${n3(m[0])} ${n3(m[1])}) rotate(${n3(a)})" font-size="${n3(fs)}" text-anchor="middle" dominant-baseline="middle" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="${n3(fs / 5)}" paint-order="stroke">${fr2(p.w)} m · ${p.up ? `${p.up} UP` : '< 1 UP'}</text>`);
+  }
+  return out.join('');
 }
