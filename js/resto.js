@@ -23,6 +23,7 @@ export const RESTO_MODS = {
     items:[['o', 0, 0, 0.6, 1.1]] },
   r_tc:{ name:'Table carrée seule', desc:'Table 0,9 × 0,9 m, sans chaise', items:[['t', 0, 0, 0.9, 0.9, 0, 0.75]] },
   r_tr:{ name:'Table ronde seule', desc:'Table ronde Ø 0,9 m, sans chaise', items:[['o', 0, 0, 0.9, 0.75]] },
+  r_th:{ name:'Table haute seule', desc:'Table haute 2,8 × 0,8 m (1,10 m), sans tabouret', items:[['t', 0, 0, 2.8, 0.8, 0, 1.1]] },
   r_ch:{ name:'Chaise seule', desc:'Chaise 0,45 × 0,45 m', items:[['c', 0, 0, 0]] },
 };
 export const RESTO_DEFAULT = { mod:'r_t4', gx:1.2, gy:1.2, margin:0.3, ang:0 }; // allées de 1,20 m entre modules, 30 cm du bord
