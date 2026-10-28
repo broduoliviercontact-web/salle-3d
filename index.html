@@ -1363,7 +1363,9 @@ function makeProp(kind, dims) {
 // pose un élément du catalogue au centre de la vue, avec ses dimensions par défaut (réglables ensuite : L / P / H)
 const LIFT = { truss30t:6, truss30:6, truss40:6, tcorner30:6, tcorner40:6, hoist:6.6, perche:7 }; // posés en l'air (m au-dessus du sol), à ajuster avec T
 // (éditeur 2D ouvert : posé au centre du plan)
-function addKind(k) { pushUndo(); const g = makeProp(k, DEFAULT[k]); g.position.copy($('ped').open ? pedCenter() : orbit.target); g.position.y = floorAt(g.position) + (LIFT[k] || 0); select(g); }
+function addKind(k) {
+  if (RESTO_MODS[k] && !stockFits(RESTO_MODS[k].items)) return alert(`Stock atteint : plus de « ${RESTO_MODS[k].name} » disponible (voir « Stock » dans l'éditeur 2D).`);
+  pushUndo(); const g = makeProp(k, DEFAULT[k]); g.position.copy($('ped').open ? pedCenter() : orbit.target); g.position.y = floorAt(g.position) + (LIFT[k] || 0); select(g); }
 // --- catalogue : pour ajouter un objet, écrire son modèle (BUILD) + ses LABELS / DEFAULT, puis une ligne ici ; la vignette se fabrique seule ---
 const CATALOG = [
   ['Scène et praticables', ['scene', 'prat', 'regie', 'conque', 'patience']],
@@ -1501,7 +1503,26 @@ function setResto(g, r) {
   g.name = r.poly.length ? `${r.name} · ${st.places} places · ${Math.round(st.area)} m²` : `${r.name} · ${st.tables} tables · ${st.places} places`;
   return g;
 }
-const refillResto = g => { ped.cap = null; const r = g.userData.resto; if (r.auto) r.items = fillZone(r.poly, r.auto); setResto(g, r); };
+// --- stock de mobilier limité (ex. 16 tables hautes avec bancs) : désignation de la nomenclature -> quantité disponible ---
+const STOCK_DEF = { 'Table haute 2,2 × 0,8 m':16, 'Banc haut 2,1 m':32 };
+const stockGet = () => { try { return { ...STOCK_DEF, ...JSON.parse(localStorage.getItem('salle3d.stock') || '{}') }; } catch { return { ...STOCK_DEF }; } };
+const stockSet = v => { try { localStorage.setItem('salle3d.stock', JSON.stringify(v)); } catch {} };
+function stockUsed(skip) { // quantités posées (zones, mobilier libre, éléments du catalogue), sauf le groupe skip
+  const m = new Map();
+  for (const o of props.children) { if (o === skip) continue; const it = o.userData.resto?.items || RESTO_MODS[o.userData.kind]?.items; if (!it) continue;
+    for (const [k, n] of restoBom(it)) m.set(k, (m.get(k) || 0) + n); }
+  return m;
+}
+// les éléments `items` peuvent-ils s'ajouter sans dépasser le stock ? (used : quantités déjà posées)
+function stockFits(items, used = stockUsed()) { const S = stockGet(); for (const [k, n] of restoBom(items)) if (k in S && (used.get(k) || 0) + n > S[k]) return false; return true; }
+function stockOver() { const S = stockGet(), U = stockUsed(); return Object.keys(S).filter(k => (U.get(k) || 0) > S[k]).map(k => `${k} : ${U.get(k)} posés pour ${S[k]} en stock`); }
+// remplissage d'une zone borné par le stock : on garde les modules tant qu'ils tiennent
+function stockLimit(items, mod, skip) {
+  const n = (RESTO_MODS[mod]?.items || []).length, used = stockUsed(skip), out = []; if (!n) return items;
+  for (let i = 0; i + n <= items.length; i += n) { const m = items.slice(i, i + n); if (!stockFits([...out, ...m], used)) break; out.push(...m); }
+  return out;
+}
+const refillResto = g => { ped.cap = null; const r = g.userData.resto; if (r.auto) r.items = stockLimit(fillZone(r.poly, r.auto), r.auto.mod, g); setResto(g, r); };
 function rebuildProp(o, dims, kind = o.userData.kind) {
   const n = makeProp(kind, dims), keep = { ...o.userData }; delete keep.kind; delete keep.dims;
   Object.assign(n.userData, keep);
@@ -1737,6 +1758,7 @@ $('dup').onclick = () => { if (selected) pushUndo();
   if (selected.userData.col) setLineCol(c, selected.userData.col);
   if (!c.parent) selected.parent.add(c);
   c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
+  if (stockOver().length) { const msg = stockOver().join('\n'); $('undo').click(); alert('Stock dépassé, copie annulée :\n' + msg); return; }
 };
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || $('patch').open || $('catalog').open || $('boxDlg').open || $('ped').open || $('exp2d').open) return; // raccourcis 3D coupés pendant le patch et le catalogue
@@ -2591,6 +2613,7 @@ function pedMultiDup(offset = 0) { // duplique la sélection ; offset : décalag
   const L = selList(); if (!L.gs.length && !L.as.length) return null; pushUndo();
   const map = {}, gs = L.gs.map(o => { const c = cloneProp(o, map); c.position.x += offset; c.position.z += offset; return c; });
   const as = L.as.map(a => { const c = { ...JSON.parse(JSON.stringify(a)), id:newId() }; if (c.grp && map[c.grp]) c.grp = map[c.grp]; c.p = c.p.map(q => [q[0] + offset, q[1] + offset]); ANNOT.push(c); return c; });
+  if (stockOver().length) { const msg = stockOver().join('\n'); pedHistory(false); alert('Stock dépassé, copie annulée :\n' + msg); return null; }
   pedDraw(); pedSetMulti(gs, as); drawCotes(); return { gs, as };
 }
 function pedMultiDelete() {
@@ -2632,9 +2655,9 @@ function zoneToResto(a) {
   const r = g.userData.resto; r.poly = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(q => q.map(v => +v.toFixed(3)));
   if (a.txt && a.txt !== 'Zone') r.name = a.txt.replace(/\n/g, ' ').slice(0, 80);
   if (isHex(a.col)) r.col = a.col.toLowerCase(); if (a.cotes) r.cotes = true;
-  ANNOT.splice(ANNOT.indexOf(a), 1); refillResto(g);
+  ANNOT.splice(ANNOT.indexOf(a), 1); r.auto = null; r.items = []; setResto(g, r); // zone vide : on la remplit ensuite (module, pinceau, capacité max)
   pedDraw(); pedSelect({ g }); drawCotes();
-  const st = restoStats(r.items, r.poly); $('pedInfo').textContent = `Zone de restauration : ${st.places} places · ${st.tables} tables`;
+  $('pedInfo').textContent = 'Zone de restauration vide : choisir un remplissage, ou peindre au pinceau (B)';
 }
 function pedRestoFinish() {
   const P = ped.poly; ped.poly = null; $('pedDraft').innerHTML = ''; $('pedInfo').textContent = '';
@@ -2782,6 +2805,8 @@ function brushAt(d, p, e) {
     Object.assign(g.userData.resto, { name:'Mobilier libre', poly:[], items:[], auto:null }); d.free = true; }
   const r = g.userData.resto, q = toLocal(g, p);
   const pos = d.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
+  const add = moduleItemsAt(brMod(), pos[0], pos[1], a);
+  if (!stockFits(add)) { $('pedInfo').textContent = `Stock atteint : ${stockOver().length ? stockOver()[0] : 'plus de ' + groupName(add) + ' disponible'}`; d.full = true; return; }
   if (canPlace(r.poly, [...r.items, ...itemsNear(g, p)], brMod(), pos[0], pos[1], a, ped.br.gap, 0.05)) {
     r.items.push(...moduleItemsAt(brMod(), pos[0], pos[1], a)); r.auto = null; d.anchor ||= pos; d.changed = true; d.touched.add(g); }
   if (d.changed) { pedLater(); const st = restoStats(r.items, r.poly); $('pedInfo').textContent = `${r.name} : ${st.tables} tables · ${st.places} places`; }
@@ -2798,7 +2823,7 @@ function brushGhost(p, e) { // aperçu : emprise du module (vert : posable, roug
   const frame = G || { position:{ x:0, z:0 }, rotation:{ y:0 }, userData:{ resto:{ poly:[], items:[] } } };
   const r = frame.userData.resto, q = G ? toLocal(G, p) : p, a = ped.br.ang * Math.PI / 180;
   const pos = d?.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
-  const ok = canPlace(r.poly, [...r.items, ...(G ? itemsNear(G, p) : itemsNear(null, p))], brMod(), pos[0], pos[1], a, ped.br.gap, 0.05), col = ok ? '#1a8f3c' : '#e8262b';
+  const ok = stockFits(moduleItemsAt(brMod(), pos[0], pos[1], a)) && canPlace(r.poly, [...r.items, ...(G ? itemsNear(G, p) : itemsNear(null, p))], brMod(), pos[0], pos[1], a, ped.br.gap, 0.05), col = ok ? '#1a8f3c' : '#e8262b';
   const F = moduleFootprint(brMod(), pos[0], pos[1], a).map(([x, z]) => G ? toPlan(G, x, z) : [x, z]);
   $('pedDraft').innerHTML = `<polygon points="${F.map(v => v.join(',')).join(' ')}" fill="${col}" fill-opacity="0.25" stroke="${col}" stroke-width="${2 * u}" pointer-events="none"/>`
     + `<g transform="translate(${G ? toPlan(G, 0, 0).join(' ') : '0 0'}) rotate(${G ? -G.rotation.y * 180 / Math.PI : 0})" opacity="0.55" pointer-events="none">${furnitureSvg(moduleItemsAt(brMod(), pos[0], pos[1], a))}</g>`;
@@ -2871,7 +2896,7 @@ $('pedSvg').addEventListener('pointerdown', e => {
     const L = selList(), gs = [...L.gs], as = [...L.as], t = a ? as : gs, it = a || g, i = t.indexOf(it);
     if (i >= 0) t.splice(i, 1); else t.push(it); pedSetMulti(gs, as); return; }
   if ((a || g) && multiOn() && (ped.multi.gs.includes(g) || ped.multi.as.includes(a))) { // élément de la sélection multiple : on déplace (⌥ : copie) tout le lot
-    if (e.altKey) { const c = pedMultiDup(0); ped.drag = multiDrag(c, p, true); $('pedInfo').textContent = 'Copies : glisse pour les placer'; }
+    if (e.altKey) { const c = pedMultiDup(0); if (!c) return; ped.drag = multiDrag(c, p, true); $('pedInfo').textContent = 'Copies : glisse pour les placer'; }
     else ped.drag = multiDrag(ped.multi, p, false);
     return; }
   if (a && e.altKey) { // ⌥ Option + glisser : dupliquer puis déplacer la copie
@@ -3043,6 +3068,16 @@ function balisageTotals(list) {
 }
 const balisageLine = rows => rows.length ? 'Balisage : ' + rows.map(([k, n, d]) => `${n} ${k[0].toLowerCase() + k.slice(1)}${d ? ` (${d})` : ''}`).join(' · ') : '';
 const restoLine = t => t.places || t.tables ? `Restauration : ${t.places} places assises (${seatsTxt(t)}) · ${t.tables} tables${t.zones ? ` · ${t.zones} zone${t.zones > 1 ? 's' : ''}, ${Math.round(t.area)} m²` : ''}` : '';
+// stock : posés / disponibles, quantités modifiables (gardées sur l'appareil)
+function stockPanel() {
+  const S = stockGet(), U = stockUsed();
+  return `<h3>Stock</h3><table class="pottab" id="stockTab">${Object.entries(S).map(([k, n]) => { const u = U.get(k) || 0;
+    return `<tr><td>${esc(k)}</td><td style="color:${u > n ? '#e8262b' : u === n ? '#e67e00' : 'inherit'}"><b>${u}</b> / <input data-k="${esc(k)}" type="number" min="0" step="1" value="${n}" style="width:56px"></td></tr>`; }).join('')}</table>
+    <p class="e2note">Le pinceau, le remplissage des zones, le catalogue et les copies s'arrêtent quand le stock est atteint.</p>`;
+}
+function bindStockPanel() {
+  document.querySelectorAll('#stockTab input[data-k]').forEach(i => i.onchange = () => { const S = stockGet(); S[i.dataset.k] = Math.max(0, Math.round(+i.value || 0)); stockSet(S); pedSide(); });
+}
 // passages d'une zone : allées traversantes entre le mobilier, largeur et unités de passage (UP)
 function passagesPanel(r) {
   const P = zonePassages(r.poly, r.items, r.auto?.ang ?? undefined), all = [...P.rows.map(p => ['↔', p]), ...P.cols.map(p => ['↕', p])].sort((a, b) => b[1].w - a[1].w);
@@ -3084,7 +3119,7 @@ function bindRestoPanel(g) {
   const angs = () => ped.capLock ? [+cur().ang || 0] : undefined;
   $('rsLock').onchange = () => { ped.capLock = $('rsLock').checked; ped.cap = null; pedSide(); };
   const fillBest = mod => { const o = { ...cur(), mod }, b = bestFill(r.poly, o, 4, angs()); pushUndo();
-    r.auto = { ...o, ang:b.ang, dx:b.dx, dz:b.dz }; r.src = ''; r.items = b.items; setResto(g, r); ped.cap = null; pedDraw(); pedSide(); drawCotes();
+    r.auto = { ...o, ang:b.ang, dx:b.dx, dz:b.dz }; r.src = ''; r.items = stockLimit(b.items, mod, g); Object.assign(b, restoStats(r.items, r.poly)); // borné par le stock setResto(g, r); ped.cap = null; pedDraw(); pedSide(); drawCotes();
     $('pedInfo').textContent = `Maximum : ${b.places} places · ${b.tables} tables (${RESTO_MODS[mod].name}, rangées à ${Math.round(b.ang)}°)`; };
   $('rsMax').onclick = () => fillBest(cur().mod);
   $('rsCap').onclick = () => { const o = cur(); $('pedInfo').textContent = 'Calcul de la capacité…';
@@ -3145,12 +3180,14 @@ function pedSide() {
     const RT = restoTotals(props.children.filter(shown)), BT = balisageTotals(props.children.filter(shown));
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
       ${BT.length ? `<h3>Balisage sur le plan</h3><table class="pottab">${BT.map(([k, n, d]) => `<tr><td><b>${n}</b></td><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>` : ''}
+      ${stockPanel()}
       ${RT.places || RT.tables ? `<h3>Restauration sur le plan</h3><p><b>${RT.places} places assises</b> · ${RT.tables} tables<br>${seatsTxt(RT)}${RT.zones ? ` · ${RT.zones} zone${RT.zones > 1 ? 's' : ''} (${Math.round(RT.area)} m²)` : ''}</p>
         <table class="pottab" id="rtTab">${RT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places).map((r, i) => `<tr data-i="${i}" style="cursor:pointer" title="Sélectionner"><td>${esc(r.name)}</td><td><b>${r.places}</b> pl.</td><td>${r.tables} t.</td></tr>`).join('')}</table>` : ''}
       <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> lignes (potelets, Vauban, Heras, passe-câbles) : cliquer les points, cotes et nombre en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>Glisser sur le fond</b> : rectangle de sélection (Maj : ajouter), puis ⌥ + glisser pour dupliquer le lot, Suppr. pour le supprimer · ⌘A : tout</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
       <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : déplacer la vue (Maj : plus vite) ; avec une sélection, la déplacer de 10 cm (Maj : 1 m) · + / − : zoom</li>
       <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · Espace ou clic droit + glisser : déplacer la vue · <b>C</b> recadrer</li></ul>
       <p class="e2note">Le matériel est le même qu'en 3D. Textes, cotes, zones et pictos n'apparaissent que sur les plans (export, fiches) et sont sauvés avec le setup.</p>`;
+    bindStockPanel();
     const rtRows = RT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places);
     el.querySelectorAll('#rtTab [data-i]').forEach(tr => tr.onclick = () => pedSelect({ g:rtRows[+tr.dataset.i].o }));
     return;
@@ -3194,7 +3231,7 @@ function pedSide() {
       ${a.t === 'icon' ? '' : `<div class="row pedcols">${ANNOT_COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === a.col ? 'on' : ''}" title="${c}"></button>`).join('')}</div>`}
       <label class="pedl">Taille <input id="pedS" type="range" min="0.3" max="5" step="0.1" value="${a.s}"></label>
       ${a.t === 'zone' ? `<label class="cb"><input type="checkbox" id="pedZCotes"${a.cotes ? ' checked' : ''}> Afficher les cotes de la zone</label>` : ''}
-      ${a.t === 'zone' ? `<div class="row"><button id="pedToResto" class="grow" title="Remplace cette zone par une zone de restauration de même forme, même nom et même couleur, remplie de tables ; son contour se modifie ensuite point par point">🍽 Transformer en zone de restauration</button></div>` : ''}
+      ${a.t === 'zone' ? `<div class="row"><button id="pedToResto" class="grow" title="Remplace cette zone par une zone de restauration vide, de même forme, même nom et même couleur ; à remplir ensuite (module, pinceau, capacité max)">🍽 Transformer en zone de restauration</button></div>` : ''}
       <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button></div>`;
     let undo = false; const edit = fn => { if (!undo) { pushUndo(); undo = true; } fn(); pedDraw(); };
     $('pedTxt').oninput = () => edit(() => { a.txt = $('pedTxt').value.slice(0, 200); });
