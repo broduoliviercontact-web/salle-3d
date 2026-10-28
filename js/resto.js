@@ -248,7 +248,8 @@ export function moduleItemsAt(mod, x, z, a = 0) {
 }
 // le module tient-il ici ? dans la zone (avec la marge) et à au moins « gap » du mobilier déjà posé
 export function canPlace(poly, items, mod, x, z, a = 0, gap = 0.6, margin = 0) {
-  if (!modItems(mod)?.length || !quadInPoly(moduleFootprint(mod, x, z, a, margin), poly)) return false;
+  if (!modItems(mod)?.length) return false;
+  if (Array.isArray(poly) && poly.length >= 3 && !quadInPoly(moduleFootprint(mod, x, z, a, margin), poly)) return false; // sans contour : mobilier libre
   const F = moduleFootprint(mod, x, z, a, gap / 2), c = [x, z];
   for (const it of items) {
     if (Math.hypot(it[1] - c[0], it[2] - c[1]) > 6) continue; // loin : inutile de tester
