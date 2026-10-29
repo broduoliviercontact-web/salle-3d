@@ -2589,7 +2589,7 @@ function pedSetTool(t, ic) {
   ped.tool = t; if (ic) ped.ic = ic; ped.poly = null; ped.pot = null; $('pedDraft').innerHTML = '';
   if ($('ped').open) pedSide();
   document.querySelectorAll('#pedTools [data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  $('pedIcon').classList.toggle('on', t === 'icon'); if (t !== 'icon') $('pedIcon').value = '';
+  $('pedIcon').classList.toggle('on', t === 'icon'); $('pedIcon').value = t === 'icon' ? ped.ic : '';
   $('pedSvg').style.cursor = t === 'sel' ? '' : 'crosshair';
 }
 // --- sélection multiple : rectangle tracé sur le fond, Maj + clic pour ajouter / retirer ---
@@ -2632,6 +2632,8 @@ function pedSelect(s) {
   pedDrawSel(); pedSide();
 }
 const newId = () => Math.random().toString(36).slice(2, 10);
+ped.icb = { s:1, gap:2, bg:{} }; // pinceau de pictos : taille, écart, couleur choisie par picto
+function icoPlace(p) { const a = pedCreate('icon', [p]); a.s = ped.icb.s; if (ped.icb.bg[a.ic]) a.bg = ped.icb.bg[a.ic]; return a; }
 function pedCreate(t, p) {
   const a = { id:newId(), t, p, col:t === 'icon' ? '#111111' : t === 'zone' ? '#1f5fbf' : t === 'dim' ? '#111111' : '#d0021b', s:1 };
   if (t === 'icon') a.ic = ped.ic; if (t === 'text') a.txt = 'Texte'; if (t === 'zone') a.txt = 'Zone';
@@ -2892,7 +2894,10 @@ $('pedSvg').addEventListener('pointerdown', e => {
     if (e.altKey) { if (r.poly.length > 3) { pushUndo(); r.poly.splice(i, 1); refillResto(g); pedDraw(); pedSide(); } return; }
     ped.drag = { k:'vtx', g, i, undo:false }; return;
   }
-  if (ped.tool === 'text' || ped.tool === 'icon') {
+  if (ped.tool === 'icon') { // pinceau de pictos : clic = un picto, glisser = un picto tous les « écart » mètres ; l'outil reste actif
+    pushUndo(); const a = icoPlace(pedSnap(p, e)); ped.drag = { k:'icob', last:p, n:1 }; pedDraw(); $('pedInfo').textContent = `${ICONS[a.ic].name} : 1 posé`; return;
+  }
+  if (ped.tool === 'text') {
     pushUndo(); const a = pedCreate(ped.tool, [pedSnap(p, e)]); pedDraw(); pedSetTool('sel'); pedSelect({ a });
     if (a.t === 'text') setTimeout(() => $('pedTxt')?.select(), 0); return;
   }
@@ -2927,6 +2932,7 @@ $('pedSvg').addEventListener('pointermove', e => {
   if (ped.tool === 'resto' && ped.poly) pedDraftDraw(pedSnap(p, e));
   if (ped.tool === 'pot' && ped.pot?.pts.length) potDraft(potSnap(p, e));
   if (ped.tool === 'brush') { if (ped.drag?.k === 'brush') brushAt(ped.drag, p, e); brushGhost(p, e); }
+  if (ped.tool === 'icon' && ped.drag?.k !== 'icob') $('pedDraft').innerHTML = `<g opacity="0.5" pointer-events="none">${annotSvg({ t:'icon', p:[p], ic:ped.ic, s:ped.icb.s, bg:ped.icb.bg[ped.ic] })}</g>`;
   const d = ped.drag; if (!d) return;
   if (d.k === 'cut') { d.b = pedSnap(p, e); const u = pedUnit();
     $('pedDraft').innerHTML = `<line x1="${d.a[0]}" y1="${d.a[1]}" x2="${d.b[0]}" y2="${d.b[1]}" stroke="#e8262b" stroke-width="${3 * u}" stroke-dasharray="${8 * u} ${5 * u}" pointer-events="none"/>`
@@ -2940,6 +2946,7 @@ $('pedSvg').addEventListener('pointermove', e => {
     pedDrawSel(); $('pedInfo').textContent = `${fr(d.dims[0], 2)} × ${fr(d.dims[1], 2)} m`; return; }
   if (d.k === 'pt') { if (!d.undo) { pushUndo(); d.undo = true; } d.a.p[d.i] = pedSnap(p, e, d.a); pedLater(); pedSide(); return; }
   if (d.k === 'brush') return; // peint plus haut
+  if (d.k === 'icob') { if (Math.hypot(p[0] - d.last[0], p[1] - d.last[1]) >= ped.icb.gap) { icoPlace(e.shiftKey ? p : pedSnap(p, e)); d.last = p; d.n++; pedLater(); $('pedInfo').textContent = `${ICONS[ped.ic].name} : ${d.n} posés`; } return; }
   if (d.k === 'marq') { d.b = p; const u = pedUnit(), [x0, x1] = [Math.min(d.a[0], p[0]), Math.max(d.a[0], p[0])], [z0, z1] = [Math.min(d.a[1], p[1]), Math.max(d.a[1], p[1])];
     $('pedDraft').innerHTML = `<rect x="${x0}" y="${z0}" width="${x1 - x0}" height="${z1 - z0}" fill="#1f5fbf" fill-opacity="0.08" stroke="#1f5fbf" stroke-width="${1.5 * u}" stroke-dasharray="${5 * u} ${3 * u}" pointer-events="none"/>`; return; }
   if (d.k === 'moveM') { let dx = p[0] - d.p0[0], dz = p[1] - d.p0[1]; if (!d.undo && Math.hypot(dx, dz) < 3 * pedUnit()) return;
@@ -2966,6 +2973,7 @@ $('pedSvg').addEventListener('pointerup', () => {
     const L = d.add ? selList() : { gs:[], as:[] }; pedSetMulti([...L.gs, ...gs], [...L.as, ...as]);
     if (multiOn()) $('pedInfo').textContent = `${ped.multi.gs.length + ped.multi.as.length} sélectionnés — ⌥ + glisser : dupliquer · Suppr. : supprimer`; return; }
   if (d.k === 'moveM') { if (d.undo) { syncPos(); drawCotes(); } pedDraw(); return; }
+  if (d.k === 'icob') { pedDraw(); return; }
   if (d.k === 'brush') {
     if (d.changed) { for (const g of d.touched) { const r = g.userData.resto; if (!r.poly.length && !r.items.length) props.remove(g); else setResto(g, r); } drawCotes(); }
     else { undoStack.pop(); if (d.free && d.g && !d.g.userData.resto.items.length) props.remove(d.g); }
@@ -3159,6 +3167,20 @@ function pedSide() {
       <div class="row" style="margin-top:8px"><button id="msDup" class="grow">Dupliquer (⌘D)</button><button id="msDel" class="grow">Supprimer (Suppr.)</button></div>
       <p class="e2note">Glisser un élément de la sélection : tout bouge. ⌥ Option + glisser : copie de tout le lot. Flèches : 10 cm (Maj : 1 m). Maj + clic : ajouter ou retirer un élément. Échap : désélectionner.</p>`;
     $('msDup').onclick = () => pedMultiDup(1); $('msDel').onclick = pedMultiDelete; return; }
+  if (ped.tool === 'icon') { // pinceau de pictos
+    const C = ped.icb, I = ICONS[ped.ic], cur = C.bg[ped.ic] || I.col;
+    el.innerHTML = `<h3>Pinceau de pictos</h3>
+      <label class="pedl">Picto<select id="icbIc">${Object.entries(ICONS).map(([k, v]) => `<option value="${k}"${k === ped.ic ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}</select></label>
+      <div class="row pedcols" id="icbCols" title="Couleur">${[I.col, ...ANNOT_COLORS.filter(c => c !== I.col)].map(c => `<button data-c="${c}" style="background:${c}" class="${c === cur ? 'on' : ''}"></button>`).join('')}</div>
+      <label class="pedl">Taille <input id="icbS" type="range" min="0.3" max="5" step="0.1" value="${C.s}"></label>
+      <div class="row"><label>Écart en glissant <input id="icbGap" type="number" step="0.5" min="0.5" value="${C.gap}"> m</label></div>
+      <p class="e2note">Clic : poser un picto · glisser : en poser un tous les ${fr(C.gap, 1)} m le long du geste (Maj : sans accroche). L'outil reste actif : changer de picto ici, Échap ou V pour finir. Chaque geste s'annule d'un ⌘Z.</p>`;
+    $('icbIc').onchange = () => pedSetTool('icon', $('icbIc').value);
+    el.querySelectorAll('#icbCols [data-c]').forEach(b => b.onclick = () => { if (b.dataset.c === I.col) delete C.bg[ped.ic]; else C.bg[ped.ic] = b.dataset.c; pedSide(); });
+    $('icbS').oninput = () => { C.s = +$('icbS').value; };
+    $('icbGap').onchange = () => { C.gap = Math.max(0.5, +$('icbGap').value || 2); pedSide(); };
+    return;
+  }
   if (ped.tool === 'brush') {
     const B = ped.br;
     el.innerHTML = `<h3>Pinceau de mobilier</h3>
