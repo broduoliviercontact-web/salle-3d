@@ -1755,7 +1755,7 @@ $('dup').onclick = () => { if (selected) pushUndo();
     multi.clear(); copies.forEach(c => multi.add(c)); placePivot(); return select(pivot); }
   const c = props.children.includes(selected) ? makeProp(selected.userData.kind, selected.userData.dims) : selected.clone();
   if (selected.userData.resto) setResto(c, structuredClone(selected.userData.resto));
-  if (selected.userData.col) setLineCol(c, selected.userData.col);
+  if (selected.userData.col) setPropCol(c, selected.userData.col);
   if (!c.parent) selected.parent.add(c);
   c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
   if (stockOver().length) { const msg = stockOver().join('\n'); $('undo').click(); alert('Stock dépassé, copie annulée :\n' + msg); return; }
@@ -1885,7 +1885,7 @@ function restore(cfg) {
   ANNOT = cleanAnnot(cfg.annot); // annotations du plan 2D (textes, cotes, zones, pictos)
   DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
   const known = new Set([...Object.keys(BUILD), ...Object.keys(DEFAULT), ...Object.keys(LABELS), ...Object.keys(COLORS)]); // setup venu d'un lien ou d'un fichier : valeurs bornées (js/calc.js)
-  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); if (x.kind === 'resto') setResto(g, cleanResto(x.resto)); if (isHex(x.col)) setLineCol(g, x.col); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); });
+  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); if (x.kind === 'resto') setResto(g, cleanResto(x.resto)); if (isHex(x.col)) setPropCol(g, x.col); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); });
   (Array.isArray(cfg.moved) ? cfg.moved : []).slice(0, LIMITS.props).forEach(x => { const o = Array.isArray(x?.path) && byPath(x.path), p = cleanVec3(x?.p), r = cleanVec3(x?.r, 2 * Math.PI); if (o && p && r) { o.position.fromArray(p); o.rotation.fromArray(r); } });
   const v = cfg.view && cleanVec3(cfg.view.cam) && cleanVec3(cfg.view.target) ? cfg.view : null; setSalle(cfg.salle === 'audi' ? 'audi' : 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(cleanVec3(v.cam)); orbit.target.fromArray(cleanVec3(v.target)); goal = null;
@@ -2606,7 +2606,7 @@ function cloneProp(o, grpMap) {
   const c = makeProp(o.userData.kind, [...o.userData.dims]), keep = JSON.parse(JSON.stringify({ ...o.userData, kind:undefined, dims:undefined }));
   delete keep.kind; delete keep.dims; Object.assign(c.userData, keep);
   if (keep.grp) c.userData.grp = grpMap[keep.grp] ||= keep.grp.replace(/#.*$/, '#') + Math.random().toString(36).slice(2, 8);
-  if (keep.resto) setResto(c, keep.resto); if (keep.col) setLineCol(c, keep.col); if (keep.asd) asdify(c, keep.asd);
+  if (keep.resto) setResto(c, keep.resto); if (keep.col) setPropCol(c, keep.col); if (keep.asd) asdify(c, keep.asd);
   c.position.copy(o.position); c.quaternion.copy(o.quaternion); return c;
 }
 function pedMultiDup(offset = 0) { // duplique la sélection ; offset : décalage (m) en x et z
@@ -2744,6 +2744,13 @@ function potDraft(cur) {
   T.live = plan; pedSide();
 }
 // couleur d'une ligne : potelets (tête, anneau) et cordons ; barrières et passe-câbles en entier (plan et 3D)
+// couleur d'un élément quelconque (plan et 3D) ; les lignes gardent leur règle (tête des potelets, cordons…)
+function setPropCol(g, col) {
+  if (LINE_OF[g.userData.kind]) return setLineCol(g, col);
+  if (g.userData.resto) return; // les zones de restauration ont leur couleur de zone
+  g.userData.col = col; const m = new THREE.MeshStandardMaterial({ color:col, roughness:0.65 });
+  g.traverse(o => { if (o.isMesh) o.material = m; });
+}
 function setLineCol(g, col) {
   const k = g.userData.kind; if (!['potelet', 'cordon', 'vauban', 'heras', 'plot_heras', 'defender', 'defender_c'].includes(k)) return;
   g.userData.col = col; const m = () => new THREE.MeshStandardMaterial({ color:col, roughness:0.6 });
@@ -3078,6 +3085,15 @@ function stockPanel() {
 function bindStockPanel() {
   document.querySelectorAll('#stockTab input[data-k]').forEach(i => i.onchange = () => { const S = stockGet(); S[i.dataset.k] = Math.max(0, Math.round(+i.value || 0)); stockSet(S); pedSide(); });
 }
+// sélecteur de couleur libre au bout de chaque rangée de couleurs du panneau (même action qu'une pastille)
+function addPickers(root) {
+  root.querySelectorAll('.pedcols').forEach(row => {
+    const b0 = [...row.querySelectorAll('[data-c]')].find(b => b.dataset.c); if (!b0 || row.querySelector('.colpick')) return;
+    const on = row.querySelector('[data-c].on')?.dataset.c, i = Object.assign(document.createElement('input'), { type:'color', className:'colpick', title:'Autre couleur…', value:/^#[0-9a-f]{6}$/i.test(on) ? on : b0.dataset.c });
+    i.onchange = () => { const old = b0.dataset.c; b0.dataset.c = i.value; b0.onclick?.(); b0.dataset.c = old; };
+    row.appendChild(i);
+  });
+}
 // passages d'une zone : allées traversantes entre le mobilier, largeur et unités de passage (UP)
 function passagesPanel(r) {
   const P = zonePassages(r.poly, r.items, r.auto?.ang ?? undefined), all = [...P.rows.map(p => ['↔', p]), ...P.cols.map(p => ['↕', p])].sort((a, b) => b[1].w - a[1].w);
@@ -3199,6 +3215,7 @@ function pedSide() {
       <div class="row"><label>Cap <input id="pedA" type="number" step="5" value="${capOf(g)}"> °</label><button id="pedR1" title="R">↻ 15°</button><button id="pedR2" title="Maj+R">↺ 15°</button></div>
       ${pedAxes(g) ? `<h3>Taille</h3><div class="row"><label>L <input id="pedW" type="number" step="0.5" min="0.5" value="${+g.userData.dims[0].toFixed(2)}"></label>${pedAxes(g).d ? `<label>P <input id="pedD" type="number" step="0.5" min="0.5" value="${+g.userData.dims[1].toFixed(2)}"></label><label>H <input id="pedH" type="number" step="0.1" min="0.1" value="${+g.userData.dims[2].toFixed(2)}"></label>` : ''}</div>
       <p class="e2note">Ou glisser les poignées orange autour de l'élément (pas de 0,5 m, Maj : 10 cm) ; le côté opposé ne bouge pas.</p>` : ''}
+      ${!g.userData.resto && !LINE_OF[g.userData.kind] ? `<h3>Couleur</h3><div class="row pedcols" id="pgCols"><button data-c="" class="colorig${g.userData.col ? '' : ' on'}" title="Couleur d'origine">↺</button>${RESTO_COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === g.userData.col ? 'on' : ''}" title="${c}"></button>`).join('')}</div>` : ''}
       ${g.userData.resto ? restoPanel(g) : ''}
       ${PRAT_KINDS.has(g.userData.kind) ? pratPanel(g) : ''}
       <p class="e2note">Coordonnées du plan AutoCAD (m). Hauteur au sol et autres réglages : dans le panneau 3D.</p>
@@ -3208,6 +3225,9 @@ function pedSide() {
     for (const id of ['pedW', 'pedD', 'pedH']) if ($(id)) $(id).onchange = () => pedResize(g, [+$('pedW').value || g.userData.dims[0], +($('pedD')?.value || g.userData.dims[1]), +($('pedH')?.value || g.userData.dims[2])]);
     $('pedR1').onclick = () => pedRotate(g, 15); $('pedR2').onclick = () => pedRotate(g, -15);
     if (g.userData.resto) bindRestoPanel(g);
+    document.querySelectorAll('#pgCols [data-c]').forEach(b => b.onclick = () => { pushUndo(); // couleur de l'élément (vide : d'origine, l'élément est reconstruit)
+      if (b.dataset.c) setPropCol(g, b.dataset.c); else { delete g.userData.col; const n = rebuildProp(g, g.userData.dims); ped.sel = { g:n }; }
+      pedDraw(); pedSide(); });
     if ($('pedPrat2')) $('pedPrat2').onchange = () => { $('pedPrat').checked = $('pedPrat2').checked; pedDraw(); };
     if (LINE_OF[g.userData.kind] && g.userData.grp) { // ligne (potelets, Vauban, Heras, passe-câbles) : compte, couleur et cotes de toute la ligne
       const grp = props.children.filter(o => o.userData.grp === g.userData.grp), n = k => grp.filter(o => o.userData.kind === k), K = LINE_KINDS[LINE_OF[g.userData.kind]];
@@ -3228,7 +3248,7 @@ function pedSide() {
     el.innerHTML = `<h3>${PED_KIND[a.t]}${a.t === 'icon' ? ' · ' + esc(ICONS[a.ic].name) : ''}</h3>${info ? `<p><b>${info}</b></p>` : ''}
       ${a.t === 'icon' ? `<div class="row"><select id="pedIc" class="grow">${Object.entries(ICONS).map(([k, I]) => `<option value="${k}"${k === a.ic ? ' selected' : ''}>${esc(I.name)}</option>`).join('')}</select></div>` : ''}
       <label class="pedl">${a.t === 'text' ? 'Texte' : a.t === 'zone' ? 'Nom de la zone' : a.t === 'dim' ? 'Libellé avant la mesure' : 'Libellé'}<textarea id="pedTxt" rows="${a.t === 'text' ? 3 : 2}" placeholder="${a.t === 'text' ? '' : 'facultatif'}">${esc(a.txt || '')}</textarea></label>
-      ${a.t === 'icon' ? '' : `<div class="row pedcols">${ANNOT_COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === a.col ? 'on' : ''}" title="${c}"></button>`).join('')}</div>`}
+      <div class="row pedcols" title="${a.t === 'icon' ? 'Couleur du picto' : 'Couleur'}">${(a.t === 'icon' ? [ICONS[a.ic].col, ...ANNOT_COLORS.filter(c => c !== ICONS[a.ic].col)] : ANNOT_COLORS).map(c => `<button data-c="${c}" style="background:${c}" class="${c === (a.t === 'icon' ? a.bg || ICONS[a.ic].col : a.col) ? 'on' : ''}" title="${c}"></button>`).join('')}</div>
       <label class="pedl">Taille <input id="pedS" type="range" min="0.3" max="5" step="0.1" value="${a.s}"></label>
       ${a.t === 'zone' ? `<label class="cb"><input type="checkbox" id="pedZCotes"${a.cotes ? ' checked' : ''}> Afficher les cotes de la zone</label>` : ''}
       ${a.t === 'zone' ? `<div class="row"><button id="pedToResto" class="grow" title="Remplace cette zone par une zone de restauration vide, de même forme, même nom et même couleur ; à remplir ensuite (module, pinceau, capacité max)">🍽 Transformer en zone de restauration</button></div>` : ''}
@@ -3239,10 +3259,11 @@ function pedSide() {
     if ($('pedToResto')) $('pedToResto').onclick = () => zoneToResto(a);
     if ($('pedZCotes')) $('pedZCotes').onchange = () => edit(() => { if ($('pedZCotes').checked) a.cotes = true; else delete a.cotes; });
     if ($('pedIc')) $('pedIc').onchange = () => { edit(() => { a.ic = $('pedIc').value; }); pedSide(); };
-    el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { edit(() => { a.col = b.dataset.c; }); pedSide(); });
+    el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { edit(() => { if (a.t === 'icon') { if (b.dataset.c === ICONS[a.ic].col) delete a.bg; else a.bg = b.dataset.c; } else a.col = b.dataset.c; }); pedSide(); });
   }
   $('pedDupB').onclick = pedDup; $('pedDelB').onclick = pedDelete;
 }
+pedSide = (orig => function () { orig(); addPickers($('pedSide')); })(pedSide); // + sélecteur de couleur libre
 document.querySelectorAll('#pedTools [data-t]').forEach(b => b.onclick = () => pedSetTool(b.dataset.t));
 $('pedIcon').onchange = () => { if ($('pedIcon').value) pedSetTool('icon', $('pedIcon').value); else pedSetTool('sel'); $('pedIcon').blur(); };
 $('pedCotes').onchange = pedDraw;

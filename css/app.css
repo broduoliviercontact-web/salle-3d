@@ -105,3 +105,5 @@ button.acc { background:var(--acc); color:#111; border-color:var(--acc); }
 .pottab { width:100%; border-collapse:collapse; font-size:12px; color:var(--mute); } .pottab td { padding:2px 4px; border-bottom:1px solid var(--line); } .pottab td:first-child { width:18px; }
 .captab button { padding:2px 6px; font-size:11px; } .captab tr:first-child td { color:var(--fg); font-weight:600; }
 .brprev { display:block; width:100%; max-height:110px; background:#fff; border-radius:6px; margin:4px 0 8px; }
+.pedcols { flex-wrap:wrap; gap:4px; } .pedcols .colpick { width:26px; height:24px; padding:0; border:1px solid var(--line); border-radius:6px; background:none; cursor:pointer; }
+.pedcols .colorig { background:#2a2f39 !important; color:var(--fg); font-size:12px; line-height:1; }
