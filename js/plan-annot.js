@@ -19,6 +19,7 @@ export const ICONS = {
   regie:      { name:'Emplacement régie', col:'#333333' },
   elec:       { name:'Armoire électrique', col:'#e6b800' },
   rassemble:  { name:'Point de rassemblement', col:'#1a8f3c' },
+  securite:   { name:'Agent de sécurité', col:'#1b2a4a' },
 };
 
 const f = v => +(+v).toFixed(3);
@@ -75,6 +76,9 @@ function iconSvg(ic, x, y, S) {
     case 'info': g += `<circle cx="${f(x)}" cy="${f(y - 0.24 * S)}" r="${f(0.07 * S)}" fill="${W}"/><rect x="${f(x - 0.06 * S)}" y="${f(y - 0.1 * S)}" width="${f(0.12 * S)}" height="${f(0.4 * S)}" fill="${W}"/>`; break;
     case 'regie': g += T('RÉGIE', 0.22, W, 0.08); break;
     case 'elec': g += `<polygon points="${P([[0.06, -0.36], [-0.16, 0.04], [0, 0.04], [-0.06, 0.36], [0.16, -0.06], [0, -0.06]])}" fill="#111"/>`; break;
+    case 'securite': // bouclier blanc, bande « SÉCU »
+      g += `<path d="M${f(x)} ${f(y - 0.36 * S)}L${f(x + 0.28 * S)} ${f(y - 0.26 * S)}L${f(x + 0.28 * S)} ${f(y + 0.02 * S)}Q${f(x + 0.28 * S)} ${f(y + 0.26 * S)} ${f(x)} ${f(y + 0.38 * S)}Q${f(x - 0.28 * S)} ${f(y + 0.26 * S)} ${f(x - 0.28 * S)} ${f(y + 0.02 * S)}L${f(x - 0.28 * S)} ${f(y - 0.26 * S)}Z" fill="${W}"/>`
+        + `<text x="${f(x)}" y="${f(y + 0.07 * S)}" font-size="${f(0.15 * S)}" font-weight="bold" text-anchor="middle" fill="${I.col}">SÉCU</text>`; break;
     case 'rassemble': // quatre flèches vers le centre
       for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) g += `<polygon points="${P([[a * 0.36 - b * 0.1, b * 0.36 + a * 0.1], [a * 0.36 + b * 0.1, b * 0.36 - a * 0.1], [a * 0.14, b * 0.14]])}" fill="${W}"/>`;
       g += `<circle cx="${f(x)}" cy="${f(y)}" r="${f(0.06 * S)}" fill="${W}"/>`; break;
