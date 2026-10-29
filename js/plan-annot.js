@@ -4,7 +4,7 @@
 //   text / icon : 1 point (centre) ; arrow : départ → pointe ; dim : 2 points mesurés ; zone : 2 coins opposés
 // s : facteur de taille (1 = normal), ic : picto (clé de ICONS)
 
-export const ANNOT_COLORS = ['#d0021b', '#e67e00', '#1a8f3c', '#1f5fbf', '#7b2fbf', '#111111'];
+export const ANNOT_COLORS = ['#e8262b', '#ff6b6b', '#e67e00', '#f4a261', '#e6b800', '#8bc34a', '#1a8f3c', '#0f9d9a', '#4fc3f7', '#1f5fbf', '#1b2a4a', '#7b2fbf', '#d6008f', '#8d6e63', '#555555', '#111111']; // 16 couleurs (plus le sélecteur libre de l'éditeur)
 export const ANNOT_LIMIT = 500;
 
 // pictos dessinés ici (carré arrondi + symbole simple), libellé de légende et couleur
@@ -19,7 +19,8 @@ export const ICONS = {
   regie:      { name:'Emplacement régie', col:'#333333' },
   elec:       { name:'Armoire électrique', col:'#e6b800' },
   rassemble:  { name:'Point de rassemblement', col:'#1a8f3c' },
-  securite:   { name:'Agent de sécurité', col:'#1b2a4a' },
+  securite:   { name:'Sécurité', col:'#1b2a4a' },
+  croix:      { name:'Croix', col:'#e8262b' },
 };
 
 const f = v => +(+v).toFixed(3);
@@ -54,8 +55,10 @@ function lines(x, y, txt, fs, col, anchor = 'middle', weight = 'bold') {
     + ls.map((l, i) => `<tspan x="${f(x)}" dy="${i ? f(fs * 1.15) : 0}">${esc(l)}</tspan>`).join('') + '</text>';
 }
 
-function iconSvg(ic, x, y, S) {
-  const I = ICONS[ic] || ICONS.info, h = S / 2, r = S * 0.15, W = '#fff', sw = f(S * 0.09);
+function iconSvg(ic, x, y, S, bg) {
+  const I = { ...(ICONS[ic] || ICONS.info), ...(bg ? { col:bg } : {}) }, h = S / 2, r = S * 0.15, W = '#fff', sw = f(S * 0.09);
+  if (ic === 'croix') // grosse croix seule (sans fond), à la couleur choisie ; taille avec le curseur
+    return [[-1, -1, 1, 1], [-1, 1, 1, -1]].map(([a, b, c, d]) => `<line x1="${f(x + a * h)}" y1="${f(y + b * h)}" x2="${f(x + c * h)}" y2="${f(y + d * h)}" stroke="${I.col}" stroke-width="${f(S * 0.16)}" stroke-linecap="round"/>`).join('');
   let g = `<rect x="${f(x - h)}" y="${f(y - h)}" width="${f(S)}" height="${f(S)}" rx="${f(r)}" fill="${I.col}" stroke="#fff" stroke-width="${f(S * 0.04)}"/>`;
   const P = (pts) => pts.map(([a, b]) => `${f(x + a * S)},${f(y + b * S)}`).join(' ');
   const T = (t, fs = 0.42, col = W, dy = 0.15) => `<text x="${f(x)}" y="${f(y + dy * S)}" font-size="${f(fs * S)}" font-weight="bold" text-anchor="middle" fill="${col}">${t}</text>`;
@@ -92,7 +95,7 @@ export function annotSvg(a) {
   const s = a.s || 1, col = a.col || '#d0021b', [p0, p1] = a.p;
   switch (a.t) {
     case 'text': return lines(p0[0], p0[1], a.txt || 'Texte', 0.6 * s, col);
-    case 'icon': { const S = 1.2 * s; return iconSvg(a.ic, p0[0], p0[1], S) + (a.txt ? lines(p0[0], p0[1] + S / 2 + 0.45 * s, a.txt, 0.35 * s, '#111') : ''); }
+    case 'icon': { const S = 1.2 * s; return iconSvg(a.ic, p0[0], p0[1], S, a.bg) + (a.txt ? lines(p0[0], p0[1] + S / 2 + 0.45 * s, a.txt, 0.35 * s, '#111') : ''); }
     case 'arrow': {
       const L = annotLength(a) || 1e-6, ux = (p1[0] - p0[0]) / L, uz = (p1[1] - p0[1]) / L, hl = Math.min(0.6 * s, L * 0.6), hw = 0.3 * s;
       const b = [p1[0] - ux * hl, p1[1] - uz * hl];
@@ -144,7 +147,7 @@ export function cleanAnnot(list, lim = 2000) {
     if (a.txt != null && a.txt !== '') r.txt = String(a.txt).slice(0, 200);
     r.col = /^#[0-9a-f]{6}$/i.test(a.col) ? a.col : '#d0021b';
     r.s = Number.isFinite(+a.s) && a.s !== null ? Math.min(5, Math.max(0.3, +a.s)) : 1;
-    if (a.t === 'icon') r.ic = ICONS[a.ic] ? a.ic : 'info';
+    if (a.t === 'icon') { r.ic = ICONS[a.ic] ? a.ic : 'info'; if (/^#[0-9a-f]{6}$/i.test(a.bg)) r.bg = a.bg; }
     if (a.t === 'zone' && a.cotes) r.cotes = true;
     if (a.hidden) r.hidden = true; if (a.grp) r.grp = String(a.grp).slice(0, 40);
     out.push(r);

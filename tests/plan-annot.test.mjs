@@ -16,7 +16,8 @@ test('annotations : textes échappés (pas d\'injection dans le SVG), plusieurs 
   assert.ok(!svg.includes('<script>')); assert.match(svg, /&lt;script&gt;/); assert.equal((svg.match(/<tspan/g) || []).length, 2);
 });
 test('annotations : chaque picto se dessine, la cote n\'est jamais écrite à l\'envers', () => {
-  for (const ic of Object.keys(ICONS)) assert.match(annotSvg({ t:'icon', p:[[1, 1]], ic }), /<rect/);
+  for (const ic of Object.keys(ICONS)) assert.match(annotSvg({ t:'icon', p:[[1, 1]], ic }), ic === 'croix' ? /<line/ : /<rect/);
+  assert.match(annotSvg({ t:'icon', p:[[1, 1]], ic:'croix', bg:'#1f5fbf' }), /stroke="#1f5fbf"/); // croix à la couleur choisie
   for (const p of [[[0, 0], [5, 0]], [[5, 0], [0, 0]], [[0, 5], [0, 0]], [[0, 0], [-3, 3]]]) {
     const ang = +annotSvg({ t:'dim', p }).match(/rotate\(([-\d.]+)\)/)[1];
     assert.ok(ang > -90 && ang <= 90, `angle ${ang}`);

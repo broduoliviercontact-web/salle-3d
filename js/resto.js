@@ -174,7 +174,7 @@ export function furnitureSvg(items) {
 }
 // zone : fond rose hachuré de rouge, contour en tirets (comme le plan DACAM), puis le mobilier
 // couleurs proposées pour les zones et les lignes de potelets (la 1re : rouge du plan DACAM)
-export const RESTO_COLORS = ['#e8262b', '#e67e00', '#e6b800', '#1a8f3c', '#0f9d9a', '#1f5fbf', '#7b2fbf', '#d6008f', '#555555'];
+export const RESTO_COLORS = ['#e8262b', '#ff6b6b', '#e67e00', '#f4a261', '#e6b800', '#8bc34a', '#1a8f3c', '#0f9d9a', '#4fc3f7', '#1f5fbf', '#1b2a4a', '#7b2fbf', '#d6008f', '#8d6e63', '#555555', '#111111'];
 export const isHex = c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
 export function zoneSvg(poly, id, col = RESTO_COLORS[0]) {
   if (!Array.isArray(poly) || poly.length < 3) return '';
