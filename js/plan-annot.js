@@ -150,6 +150,7 @@ export function cleanAnnot(list, lim = 2000) {
     if (a.t === 'icon') { r.ic = ICONS[a.ic] ? a.ic : 'info'; if (/^#[0-9a-f]{6}$/i.test(a.bg)) r.bg = a.bg; }
     if (a.t === 'zone' && a.cotes) r.cotes = true;
     if (a.hidden) r.hidden = true; if (a.grp) r.grp = String(a.grp).slice(0, 40);
+    if (a.cat) { const c = String(a.cat).replace(/[^\w-]/g, '').slice(0, 24); if (c) r.cat = c; }
     out.push(r);
   }
   return out;

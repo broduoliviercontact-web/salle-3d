@@ -107,3 +107,10 @@ button.acc { background:var(--acc); color:#111; border-color:var(--acc); }
 .brprev { display:block; width:100%; max-height:110px; background:#fff; border-radius:6px; margin:4px 0 8px; }
 .pedcols { flex-wrap:wrap; gap:4px; } .pedcols .colpick { width:26px; height:24px; padding:0; border:1px solid var(--line); border-radius:6px; background:none; cursor:pointer; }
 .pedcols .colorig { background:#2a2f39 !important; color:var(--fg); font-size:12px; line-height:1; }
+
+/* catégories de légende */
+.catb { display:inline-block; min-width:18px; height:18px; line-height:18px; border-radius:9px; color:#fff; font:bold 11px/18px system-ui, sans-serif; text-align:center; padding:0 3px; box-sizing:border-box; vertical-align:middle; }
+.cattab td { vertical-align:middle; } .cattab .catn { width:100%; min-width:70px; box-sizing:border-box; }
+.cattab input[type=color] { width:24px; height:22px; padding:0; border:none; background:none; cursor:pointer; }
+.cattab .catml { display:flex; align-items:center; gap:2px; font-size:11px; white-space:nowrap; } .cattab .catbtn { white-space:nowrap; }
+.cattab button { padding:1px 6px; min-width:0; }

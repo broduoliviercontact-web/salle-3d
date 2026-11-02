@@ -147,6 +147,10 @@
       <label class="cb"><input type="checkbox" data-l="annot"> Annotations (textes, cotes, zones, pictos)</label>
       <label class="cb"><input type="checkbox" data-l="bandeau"> Titre, échelle et légende</label>
       <label class="cb" title="Vaut aussi pour la fiche setup, la fiche auditorium et la comparaison"><input type="checkbox" id="svgGrill"> Grill et palans (aussi sur les fiches)</label>
+      <h3>Légende</h3>
+      <label class="cb"><input type="checkbox" data-l="legN"> Nombres dans la légende (×12)</label>
+      <div id="e2cats"></div>
+      <label class="cb" id="e2otherL"><input type="checkbox" data-l="legOther"> Objets sans catégorie</label>
     </div>
     <div class="e2prev"><div id="e2hint" class="e2note"></div><div id="e2wrap"><img id="e2img" alt="Aperçu du plan 2D" draggable="false"><div id="e2rect" hidden></div></div></div>
   </div>
@@ -181,6 +185,7 @@ import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNear
 import { COLORS, LABELS, DEFAULT, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
 import { pointInPoly, itemsBox, moveItems, zonePassages, passagesSvg, RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
 import { annotSvg, annotBox, annotLength, zoneArea, zoneRect, edgeCotesSvg, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
+import { CAT_PRESETS, CAT_LIMIT, catCode, cleanCats, nextCatColor, legendLayout } from './js/legend.js'; // catégories de légende
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -1756,6 +1761,7 @@ $('dup').onclick = () => { if (selected) pushUndo();
   const c = props.children.includes(selected) ? makeProp(selected.userData.kind, selected.userData.dims) : selected.clone();
   if (selected.userData.resto) setResto(c, structuredClone(selected.userData.resto));
   if (selected.userData.col) setPropCol(c, selected.userData.col);
+  if (selected.userData.cat) c.userData.cat = selected.userData.cat;
   if (!c.parent) selected.parent.add(c);
   c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
   if (stockOver().length) { const msg = stockOver().join('\n'); $('undo').click(); alert('Stock dépassé, copie annulée :\n' + msg); return; }
@@ -1869,6 +1875,7 @@ function pathOf(o) { const p = []; for (; o.parent !== venue; o = o.parent) p.un
 function byPath([name, ...p]) { let o = venue.children.find(m => m.name === name); for (const i of p) o = Number.isInteger(i) ? o?.children[i] : undefined; return o; } // indices entiers seulement (chemins venus d'un lien)
 const T = o => ({ p:o.position.toArray(), r:o.rotation.toArray().slice(0, 3) });
 let ANNOT = []; // annotations du plan 2D, sauvées avec le setup (n'apparaissent pas en 3D)
+let CATS = []; // catégories de légende du plan 2D [{ id, name, col, mark }], sauvées avec le setup
 function snapshot() {
   const moved = [];
   venue.traverse(o => { if (o.userData.orig && JSON.stringify(T(o)) !== o.userData.orig) moved.push({ path:pathOf(o), ...T(o) }); });
@@ -1876,16 +1883,17 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, annot:ANNOT, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom, sid:g.userData.sid, asd:g.userData.asd, resto:g.userData.resto, col:g.userData.col })), moved, view };
+  return { salle, annot:ANNOT, cats:CATS, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom, sid:g.userData.sid, asd:g.userData.asd, resto:g.userData.resto, col:g.userData.col, cat:g.userData.cat })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
   venue.traverse(o => { if (o.userData.orig) { const t = JSON.parse(o.userData.orig); o.position.fromArray(t.p); o.rotation.fromArray(t.r); } });
   CUES = Array.isArray(cfg.conduite) ? JSON.parse(JSON.stringify(cfg.conduite)).filter(c => c && typeof c.h === 'object').map(c => ({ ...c, name:String(c.name || 'Mémoire').slice(0, 80) })) : []; renderCues?.();
   ANNOT = cleanAnnot(cfg.annot); // annotations du plan 2D (textes, cotes, zones, pictos)
+  CATS = cleanCats(cfg.cats);
   DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
   const known = new Set([...Object.keys(BUILD), ...Object.keys(DEFAULT), ...Object.keys(LABELS), ...Object.keys(COLORS)]); // setup venu d'un lien ou d'un fichier : valeurs bornées (js/calc.js)
-  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); if (x.kind === 'resto') setResto(g, cleanResto(x.resto)); if (isHex(x.col)) setPropCol(g, x.col); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); });
+  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); if (x.kind === 'resto') setResto(g, cleanResto(x.resto)); if (isHex(x.col)) setPropCol(g, x.col); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); if (x.cat && CATS.some(c => c.id === x.cat)) g.userData.cat = String(x.cat); });
   (Array.isArray(cfg.moved) ? cfg.moved : []).slice(0, LIMITS.props).forEach(x => { const o = Array.isArray(x?.path) && byPath(x.path), p = cleanVec3(x?.p), r = cleanVec3(x?.r, 2 * Math.PI); if (o && p && r) { o.position.fromArray(p); o.rotation.fromArray(r); } });
   const v = cfg.view && cleanVec3(cfg.view.cam) && cleanVec3(cfg.view.target) ? cfg.view : null; setSalle(cfg.salle === 'audi' ? 'audi' : 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(cleanVec3(v.cam)); orbit.target.fromArray(cleanVec3(v.target)); goal = null;
@@ -2176,7 +2184,7 @@ const BUILDING_BOX = [[-91, -40], [91, 18]]; // emprise du bâtiment entier (d'a
 const PAPER = { A4:[297, 210], A3:[420, 297], A2:[594, 420], A1:[841, 594], A0:[1189, 841] }; // paysage, en mm
 const NICE_SCALES = [20, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000, 1250, 1500, 2000];
 const PLAN_DEF = { ext:'items', margin:8, custom:null, scale:'100', paper:'A3',
-  fond:true, grille:true, regles:true, trappes:true, axe:true, cotes:true, labels:true, cables:true, annot:true, prat:false, bandeau:true };
+  fond:true, grille:true, regles:true, trappes:true, axe:true, cotes:true, labels:true, cables:true, annot:true, prat:false, bandeau:true, legN:true, legOther:true, catOff:[] };
 const boxOverlap = (a, b) => a[0][0] < b[1][0] && b[0][0] < a[1][0] && a[0][1] < b[1][1] && b[0][1] < a[1][1];
 // plus petit format (portrait ou paysage) où tient un plan de w × h mm avec 10 mm de marge
 function paperFor(w, h) {
@@ -2197,6 +2205,32 @@ function viewExtent() {
   if (pts.length < 3) return null;
   const r = [[Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1]))], [Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))]];
   return r[1][0] - r[0][0] < 2 || r[1][1] - r[0][1] < 2 ? null : r;
+}
+// --- catégories de légende : objets rangés par l'utilisateur, regroupés dans la légende, repère (lettre) sur le plan ---
+const catOf = id => id ? CATS.find(c => c.id === id) || null : null;
+// ranger une sélection : toute la ligne / tout le groupe lié suit, avec les cotes de la ligne
+function catExpand(gs, as) {
+  const grps = new Set([...gs.map(o => o.userData.grp), ...as.map(a => a.grp)].filter(Boolean));
+  return { gs:[...new Set([...gs, ...props.children.filter(o => o.userData.grp && grps.has(o.userData.grp))])], as:[...new Set([...as, ...ANNOT.filter(a => a.grp && grps.has(a.grp))])] };
+}
+function setCat(gs, as, id) { const T = catExpand(gs, as); for (const o of [...T.gs.map(g => g.userData), ...T.as]) { if (id) o.cat = id; else delete o.cat; } }
+function newCat(name, col) {
+  if (CATS.length >= CAT_LIMIT) { alert(`${CAT_LIMIT} catégories au maximum.`); return null; }
+  const c = { id:newId(), name:String(name).trim().slice(0, 40) || 'Catégorie', col:col || nextCatColor(CATS), mark:true }; CATS.push(c); return c;
+}
+// pastilles sur le plan (lettre de la catégorie) : une par élément, une seule par ligne / groupe lié
+function catMarks(gs, as, R = 0.4) {
+  const f = v => +v.toFixed(2), out = [], seen = new Set();
+  const badge = (c, x, y) => `<g class="catmark"><circle cx="${f(x)}" cy="${f(y)}" r="${R}" fill="${c.col}" stroke="#fff" stroke-width="${f(R * 0.18)}"/><text x="${f(x)}" y="${f(y + R * 0.42)}" font-size="${f(R * 1.2)}" text-anchor="middle" font-weight="bold" fill="#fff">${catCode(CATS.indexOf(c))}</text></g>`;
+  for (const g of gs) { const c = catOf(g.userData.cat); if (!c?.mark) continue; const k = g.userData.grp;
+    if (k) { if (seen.has(k)) continue; seen.add(k);
+      const mem = gs.filter(o => o.userData.grp === k), cx = mem.reduce((s, o) => s + o.position.x, 0) / mem.length, cz = mem.reduce((s, o) => s + o.position.z, 0) / mem.length;
+      const m = mem.reduce((b, o) => Math.hypot(o.position.x - cx, o.position.z - cz) < Math.hypot(b.position.x - cx, b.position.z - cz) ? o : b);
+      out.push(badge(c, m.position.x + R * 1.4, m.position.z - R * 1.4)); continue; }
+    const poly = planItem(g).poly; out.push(badge(c, Math.max(...poly.map(q => q[0])), Math.min(...poly.map(q => q[1])))); }
+  for (const a of as) { const c = catOf(a.cat); if (!c?.mark || a.hidden || (a.grp && seen.has(a.grp))) continue; if (a.grp) seen.add(a.grp);
+    const b = annotBox(a); out.push(badge(c, b[1][0], b[0][1])); }
+  return out.join('');
 }
 // un élément ajouté sur le plan (aussi utilisé par l'éditeur 2D)
 function planItem(g) {
@@ -2257,16 +2291,17 @@ let planMeta = null; // dimensions du dernier plan produit (pour le menu d'expor
 async function planSvg(opts = false) {
   const o = typeof opts === 'object' && opts ? { ...PLAN_DEF, ...opts } : { ...PLAN_DEF, ext:opts ? 'salle' : 'items' };
   const grill = $('svgGrill').checked; // grill, cotes et palans masqués par défaut : ils chargent le plan
+  const catOff = new Set(o.catOff || []), catShown = id => { const c = catOf(id); return c ? !catOff.has(c.id) : o.legOther !== false || !CATS.length; }; // catégories cochées à l'export
   // cadre imposé (bâtiment, vue, zone tracée) : on garde les éléments dont le centre tombe dedans
   const fixed = o.ext === 'building' ? BUILDING_BOX : o.ext === 'view' ? viewExtent() : o.ext === 'custom' ? o.custom : null;
   const inFixed = g => g.position.x >= fixed[0][0] - 0.5 && g.position.x <= fixed[1][0] + 0.5 && g.position.z >= fixed[0][1] - 0.5 && g.position.z <= fixed[1][1] + 0.5;
   const zone = box => fixed ? boxOverlap(fixed, box) : (box === AUDI_BOX) === (salle === 'audi'); // calques propres à une salle
-  const items = o.noItems ? [] : props.children.filter(g => shown(g) && (fixed ? inFixed(g) : salle !== 'audi' || AUDI.containsPoint(new THREE.Vector3(g.position.x, 1, g.position.z))) && (grill || g.userData.kind !== 'grill')).map(planItem);
+  const items = o.noItems ? [] : props.children.filter(g => shown(g) && catShown(g.userData.cat) && (fixed ? inFixed(g) : salle !== 'audi' || AUDI.containsPoint(new THREE.Vector3(g.position.x, 1, g.position.z))) && (grill || g.userData.kind !== 'grill')).map(planItem);
   const bar = venue.children.find(o => o.userData.src?.pieces);
   if (fondSrc === null) fondSrc = await fetch('plan_fond.svg').then(r => r.ok ? r.text() : '').catch(() => '');
   // cadrage : cadre imposé, salle active (+ éléments qui débordent) ou éléments ajoutés + marge ; rien d'ajouté : la salle
   const BOX = salle === 'audi' ? AUDI_BOX : AGORA_BOX, whole = o.ext === 'salle';
-  const notes = o.annot ? ANNOT.filter(a => !fixed || boxOverlap(annotBox(a), fixed)) : [];
+  const notes = o.annot ? ANNOT.filter(a => catShown(a.cat) && (!fixed || boxOverlap(annotBox(a), fixed))) : [];
   let pts = fixed || [...items.flatMap(i => i.poly), ...notes.flatMap(annotBox), ...(whole ? BOX : [])], M = fixed ? (o.ext === 'building' ? 2 : 0) : whole ? 2 : Math.max(0, +o.margin || 0);
   if (!pts.length) { pts = BOX; M = 2; }
   // cadre calé sur le mètre : règles et grille tombent juste
@@ -2298,7 +2333,7 @@ async function planSvg(opts = false) {
     const poly = p.pts.map(([x, y]) => toPlan(bar, x - bar.userData.src.c[0], -(y - bar.userData.src.c[1])));
     out.push(`<polygon clip-path="url(#cadre)" points="${poly.map(q => q.map(f).join(',')).join(' ')}" fill="${hex(p.color)}" fill-opacity="0.5" stroke="#333" stroke-width="0.02"/>`);
   }
-  const legend = new Map();
+  const legend = new Map(), catLeg = new Map(CATS.map(c => [c.id, new Map()])), legOf = id => catOf(id) ? catLeg.get(id) : legend; // légende par type, et par catégorie
   // trappes de sol
   const traps = venue.children.find(o => o.name === 'Trappes de sol (PDF)');
   if (o.trappes && traps && shown(traps) && zone(AGORA_BOX)) for (const g of traps.children) { // trappes de l'Agora
@@ -2328,9 +2363,12 @@ async function planSvg(opts = false) {
   // annotations : les zones sous les éléments, le reste (textes, flèches, cotes, pictos) par-dessus
   const noteSvg = list => list.map(a => `<g clip-path="url(#cadre)">${annotSvg(a)}</g>`).join('\n');
   out.push(noteSvg(notes.filter(a => a.t === 'zone')));
-  for (const it of [...items].sort((a, b) => !!b.g.userData.resto - !!a.g.userData.resto)) drawItem(out, it, o, legend); // zones de restauration dessous
+  for (const it of [...items].sort((a, b) => !!b.g.userData.resto - !!a.g.userData.resto)) drawItem(out, it, o, legOf(it.g.userData.cat)); // zones de restauration dessous
   out.push(noteSvg(notes.filter(a => a.t !== 'zone')));
-  for (const a of notes) if (a.t === 'icon') { const I = ICONS[a.ic]; legend.set(I.name, { col:I.col, n:(legend.get(I.name)?.n || 0) + 1 }); }
+  for (const a of notes) { const L = legOf(a.cat);
+    if (a.t === 'icon') { const I = ICONS[a.ic]; L.set(I.name, { col:L.get(I.name)?.col || a.bg || I.col, n:(L.get(I.name)?.n || 0) + 1 }); }
+    else if (a.t === 'zone' && L !== legend) { const k = a.txt || 'Zone'; L.set(k, { col:a.col, n:(L.get(k)?.n || 0) + 1 }); } }
+  out.push(`<g clip-path="url(#cadre)">${catMarks(items.map(i => i.g), notes)}</g>`); // repères des catégories
   // palans du grill avec leur charge, câbles depuis les trappes
   const rig = grill ? rigging() : null;
   if (rig) { legend.set('Palan (charge au point)', { col:'#2c7a3f', n:rig.pts.length });
@@ -2351,8 +2389,11 @@ async function planSvg(opts = false) {
   out.push(`<path d="${tk}" stroke="#000" stroke-width="0.02"/>${lb}`); }
   // bandeau : titre, infos, échelle, légende (en unités de bandeau, mises à l'échelle k)
   // légende trop longue : on agrandit le bandeau vers le haut (le plan, les règles et le cadre ne bougent pas)
-  if (o.bandeau) { const lx0 = 1 + Math.max((W > 40 ? 10 : 5) / k + 3, 20); let lx = lx0, ly = 0.8;
-    for (const [kind] of legend) { const wi = 1.4 + (kind.length + 3) * 0.22; if (lx + wi > W / k - 0.5 && lx > lx0) { lx = lx0; ly += 0.8; } lx += wi; }
+  const legLab = (kk, n) => o.legN === false ? kk : `${kk} ×${n}`, legRows = m => [...m].map(([kk, v]) => ({ label:legLab(kk, v.n), col:v.col }));
+  const legGroups = [{ items:legRows(legend) }, ...CATS.filter(c => catLeg.get(c.id).size).map(c => {
+    const pl = restoTotals(items.filter(i => i.g.userData.cat === c.id).map(i => i.g)).places;
+    return { head:{ label:c.name.toUpperCase() + (pl && o.legN !== false ? ` · ${pl} places` : ''), col:c.col, code:catCode(CATS.indexOf(c)) }, items:legRows(catLeg.get(c.id)) }; })];
+  if (o.bandeau) { const lx0 = 1 + Math.max((W > 40 ? 10 : 5) / k + 3, 20), ly = 0.8 + legendLayout(legGroups, lx0, W / k - 0.5).bottom;
     const extra = Math.max(0, Math.ceil((ly + 1.2 - HU) * k));
     if (extra) { y0 -= extra; H += extra; H0 += extra;
       out[2] = `<rect x="${f(x0)}" y="${f(y0)}" width="${f(W)}" height="${f(H)}" fill="#fff"/>`; } }
@@ -2372,12 +2413,11 @@ async function planSvg(opts = false) {
   lines.forEach((t, i) => out.push(`<text x="${f(tx)}" y="${f(ty + 1.5 + i * 0.55)}" font-size="0.4" fill="${t === rl ? '#9a1c1c' : '#444'}"${t === rl || t === bl ? ' font-weight="bold"' : ''}>${esc(t)}</text>`));
   out.push(`<g transform="translate(${f(tx)} ${f(ty + 2.3 + Math.max(0, lines.length - 1) * 0.55)})"><rect width="${f(sb / k)}" height="0.18" fill="#000"/><rect width="${f(sb / 2 / k)}" height="0.18" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="0" y="0.75" font-size="0.35">0</text><text x="${f(sb / 2 / k)}" y="0.75" font-size="0.35" text-anchor="middle">${sb / 2}</text><text x="${f(sb / k)}" y="0.75" font-size="0.35" text-anchor="middle">${sb} m</text></g>`);
   // légende sur plusieurs lignes à droite du titre
-  const lx0 = tx + Math.max(sb / k + 3, 20); let lx = lx0, ly = ty - 0.5;
-  for (const [kind, { col, n }] of legend) {
-    const wItem = 1.4 + (kind.length + 3) * 0.22;
-    if (lx + wItem > WU - 0.5 && lx > lx0) { lx = lx0; ly += 0.8; }
-    out.push(`<rect x="${f(lx)}" y="${f(ly)}" width="0.6" height="0.6" fill="${col}" fill-opacity="0.6" stroke="#000" stroke-width="0.03"/><text x="${f(lx + 0.8)}" y="${f(ly + 0.5)}" font-size="0.4">${esc(kind)} ×${n}</text>`);
-    lx += wItem;
+  // légende : par type, puis une ligne par catégorie (pastille + nom), ses éléments à la suite
+  const lx0 = tx + Math.max(sb / k + 3, 20), ly0 = ty - 0.5;
+  for (const e of legendLayout(legGroups, lx0, WU - 0.5).els) { const y = ly0 + e.y;
+    if (e.t === 'head') out.push(`<circle cx="${f(e.x + 0.32)}" cy="${f(y + 0.3)}" r="0.32" fill="${e.col}"/><text x="${f(e.x + 0.32)}" y="${f(y + 0.45)}" font-size="0.4" text-anchor="middle" font-weight="bold" fill="#fff">${esc(e.code)}</text><text x="${f(e.x + 0.85)}" y="${f(y + 0.5)}" font-size="0.42" font-weight="bold" fill="${e.col}">${esc(e.label)}</text>`);
+    else out.push(`<rect x="${f(e.x)}" y="${f(y)}" width="0.6" height="0.6" fill="${e.col}" fill-opacity="0.6" stroke="#000" stroke-width="0.03"/><text x="${f(e.x + 0.8)}" y="${f(y + 0.5)}" font-size="0.4">${esc(e.label)}</text>`);
   }
   out.push('</g></svg>');
   return out.join('\n');
@@ -2396,6 +2436,11 @@ function e2form() {
   $('e2paper').disabled = e2.scale !== 'fit';
   document.querySelectorAll('#exp2d [data-l]').forEach(c => c.checked = !!e2[c.dataset.l]);
   $('e2salle').textContent = salle === 'audi' ? 'Auditorium' : 'Agora';
+  // catégories de légende du setup : cocher celles à montrer (un plan « Sécurité », un plan « Restauration »…)
+  $('e2cats').innerHTML = CATS.length ? CATS.map((c, i) => `<label class="cb"><input type="checkbox" data-cat="${c.id}"${(e2.catOff || []).includes(c.id) ? '' : ' checked'}> <span class="catb" style="background:${c.col}">${catCode(i)}</span> ${esc(c.name)}</label>`).join('')
+    : '<p class="e2note">Pas encore de catégorie : à créer dans l\'éditeur 2D (panneau de droite, sans sélection).</p>';
+  $('e2cats').querySelectorAll('[data-cat]').forEach(b => b.onchange = () => { const st = new Set(e2.catOff || []); if (b.checked) st.delete(b.dataset.cat); else st.add(b.dataset.cat); e2.catOff = [...st]; e2later(); });
+  $('e2otherL').hidden = !CATS.length;
 }
 async function e2refresh() {
   const n = ++e2seq, custom = e2.ext === 'custom';
@@ -2528,7 +2573,8 @@ function pedDraw() {
   // flèches et cotes : trait invisible plus large pour les attraper facilement
   const hit = a => a.t === 'arrow' || a.t === 'dim' ? `<line x1="${a.p[0][0]}" y1="${a.p[0][1]}" x2="${a.p[1][0]}" y2="${a.p[1][1]}" stroke="transparent" stroke-width="0.6"/>` : '';
   $('pedZones').innerHTML = ANNOT.filter(a => a.t === 'zone').map(a => `<g data-a="${a.id}">${annotSvg(a)}</g>`).join('');
-  $('pedAnn').innerHTML = ANNOT.filter(a => a.t !== 'zone').map(a => `<g data-a="${a.id}">${hit(a)}${annotSvg(a)}</g>`).join('');
+  $('pedAnn').innerHTML = ANNOT.filter(a => a.t !== 'zone').map(a => `<g data-a="${a.id}">${hit(a)}${annotSvg(a)}</g>`).join('')
+    + `<g pointer-events="none">${catMarks(props.children.filter(shown), ANNOT)}</g>`; // repères des catégories de légende
   if (ped.sel?.g && !props.children.includes(ped.sel.g)) ped.sel = null;
   if (ped.sel?.a && !ANNOT.includes(ped.sel.a)) ped.sel = null;
   pedDrawSel();
@@ -3157,6 +3203,38 @@ function bindRestoPanel(g) {
     $(id).onchange = () => { if (!r.auto) { r.auto = { ...RESTO_DEFAULT }; r.src = ''; } pushUndo(); r.auto[key] = Math.max(key === 'ang' ? -360 : 0, +$(id).value || 0); apply(); };
 }
 // panneau de droite : propriétés de la sélection
+// --- catégories de légende dans l'éditeur : choix pour la sélection, gestion de la liste quand rien n'est sélectionné ---
+function catRowHtml(vals) {
+  const set = new Set(vals.map(v => catOf(v) ? v : '')), mixed = set.size > 1, cur = mixed ? null : [...set][0] || '';
+  return `<h3>Catégorie de légende</h3><div class="row"><select id="catSel" class="grow" title="Range ${vals.length > 1 ? 'ces objets' : 'cet objet'} dans une catégorie de la légende (la ligne ou le groupe lié suit)">${mixed ? '<option value="__mixed" selected disabled>— plusieurs —</option>' : ''}<option value=""${cur === '' ? ' selected' : ''}>Automatique (par type)</option>${CATS.map((c, i) => `<option value="${c.id}"${cur === c.id ? ' selected' : ''}>${catCode(i)} · ${esc(c.name)}</option>`).join('')}<option value="__new">+ Nouvelle catégorie…</option></select></div>`;
+}
+function bindCatRow(gs, as) {
+  const S = $('catSel'); if (!S) return;
+  S.onchange = () => { let id = S.value;
+    if (id === '__new') { const n = prompt('Nom de la nouvelle catégorie :', ''); if (!n?.trim() || CATS.length >= CAT_LIMIT) { if (CATS.length >= CAT_LIMIT) alert(`${CAT_LIMIT} catégories au maximum.`); pedSide(); return; }
+      pushUndo(); id = newCat(n).id; } else pushUndo();
+    setCat(gs, as, id); pedDraw(); pedSide(); $('pedInfo').textContent = id ? `Rangé dans « ${catOf(id).name} »` : 'Rangé automatiquement (par type)'; };
+}
+function catPanel() {
+  const cnt = c => props.children.filter(o => shown(o) && o.userData.cat === c.id).length + ANNOT.filter(a => a.cat === c.id).length;
+  const free = CAT_PRESETS.filter(p => !CATS.some(c => c.name.toLowerCase() === p.name.toLowerCase()));
+  return `<h3>Catégories de légende</h3>${CATS.length ? `<table class="pottab cattab">${CATS.map((c, i) => `<tr data-ci="${i}"><td><span class="catb" style="background:${c.col}">${catCode(i)}</span></td><td><input class="catn" value="${esc(c.name)}" maxlength="40" title="Nom (affiché en majuscules dans la légende)"></td><td><input type="color" class="catc" value="${c.col}" title="Couleur de la catégorie"></td><td><label class="catml" title="Afficher la lettre sur le plan, à côté de chaque objet"><input type="checkbox" class="catm"${c.mark ? ' checked' : ''}>repère</label></td><td><button class="cats" title="Sélectionner les objets de cette catégorie">${cnt(c)}</button></td><td class="catbtn"><button class="catu" title="Monter dans la légende"${i ? '' : ' disabled'}>↑</button><button class="catx" title="Supprimer la catégorie (ses objets restent, rangés par type)">✕</button></td></tr>`).join('')}</table>` : '<p class="e2note">Aucune catégorie : la légende range les objets par type.</p>'}
+    <div class="row"><button id="catAdd">+ Catégorie</button>${free.length && CATS.length < CAT_LIMIT ? `<select id="catPre" class="grow"><option value="">Catégories types…</option>${free.map(p => `<option>${esc(p.name)}</option>`).join('')}</select>` : ''}</div>
+    <p class="e2note">Sélectionne un ou plusieurs objets (mobilier, zones, lignes, pictos, textes), puis choisis leur catégorie dans ce panneau. Le nombre sélectionne les objets de la catégorie. À l'export, coche les catégories à montrer.</p>`;
+}
+function bindCatPanel() {
+  document.querySelectorAll('#pedSide .cattab tr').forEach(tr => { const c = CATS[+tr.dataset.ci];
+    tr.querySelector('.catn').onchange = e => { pushUndo(); c.name = e.target.value.trim().slice(0, 40) || c.name; pedDraw(); pedSide(); };
+    tr.querySelector('.catc').onchange = e => { pushUndo(); c.col = e.target.value; pedDraw(); pedSide(); };
+    tr.querySelector('.catm').onchange = e => { pushUndo(); c.mark = e.target.checked; pedDraw(); };
+    tr.querySelector('.cats').onclick = () => pedSetMulti(props.children.filter(o => shown(o) && o.userData.cat === c.id), ANNOT.filter(a => a.cat === c.id));
+    tr.querySelector('.catu').onclick = () => { pushUndo(); const i = CATS.indexOf(c); CATS.splice(i, 1); CATS.splice(i - 1, 0, c); pedDraw(); pedSide(); };
+    tr.querySelector('.catx').onclick = () => { if (!confirm(`Supprimer la catégorie « ${c.name} » ? Ses objets restent sur le plan, rangés par type dans la légende.`)) return;
+      pushUndo(); CATS.splice(CATS.indexOf(c), 1); props.children.forEach(o => { if (o.userData.cat === c.id) delete o.userData.cat; }); ANNOT.forEach(a => { if (a.cat === c.id) delete a.cat; }); pedDraw(); pedSide(); };
+  });
+  $('catAdd').onclick = () => { const n = prompt('Nom de la catégorie :', ''); if (!n?.trim()) return; pushUndo(); newCat(n); pedSide(); };
+  if ($('catPre')) $('catPre').onchange = () => { const p = CAT_PRESETS.find(p => p.name === $('catPre').value); if (!p) return; pushUndo(); newCat(p.name, CATS.some(c => c.col === p.col) ? null : p.col); pedSide(); };
+}
 function pedSide() {
   const s = ped.sel, el = $('pedSide');
   if (multiOn() && ped.tool === 'sel') {
@@ -3164,9 +3242,9 @@ function pedSide() {
     M.as.forEach(a => { const k = 'Annotation : ' + PED_KIND[a.t].toLowerCase(); cnt.set(k, (cnt.get(k) || 0) + 1); });
     const places = M.gs.reduce((s, o) => s + (o.userData.resto ? restoStats(o.userData.resto.items, []).places : RESTO_MODS[o.userData.kind] ? restoStats(RESTO_MODS[o.userData.kind].items, []).places : 0), 0);
     el.innerHTML = `<h3>Sélection multiple</h3><p><b>${M.gs.length + M.as.length} sélectionnés</b>${places ? ` · ${places} places` : ''}</p><table class="pottab">${[...cnt].map(([k, n]) => `<tr><td>${n}</td><td>${esc(k)}</td></tr>`).join('')}</table>
-      <div class="row" style="margin-top:8px"><button id="msDup" class="grow">Dupliquer (⌘D)</button><button id="msDel" class="grow">Supprimer (Suppr.)</button></div>
+      ${catRowHtml([...M.gs.map(o => o.userData.cat || ''), ...M.as.map(a => a.cat || '')])}<div class="row" style="margin-top:8px"><button id="msDup" class="grow">Dupliquer (⌘D)</button><button id="msDel" class="grow">Supprimer (Suppr.)</button></div>
       <p class="e2note">Glisser un élément de la sélection : tout bouge. ⌥ Option + glisser : copie de tout le lot. Flèches : 10 cm (Maj : 1 m). Maj + clic : ajouter ou retirer un élément. Échap : désélectionner.</p>`;
-    $('msDup').onclick = () => pedMultiDup(1); $('msDel').onclick = pedMultiDelete; return; }
+    $('msDup').onclick = () => pedMultiDup(1); $('msDel').onclick = pedMultiDelete; bindCatRow(M.gs, M.as); return; }
   if (ped.tool === 'icon') { // pinceau de pictos
     const C = ped.icb, I = ICONS[ped.ic], cur = C.bg[ped.ic] || I.col;
     el.innerHTML = `<h3>Pinceau de pictos</h3>
@@ -3219,13 +3297,14 @@ function pedSide() {
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
       ${BT.length ? `<h3>Balisage sur le plan</h3><table class="pottab">${BT.map(([k, n, d]) => `<tr><td><b>${n}</b></td><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>` : ''}
       ${stockPanel()}
+      ${catPanel()}
       ${RT.places || RT.tables ? `<h3>Restauration sur le plan</h3><p><b>${RT.places} places assises</b> · ${RT.tables} tables<br>${seatsTxt(RT)}${RT.zones ? ` · ${RT.zones} zone${RT.zones > 1 ? 's' : ''} (${Math.round(RT.area)} m²)` : ''}</p>
         <table class="pottab" id="rtTab">${RT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places).map((r, i) => `<tr data-i="${i}" style="cursor:pointer" title="Sélectionner"><td>${esc(r.name)}</td><td><b>${r.places}</b> pl.</td><td>${r.tables} t.</td></tr>`).join('')}</table>` : ''}
       <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> lignes (potelets, Vauban, Heras, passe-câbles) : cliquer les points, cotes et nombre en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>Glisser sur le fond</b> : rectangle de sélection (Maj : ajouter), puis ⌥ + glisser pour dupliquer le lot, Suppr. pour le supprimer · ⌘A : tout</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
       <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : déplacer la vue (Maj : plus vite) ; avec une sélection, la déplacer de 10 cm (Maj : 1 m) · + / − : zoom</li>
       <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · Espace ou clic droit + glisser : déplacer la vue · <b>C</b> recadrer</li></ul>
       <p class="e2note">Le matériel est le même qu'en 3D. Textes, cotes, zones et pictos n'apparaissent que sur les plans (export, fiches) et sont sauvés avec le setup.</p>`;
-    bindStockPanel();
+    bindStockPanel(); bindCatPanel();
     const rtRows = RT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places);
     el.querySelectorAll('#rtTab [data-i]').forEach(tr => tr.onclick = () => pedSelect({ g:rtRows[+tr.dataset.i].o }));
     return;
@@ -3240,6 +3319,7 @@ function pedSide() {
       ${!g.userData.resto && !LINE_OF[g.userData.kind] ? `<h3>Couleur</h3><div class="row pedcols" id="pgCols"><button data-c="" class="colorig${g.userData.col ? '' : ' on'}" title="Couleur d'origine">↺</button>${RESTO_COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === g.userData.col ? 'on' : ''}" title="${c}"></button>`).join('')}</div>` : ''}
       ${g.userData.resto ? restoPanel(g) : ''}
       ${PRAT_KINDS.has(g.userData.kind) ? pratPanel(g) : ''}
+      ${catRowHtml([g.userData.cat || ''])}
       <p class="e2note">Coordonnées du plan AutoCAD (m). Hauteur au sol et autres réglages : dans le panneau 3D.</p>
       <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button><button id="ped3d" class="grow">Voir en 3D</button></div>`;
     const fromSide = () => { select(g); $('pX').value = $('pedX').value; $('pY').value = $('pedY').value; $('pA').value = $('pedA').value; applyPos(); pedDraw(); };
@@ -3247,6 +3327,7 @@ function pedSide() {
     for (const id of ['pedW', 'pedD', 'pedH']) if ($(id)) $(id).onchange = () => pedResize(g, [+$('pedW').value || g.userData.dims[0], +($('pedD')?.value || g.userData.dims[1]), +($('pedH')?.value || g.userData.dims[2])]);
     $('pedR1').onclick = () => pedRotate(g, 15); $('pedR2').onclick = () => pedRotate(g, -15);
     if (g.userData.resto) bindRestoPanel(g);
+    bindCatRow([g], []);
     document.querySelectorAll('#pgCols [data-c]').forEach(b => b.onclick = () => { pushUndo(); // couleur de l'élément (vide : d'origine, l'élément est reconstruit)
       if (b.dataset.c) setPropCol(g, b.dataset.c); else { delete g.userData.col; const n = rebuildProp(g, g.userData.dims); ped.sel = { g:n }; }
       pedDraw(); pedSide(); });
@@ -3274,11 +3355,13 @@ function pedSide() {
       <label class="pedl">Taille <input id="pedS" type="range" min="0.3" max="5" step="0.1" value="${a.s}"></label>
       ${a.t === 'zone' ? `<label class="cb"><input type="checkbox" id="pedZCotes"${a.cotes ? ' checked' : ''}> Afficher les cotes de la zone</label>` : ''}
       ${a.t === 'zone' ? `<div class="row"><button id="pedToResto" class="grow" title="Remplace cette zone par une zone de restauration vide, de même forme, même nom et même couleur ; à remplir ensuite (module, pinceau, capacité max)">🍽 Transformer en zone de restauration</button></div>` : ''}
+      ${catRowHtml([a.cat || ''])}
       <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button></div>`;
     let undo = false; const edit = fn => { if (!undo) { pushUndo(); undo = true; } fn(); pedDraw(); };
     $('pedTxt').oninput = () => edit(() => { a.txt = $('pedTxt').value.slice(0, 200); });
     $('pedS').oninput = () => edit(() => { a.s = +$('pedS').value; });
     if ($('pedToResto')) $('pedToResto').onclick = () => zoneToResto(a);
+    bindCatRow([], [a]);
     if ($('pedZCotes')) $('pedZCotes').onchange = () => edit(() => { if ($('pedZCotes').checked) a.cotes = true; else delete a.cotes; });
     if ($('pedIc')) $('pedIc').onchange = () => { edit(() => { a.ic = $('pedIc').value; }); pedSide(); };
     el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { edit(() => { if (a.t === 'icon') { if (b.dataset.c === ICONS[a.ic].col) delete a.bg; else a.bg = b.dataset.c; } else a.col = b.dataset.c; }); pedSide(); });
