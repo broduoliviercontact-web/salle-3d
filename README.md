@@ -24,6 +24,7 @@ Le bouton **＋ Ajouter un élément…** ouvre le **catalogue** : les élément
 **Sound system de la Petite Scène** (catalogue, rubrique *Son* ; recherche « petite scène »), d'après le dossier emilieu studio (phase 1, sept. 2026) :
 - **Enceinte Petite Scène GS** : pied Manfrotto B6029X à roulettes (3 jambes, emprise Ø 1,56 m), caisson médium « kick » ouvert 900 × 900 × 914 mm de 1,40 à 2,30 m (pavillon à parois courbes, tasseaux apparents, boîte arrière 221 mm, rainures blanc crème), pavillon d'aigu JMLC-270 Ø 713 mm blanc crème RAL 9001 centré à 2,86 m, tube jusqu'à 3,35 m avec boule chromée. Sur le plan : emprise 1,44 × 1,29 m (cotes du plan du dossier).
 - **Sub Petite Scène GS** : VTL 118 custom 680 × 610 mm sur plateau à roulettes, ampli en flightcase dessus, 1,15 m de haut.
+- **DJ booth Petite Scène GS** : 1 248 × 624 mm sur roulettes, plateau à 0,90 m et crédence de 150 mm (2 passages de câble), bords relevés ; face public pleine avec joints creux blanc crème, côté DJ ouvert : 3 étages de rangement (130, 350 pour les vinyles, 220 mm), crochets sur les flancs. Face avant (▲ sur le plan) = côté public.
 - Bois teinté acajou / brique. Poids et puissance non indiqués dans le dossier : non comptés.
 
 **Ajouter un nouvel objet au catalogue** :
