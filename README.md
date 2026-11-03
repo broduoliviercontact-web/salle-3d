@@ -21,6 +21,11 @@ Aucune installation ni compilation : `index.html` et ses modules (`js/`, `css/`)
 ### Ajouter des éléments
 Le bouton **＋ Ajouter un élément…** ouvre le **catalogue** : les éléments sont rangés par catégorie (Scène et praticables, Son, Lumière, Vidéo, Sécurité et circulation, Divers), chacun avec une **vignette 3D générée à partir de son modèle**, ses dimensions et son poids. Une recherche filtre la liste (sans tenir compte des accents ; Entrée ajoute le premier résultat). Un clic pose l'élément au centre de la vue ; ses dimensions se règlent ensuite avec L / P / H. Les **tracés** (passe-câbles, Vauban) et les **installations** (setup du machiniste, concert 05/12, FIP 360) restent dans le panneau.
 
+**Sound system de la Petite Scène** (catalogue, rubrique *Son* ; recherche « petite scène »), d'après le dossier emilieu studio (phase 1, sept. 2026) :
+- **Enceinte Petite Scène GS** : pied Manfrotto B6029X à roulettes (3 jambes, emprise Ø 1,56 m), caisson médium « kick » ouvert 900 × 900 × 914 mm de 1,40 à 2,30 m (pavillon à parois courbes, tasseaux apparents, boîte arrière 221 mm, rainures blanc crème), pavillon d'aigu JMLC-270 Ø 713 mm blanc crème RAL 9001 centré à 2,86 m, tube jusqu'à 3,35 m avec boule chromée. Sur le plan : emprise 1,44 × 1,29 m (cotes du plan du dossier).
+- **Sub Petite Scène GS** : VTL 118 custom 680 × 610 mm sur plateau à roulettes, ampli en flightcase dessus, 1,15 m de haut.
+- Bois teinté acajou / brique. Poids et puissance non indiqués dans le dossier : non comptés.
+
 **Ajouter un nouvel objet au catalogue** :
 1. dans `js/models.js`, écrire sa fonction de modèle 3D `export function buildXxx(dims)` (origine au sol, face avant vers +z), et renseigner `LABELS`, `DEFAULT` (L × P × H en m), et si besoin `COLORS`, `WEIGHT` ;
 2. dans `index.html`, l'importer (ligne `import … from './js/models.js'`), l'ajouter à `BUILD`, et si besoin à `POWER`, `DXF_LAYER`, `COVER` ;
