@@ -381,6 +381,7 @@ Les fichiers `flags.json`, `align.json`, `pdf2dxf.json` et `pdf2dxf_est.json` so
 Le bouton **Plan 2D…** ouvre le menu d'export, avec un aperçu en direct :
 - **Zone exportée** : éléments ajoutés + marge réglable, salle active entière (Agora ou Auditorium), bâtiment entier, ce que montre la vue 3D, ou une zone tracée à la souris sur l'aperçu du bâtiment (calée au mètre).
 - **Échelle et format** : 1:50, 1:100, 1:200, 1:500, ou « ajuster au format » (A4 à A0, portrait ou paysage choisi automatiquement). Le menu indique la taille du plan en mm et le plus petit format où il tient.
+- **Page du PDF** : « Page ajustée au plan » (par défaut) donne une page sur mesure, plan + 10 mm de marge, sans espace blanc (idéal pour une zone en bande) ; « Format standard A4 → A0 » garde le plus petit format qui contient le plan, avec le plan centré (pour l'imprimante). Les marges du navigateur sont à zéro : plus de date ni de « about:blank » imprimés.
 - **Contenu** : fond de plan, grille, règles, trappes/boîtiers, axe et piliers, cotes, noms, câbles, bandeau titre/légende, grill et palans (ce dernier réglage vaut aussi pour les fiches et la comparaison).
 - **Sortie** : SVG téléchargé ou impression / PDF à l'échelle (page au bon format, marges 10 mm).
 

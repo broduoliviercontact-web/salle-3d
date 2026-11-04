@@ -133,6 +133,7 @@
       <h3>Échelle et format</h3>
       <div class="row"><select id="e2scale" class="grow"><option value="50">1:50</option><option value="100">1:100</option><option value="200">1:200</option><option value="500">1:500</option><option value="fit">Ajuster au format →</option></select>
         <select id="e2paper"><option>A4</option><option>A3</option><option>A2</option><option>A1</option><option>A0</option></select></div>
+      <div class="row"><select id="e2page" class="grow" title="Format de la page du PDF / de l'impression"><option value="plan">Page ajustée au plan (PDF sans blanc)</option><option value="std">Page au format standard A4 → A0 (imprimante)</option></select></div>
       <div id="e2size" class="e2note"></div>
       <h3>Contenu</h3>
       <label class="cb"><input type="checkbox" data-l="fond"> Fond de plan (bâti)</label>
@@ -2183,7 +2184,7 @@ const AGORA_BOX = [[-12, -36], [92, 17]]; // emprise de l'Agora (x, z), de la cl
 const BUILDING_BOX = [[-91, -40], [91, 18]]; // emprise du bâtiment entier (d'après le fond de plan DXF)
 const PAPER = { A4:[297, 210], A3:[420, 297], A2:[594, 420], A1:[841, 594], A0:[1189, 841] }; // paysage, en mm
 const NICE_SCALES = [20, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000, 1250, 1500, 2000];
-const PLAN_DEF = { ext:'items', margin:8, custom:null, scale:'100', paper:'A3',
+const PLAN_DEF = { ext:'items', margin:8, custom:null, scale:'100', paper:'A3', page:'plan',
   fond:true, grille:true, regles:true, trappes:true, axe:true, cotes:true, labels:true, cables:true, annot:true, prat:false, bandeau:true, legN:true, legOther:true, catOff:[] };
 const boxOverlap = (a, b) => a[0][0] < b[1][0] && b[0][0] < a[1][0] && a[0][1] < b[1][1] && b[0][1] < a[1][1];
 // plus petit format (portrait ou paysage) où tient un plan de w × h mm avec 10 mm de marge
@@ -2433,7 +2434,7 @@ const EXT_NAME = { items:'elements', salle:'salle', building:'batiment', view:'v
 function e2form() {
   document.querySelectorAll('[name=e2ext]').forEach(r => r.checked = r.value === e2.ext);
   $('e2margin').value = e2.margin; $('e2scale').value = e2.scale; $('e2paper').value = e2.paper;
-  $('e2paper').disabled = e2.scale !== 'fit';
+  $('e2paper').disabled = e2.scale !== 'fit'; $('e2page').value = e2.page || 'plan';
   document.querySelectorAll('#exp2d [data-l]').forEach(c => c.checked = !!e2[c.dataset.l]);
   $('e2salle').textContent = salle === 'audi' ? 'Auditorium' : 'Agora';
   // catégories de légende du setup : cocher celles à montrer (un plan « Sécurité », un plan « Restauration »…)
@@ -2455,7 +2456,7 @@ async function e2refresh() {
   if (custom && e2.custom) { await planSvg(e2opts()); if (n !== e2seq) return; } // dimensions du résultat
   const r = planMeta, p = r.paper;
   $('e2size').textContent = custom && !e2.custom ? 'Trace d\'abord la zone sur l\'aperçu (sans zone : bâtiment entier).' : `Plan de ${Math.round(r.W)} × ${Math.round(r.H)} m → ${Math.round(r.wmm)} × ${Math.round(r.hmm)} mm à 1:${r.sc}`
-    + (p ? ` · tient sur ${p.n} ${p.o}` : ' · plus grand que A0 : choisir une échelle plus petite');
+    + ((e2.page || 'plan') === 'std' ? (p ? ` · tient sur ${p.n} ${p.o}` : ' · plus grand que A0 : page sur mesure') : ` · page PDF ${Math.ceil(r.wmm) + 21} × ${Math.ceil(r.hmm) + 21} mm, sans blanc`);
   $('e2info').textContent = `1:${r.sc}` + (p ? ` · ${p.n} ${p.o}` : '');
   $('e2hint').textContent = custom ? (e2.custom ? `Zone : ${Math.round(e2.custom[1][0] - e2.custom[0][0])} × ${Math.round(e2.custom[1][1] - e2.custom[0][1])} m. Glisse sur le plan pour la retracer.` : 'Glisse sur le plan pour tracer la zone à exporter.')
     : e2.ext === 'view' && !viewExtent() ? 'La vue 3D regarde trop à l\'horizontale : plan de la salle à la place. Penche la caméra vers le sol.'
@@ -2485,6 +2486,7 @@ document.querySelectorAll('[name=e2ext]').forEach(r => r.onchange = () => { e2.e
 $('e2margin').onchange = () => { e2.margin = THREE.MathUtils.clamp(+$('e2margin').value || 0, 0, 50); e2later(); };
 $('e2scale').onchange = () => { e2.scale = $('e2scale').value; e2later(); };
 $('e2paper').onchange = () => { e2.paper = $('e2paper').value; e2later(); };
+$('e2page').onchange = () => { e2.page = $('e2page').value; e2later(); };
 document.querySelectorAll('#exp2d [data-l]').forEach(c => c.onchange = () => { e2[c.dataset.l] = c.checked; e2later(); });
 $('svgGrill').onchange = e2later;
 $('e2reset').onclick = () => { e2 = { ...PLAN_DEF }; e2later(); };
@@ -2496,14 +2498,20 @@ $('e2svg').onclick = async () => {
   a.href = URL.createObjectURL(new Blob([await planSvg(e2opts())], { type:'image/svg+xml' }));
   a.download = planFile('svg'); a.click();
 };
-// impression à l'échelle : page au format qui contient le plan (ou sur mesure s'il dépasse l'A0), marges 10 mm
+// page de l'impression / du PDF : ajustée au plan (10 mm de marge, aucun blanc) ou le plus petit format standard qui le contient
+function e2pageSize(m) {
+  const fit = { n:'sur mesure', o:'', pw:Math.ceil(m.wmm) + 21, ph:Math.ceil(m.hmm) + 21 };
+  return (e2.page || 'plan') === 'std' && m.paper ? m.paper : fit;
+}
+// impression à l'échelle, plan centré sur la page ; marge de page à 0 (les 10 mm sont dans la page) : le navigateur n'ajoute ni date ni « about:blank »
 $('e2print').onclick = async () => {
   const w = open('', '_blank'); if (!w) return alert('Autorise les fenêtres pop-up pour imprimer le plan.');
   w.document.write('<p style="font:14px sans-serif">Préparation du plan…</p>');
-  const svg = await planSvg(e2opts()), m = planMeta, p = m.paper || { pw:Math.ceil(m.wmm + 20), ph:Math.ceil(m.hmm + 20) };
+  const svg = await planSvg(e2opts()), m = planMeta, p = e2pageSize(m);
   w.document.open();
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(planFile('pdf').replace(/\.pdf$/, ''))}</title><style>
-    @page { size:${p.pw}mm ${p.ph}mm; margin:10mm } html, body { margin:0 } svg { display:block }
+    @page { size:${p.pw}mm ${p.ph}mm; margin:0 } html { margin:0 } body { margin:0; padding:10mm; width:${p.pw - 20}mm; height:${p.ph - 20}mm; display:flex; align-items:center; justify-content:center; overflow:hidden }
+    svg { display:block; flex:none } * { -webkit-print-color-adjust:exact; print-color-adjust:exact }
     </style></head><body>${svg}</body></html>`);
   w.document.close(); setTimeout(() => w.print(), 500);
 };
