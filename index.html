@@ -73,7 +73,7 @@
   <div class="row"><button id="salleAgora" class="on" title="Tout le bâtiment, setups de l'Agora">Bâtiment / Agora</button><button id="salleAudi" title="Uniquement l'auditorium, sièges transparents, setups de l'auditorium">Auditorium seul</button></div>
   <div class="row" id="audiRow" hidden>Sièges <input type="range" id="seatOp" min="0" max="100" value="25" class="grow" title="Opacité des sièges"><label class="cb"><input type="checkbox" id="seatMov" checked> Sièges amovibles</label></div>
   <div class="row"><button id="vTop">Dessus</button><button id="vPersp">Perspective</button><button id="vFront">Face</button><button id="vPublic" title="Clique ensuite un point de la salle : vue à hauteur d'yeux vers la scène">Vue public (V)</button></div>
-  <div class="row"><button data-env="mur">Murs ext.</button><button data-env="toit">Toit</button><button class="on" data-env="acou">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button id="termLab" data-salle="audi" hidden title="Afficher les repères de tous les boîtiers (sinon seulement celui sélectionné)">Repères</button><button class="on" id="termBtn" data-salle="audi" hidden title="Boîtiers AV (bleu), boîtiers d'éclairage scénique (rouge) et enceintes (gris) des plans des terminaux audiovisuels">Boîtiers AV / lumière</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button><button id="beamBtn" title="Faisceaux des projecteurs : cône jusqu'au sol et tache ; rouge si coupé par la conque, l'écran ou la patience">Faisceaux</button></div>
+  <div class="row"><button data-env="mur">Murs ext.</button><button data-env="toit">Toit</button><button class="on" data-env="acou" title="Conques et panneaux acoustiques de la scène de l'auditorium (conques suspendues, panneaux réflecteurs mobiles, conques d'orchestre posées) ; les parois de la salle restent">Panneaux acoustiques</button><button class="on" id="trapBtn" data-salle="agora">Trappes de sol</button><button class="on" id="agoraBtn" data-salle="agora">Axe &amp; piliers</button><button id="termLab" data-salle="audi" hidden title="Afficher les repères de tous les boîtiers (sinon seulement celui sélectionné)">Repères</button><button class="on" id="termBtn" data-salle="audi" hidden title="Boîtiers AV (bleu), boîtiers d'éclairage scénique (rouge) et enceintes (gris) des plans des terminaux audiovisuels">Boîtiers AV / lumière</button><button id="coverBtn" title="Ouverture horizontale des enceintes (indicative)">Couverture</button><button id="beamBtn" title="Faisceaux des projecteurs : cône jusqu'au sol et tache ; rouge si coupé par la conque, l'écran ou la patience">Faisceaux</button></div>
   <div class="row" data-salle="agora">Enceintes piliers à <input type="number" id="delayH" value="4" step="0.5" style="width:52px"> m <span style="opacity:.7">(délai / L2D)</span></div>
   <div class="row"><button id="measure">Mesurer (M)</button><button id="clearMeasure">Effacer mesures</button></div>
 
@@ -746,6 +746,7 @@ $('conqueBtn').onclick = () => {
   pushUndo(); select(null); for (const o of props.children.filter(o => o.userData.kind === 'conque')) props.remove(o);
   const fy = plateauAU(), a = Math.atan2(0.81, 1.36); // panneaux ouverts à ≈ 31° vers la salle
   for (const [d, dz] of CONQUES) for (const sd of [1, -1]) { const c = makeProp('conque', DEFAULT.conque); c.position.set(A04 - d, fy, AXE_AU + sd * dz); c.rotation.y = sd > 0 ? a : Math.PI - a; }
+  syncConqueProps();
 };
 // --- plan de feu Gaspar Claus (liste de location V.2) : proposition d'implantation sur les équipes et au plateau, chaque appareil relié au boîtier le plus proche
 // [kind, équipe ou null (sol), distance au cadre (sol), décalages vers jardin (+z), orientation (rad, face avant +z locale)]
@@ -1354,7 +1355,7 @@ function makeProp(kind, dims) {
   if (BUILD[kind]) {
     const g = new THREE.Group(); BUILD[kind](dims).forEach(o => g.add(o));
     g.userData = { kind, dims }; if (kind === 'resto') return (props.add(g), setResto(g, initResto(dims)), g); g.name = PUBLIC_KINDS.has(kind) ? (L => `${LABELS[kind]} · ${L.seats.length} places${L.tables.length ? ` · ${L.tables.length} tables` : ''}`)(publicLayout(g)) : kind === 'issue' ? `Issue de secours ${fr(dims[0], 2)} m · ${upFromWidth(dims[0])} UP` : kind === 'cordon' ? `${LABELS.cordon}` : kind === 'led' ? `Écran LED ${dims[0]}×${dims[2]} m (${dalles(g)} dalles)` : kind === 'defender' ? `Passe-câbles Defender Mini ×${modules(g)} (${fr(modules(g) * MOD, 2)} m)` : kind === 'defender_c' ? `Angle Defender Mini C ${dims[3] < 0 ? 'droite' : 'gauche'}` : TRUSS[kind] ? `${LABELS[kind]} · ${fr(dims[0], 1)} m (${trussPartsTxt(dims[0])})` : /^tcorner/.test(kind) ? `Cube ${Math.round(dims[0] * 1000)} · ${dims[3] || 2} directions` : kind === 'perche' ? `${percheName(dims)} · ${fr(dims[0], 1)} m${dims[4] ? ` (CMU ${dims[4]} kg)` : ''}${dims[7] ? ` + conque ${dims[7]} kg` : ''}` : kind === 'tower' ? `Tour ground support 290 · ${fr(dims[2], 1)} m` : LABELS[kind];
-    props.add(g); return g;
+    props.add(g); if (kind === 'conque' && !acouOn()) g.children.forEach(c => c.visible = false); return g;
   }
   const [w, d, h] = dims;
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color:COLORS[kind] }));
@@ -1751,7 +1752,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 $('parent').onclick = () => { if (selected && selected.parent && selected.parent !== venue && selected.parent !== props) select(selected.parent); };
 // masquer un élément de maquette gênant (gardé dans les setups via la liste des objets masqués)
 $('hide').onclick = () => { if (!selected) return; pushUndo(); const o = selected; select(null); o.visible = false; refreshModels(); };
-$('showAll').onclick = () => { pushUndo(); venue.traverse(o => o.visible = true); document.querySelectorAll('[data-env]').forEach(b => b.classList.add('on')); syncTrapBtn(); refreshModels(); };
+$('showAll').onclick = () => { pushUndo(); venue.traverse(o => o.visible = true); document.querySelectorAll('[data-env]').forEach(b => b.classList.add('on')); syncConqueProps(); syncTrapBtn(); refreshModels(); };
 // un élément de la maquette est masqué plutôt que supprimé, pour pouvoir l'annuler
 $('del').onclick = () => { if (!selected) return; pushUndo();
   if (selected === pivot) { multi.forEach(o => o.removeFromParent()); return select(null); } const o = selected; select(null); if (isIn(o, venue)) { o.visible = false; refreshModels(); } else o.removeFromParent(); };
@@ -1794,7 +1795,21 @@ $('vFront').onclick = () => view(salle === 'audi' ? new THREE.Vector3(1, 0.15, 0
 
 // --- enveloppe : murs extérieurs (IsExternal Revit) et toit, marqués « env » dans l'IFC converti ---
 // à l'arrivée sur la page, murs extérieurs et toit cachés (boutons sans « on » dans le HTML) pour voir l'intérieur tout de suite
-const applyEnv = b => { const show = b.classList.contains('on'); venue.traverse(o => { if (o.userData.env === b.dataset.env) o.visible = show; }); };
+// « Panneaux acoustiques » : seulement la scène de l'auditorium (au lointain du cadre, x < A04) : panneaux réflecteurs mobiles,
+// conques suspendues (inc…), conques d'orchestre posées ; les parois acoustiques de la salle, ses réflecteurs et les panneaux vitrés restent
+let stageAcouCache = null;
+function stageAcou() {
+  if (stageAcouCache?.venue === venue) return stageAcouCache.list;
+  const list = [], b = new THREE.Box3();
+  venue.traverse(o => { if (o.userData.env !== 'acou' && !/^inc\d/i.test(o.name)) return; b.setFromObject(o); if (!b.isEmpty() && (b.min.x + b.max.x) / 2 < A04) list.push(o); });
+  stageAcouCache = { venue, list }; return list;
+}
+const acouOn = () => document.querySelector('[data-env="acou"]')?.classList.contains('on') ?? true;
+// conques d'orchestre posées : on cache leurs pièces (pas le groupe), elles restent sur le plan 2D et dans les fiches
+function syncConqueProps() { const show = acouOn(); for (const o of props.children) if (o.userData.kind === 'conque') o.children.forEach(c => c.visible = show); }
+const applyEnv = b => { const show = b.classList.contains('on');
+  if (b.dataset.env === 'acou') { stageAcou().forEach(o => o.visible = show); syncConqueProps(); return; }
+  venue.traverse(o => { if (o.userData.env === b.dataset.env) o.visible = show; }); };
 document.querySelectorAll('[data-env]').forEach(b => b.onclick = () => { b.classList.toggle('on'); applyEnv(b); });
 
 // trappes de sol : afficher / cacher tout le groupe (l'état est gardé dans les setups via la liste des objets masqués)
@@ -1861,7 +1876,6 @@ function openSalleLink() {
   if (!(h === '#auditorium' || h === '#audi' || q === 'audi' || q === 'auditorium')) return;
   setSalle('audi');
   placeCintres(); // arrivée sur l'auditorium : cintres motorisés posés (équipes, écran, patience)
-  const acou = document.querySelector('[data-env="acou"]'); if (acou?.classList.contains('on')) { acou.classList.remove('on'); applyEnv(acou); } // panneaux acoustiques cachés
 }
 function salleToUrl(s) { if (location.hash && !Object.values(SALLE_HASH).includes(location.hash.toLowerCase()) && location.hash !== '#audi') return; // lien de setup ou de scène : on n'y touche pas
   history.replaceState(null, '', location.pathname + location.search + (s === 'audi' ? SALLE_HASH.audi : '')); }
@@ -1900,7 +1914,7 @@ function restore(cfg) {
   camera.position.fromArray(cleanVec3(v.cam)); orbit.target.fromArray(cleanVec3(v.target)); goal = null;
   venue.traverse(o => o.visible = true);
   (Array.isArray(v.hidden) ? v.hidden : []).forEach(p => { const o = Array.isArray(p) && byPath(p); if (o) o.visible = false; });
-  const env = Array.isArray(v.env) ? v.env : []; document.querySelectorAll('[data-env]').forEach(b => b.classList.toggle('on', !env.includes(b.dataset.env)));
+  const env = Array.isArray(v.env) ? v.env : []; document.querySelectorAll('[data-env]').forEach(b => { b.classList.toggle('on', !env.includes(b.dataset.env)); applyEnv(b); });
   const cut = v.cut && typeof v.cut === 'object' ? v.cut : {}; if (['x', 'y', 'z', ''].includes(cut.axis)) $('cutAxis').value = cut.axis; $('cutFlip').checked = !!cut.flip; $('cutAxis').onchange(); if (Number.isFinite(+cut.value)) $('cut').value = +cut.value; applyCut();
   refreshModels(); syncTrapBtn(); setSalle(salle, false); // sièges amovibles, opacité
 }
