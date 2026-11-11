@@ -166,7 +166,7 @@
   <div class="ph"><b>Patch lumière — Auditorium</b><span id="patchSum"></span>
     <button id="patchUndo" title="Annuler (⌘Z)">↶</button><button id="patchRedo" title="Rétablir (⌘⇧Z)">↷</button><button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchDxf" title="Plan de feu et liste du patch en DXF (R12), dans le repère du DWG du bâtiment">Export DXF</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
   <div class="ptool"><span>Pose :</span><span id="patchMode"><button data-m="auto" class="on" title="Accroché si on clique sur une porteuse, sinon au sol">Auto</button><button data-m="sol" title="Toujours au sol (aussi : ⌥ Alt + clic)">Au sol</button><button data-m="perche" title="Toujours sur la porteuse la plus proche (≤ 2 m)">Porteuse</button></span>
-    <span style="color:#778">● accroché ■ au sol</span><label class="cb"><input type="checkbox" id="patchBeams"> Faisceaux</label><label class="cb" title="Afficher les boîtiers A/V, les câbles de patch et la ligne « boîtier · circuit » sous chaque projecteur (aussi à l'impression)"><input type="checkbox" id="patchBoxes" checked> Boîtiers A/V</label><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
+    <span style="color:#778">● accroché ■ au sol</span><label class="cb"><input type="checkbox" id="patchBeams"> Faisceaux</label><label class="cb" title="Afficher les boîtiers A/V, les câbles de patch et la ligne « boîtier · circuit » sous chaque projecteur (aussi à l'impression)"><input type="checkbox" id="patchBoxes" checked> Boîtiers A/V</label><label class="cb" title="Cotes du plan de feu : largeur et profondeur du plateau, axe, distance de chaque porteuse au cadre de scène, position des projecteurs depuis l'axe le long des porteuses"><input type="checkbox" id="patchCotes"> Cotes</label><label class="cb" title="Texte d'aide quand le plan est vide"><input type="checkbox" id="patchHelp" checked> Aide</label><button id="patchMeasure" title="Mesurer : clic sur un point, puis sur un second (accroche au centre des projecteurs ; Maj : horizontal / vertical) ; Échap pour arrêter. Les mesures s'impriment avec le plan.">Mesurer</button><button id="patchMeasClr" title="Effacer toutes les mesures">Effacer mesures</button><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
   <div class="pb"><svg id="patchSvg"></svg>
     <div class="pside"><h3>Projecteur</h3><div id="patchEd"><span style="color:#778">Clique un projecteur sur le plan ou dans la liste. Glisse-le pour le déplacer (le long de sa porteuse s'il est accroché).</span></div>
       <h3>Patch</h3><table id="patchTab"></table></div></div>
@@ -830,6 +830,7 @@ const patchSet = new Set(); // projecteurs sélectionnés (Maj / ⌘ clic, cadre
 const selOnly = o => { patchSet.clear(); if (o) patchSet.add(o); };
 let patchAim = null; // appareils en attente d'un point visé (clic suivant sur le plan)
 let patchRaf = 0; const drawPatchSoon = () => patchRaf ||= requestAnimationFrame(() => { patchRaf = 0; drawPatch(); }); // pendant un glisser : un dessin par image
+let patchMeas = [], patchMeasOn = false, patchMeasA = null, patchMeasB = null; // mesures de l'éditeur de patch
 let patchDrag = null, patchVB = null, patchAdd = null, patchBar = null, patchLasso = null, patchMode = 'auto', patchBox = null;
 const modeOf = e => e?.altKey ? 'sol' : patchMode; // ⌥ Alt : toujours au sol // viewBox courant (zoom / déplacement)
 function patchRows() {
@@ -891,6 +892,27 @@ function drawPatch() {
     const { a, b } = segEnds(o), nm = typeof o.userData.dims[3] === 'string' ? o.userData.dims[3] : 'P' + (o.userData.dims[3] || ''), on = o === patchBar;
     out.push(`<g data-bar="${props.children.indexOf(o)}" style="cursor:pointer"><line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke="transparent" stroke-width="0.45"/><line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke="${on ? '#f0a53a' : '#8a93a3'}" stroke-width="${on ? 0.12 : 0.07}"/></g>`);
     const e = X(a) < X(b) ? a : b; out.push(`<text x="${f(X(e) - 0.15)}" y="${f(Y(e) + 0.1)}" font-size="0.26" text-anchor="end" font-weight="700" fill="#4b5563">${esc(nm)} <tspan font-weight="400">${fr(o.position.y - fy, 2)} m</tspan></text>`); }
+  // cotes du plan de feu (case Cotes) : plateau, axe, porteuses au cadre (colonne côté jardin), projecteurs depuis l'axe le long de chaque porteuse
+  if (patchCotesOn()) {
+    const DC = '#0f5f8a', halo = 'stroke="#fff" stroke-width="0.07" paint-order="stroke"', tick = (x, y) => `<line x1="${f(x - 0.09)}" y1="${f(y + 0.09)}" x2="${f(x + 0.09)}" y2="${f(y - 0.09)}" stroke="${DC}" stroke-width="0.03"/>`;
+    const dimH = (x0, x1, y, txt, fs = 0.2) => `<line x1="${f(x0)}" y1="${f(y)}" x2="${f(x1)}" y2="${f(y)}" stroke="${DC}" stroke-width="0.02"/>${tick(x0, y)}${tick(x1, y)}<text x="${f((x0 + x1) / 2)}" y="${f(y - 0.07)}" font-size="${fs}" text-anchor="middle" fill="${DC}" ${halo}>${txt}</text>`;
+    const hBars = bars.filter(o => { const { a, b } = segEnds(o); return Math.abs(a.x - b.x) < 0.05; }), maxY = Math.max(A04 + 0.6, ...hBars.map(o => o.position.x + 0.8));
+    out.push(`<line x1="0" y1="${f(L - 0.35)}" x2="0" y2="${f(maxY)}" stroke="#7a8599" stroke-width="0.025" stroke-dasharray="0.5 0.12 0.08 0.12"/><text x="0" y="${f(L - 0.42)}" font-size="0.2" text-anchor="middle" font-weight="700" fill="#7a8599">AXE</text>`);
+    out.push(dimH(AXE_AU - J, AXE_AU - Co, L - 0.75, `plateau ${fr(J - Co, 2)} m`));
+    const xd = AXE_AU - Co + 0.95; // profondeur : cadre → lointain, côté cour
+    out.push(`<line x1="${f(xd)}" y1="${f(L)}" x2="${f(xd)}" y2="${f(A04)}" stroke="${DC}" stroke-width="0.02"/>${tick(xd, L)}${tick(xd, A04)}<text x="${f(xd + 0.08)}" y="${f((L + A04) / 2)}" font-size="0.2" text-anchor="middle" fill="${DC}" ${halo} transform="rotate(90 ${f(xd + 0.08)} ${f((L + A04) / 2)})">profondeur ${fr(A04 - L, 2)} m (cadre → lointain)</text>`);
+    // colonne côté jardin : chaque porteuse à sa distance du cadre (salle : au-delà du cadre)
+    const xc = AXE_AU - J - 2.2, ys = [A04, ...hBars.map(o => o.position.x)];
+    out.push(`<line x1="${f(xc)}" y1="${f(Math.min(...ys))}" x2="${f(xc)}" y2="${f(Math.max(...ys))}" stroke="${DC}" stroke-width="0.02"/>${tick(xc, A04)}<text x="${f(xc - 0.15)}" y="${f(A04 + 0.07)}" font-size="0.18" text-anchor="end" font-weight="700" fill="${DC}">cadre</text>`);
+    for (const o of hBars) { const y = o.position.x, d = A04 - y, nm = typeof o.userData.dims[3] === 'string' ? o.userData.dims[3] : 'P';
+      out.push(`${tick(xc, y)}<line x1="${f(xc)}" y1="${f(y)}" x2="${f(Math.min(X(segEnds(o).a), X(segEnds(o).b)) - 1.7)}" y2="${f(y)}" stroke="${DC}" stroke-width="0.012" stroke-dasharray="0.06 0.06"/><text x="${f(xc - 0.15)}" y="${f(y + 0.07)}" font-size="0.18" text-anchor="end" fill="${DC}" ${halo}><tspan font-weight="700">${esc(nm)}</tspan> ${fr(Math.abs(d), 2)} m${d < 0 ? ' (salle)' : ''}</text>`); }
+    // projecteurs accrochés : cotes en chaîne depuis l'axe, sous chaque porteuse horizontale
+    for (const o of hBars) { const on = rows.filter(r => r.bar === o); if (!on.length) continue;
+      const { a, b } = segEnds(o), x0 = Math.min(X(a), X(b)), x1 = Math.max(X(a), X(b)), y = o.position.x + 0.42;
+      const pts = [...new Set([...(x0 < 0 && x1 > 0 ? [0] : []), ...on.map(r => +X(r.o.position).toFixed(2))])].sort((p, q) => p - q);
+      out.push(`<line x1="${f(pts[0])}" y1="${f(y)}" x2="${f(pts.at(-1))}" y2="${f(y)}" stroke="${DC}" stroke-width="0.015"/>` + pts.map(x => tick(x, y)).join(''));
+      for (let i = 1; i < pts.length; i++) out.push(`<text x="${f((pts[i - 1] + pts[i]) / 2)}" y="${f(y - 0.04)}" font-size="0.15" text-anchor="middle" fill="${DC}" ${halo}>${fr(pts[i] - pts[i - 1], 2)}</text>`); }
+  }
   // boîtiers d'éclairage (les boîtiers utilisés en gras, à leur couleur)
   const usedB = new Set(rows.map(r => r.b)), tg = termGroup(), showBox = patchBoxesOn();
   if (tg && showBox) for (const b of tg.children) { const t = b.userData.term; if (t.kind !== 'BECL' || !AUDI.containsPoint(new THREE.Vector3(b.position.x, 2, b.position.z))) continue;
@@ -926,8 +948,13 @@ function drawPatch() {
       + `<text x="${x}" y="${f(ly + (up > 0 ? 0.12 : -0.3))}" font-size="0.2" text-anchor="middle" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)} · <tspan font-weight="700">${dmxTxt(r)}</tspan></text>`
       + (showBox ? `<text x="${x}" y="${f(ly + (up > 0 ? 0.36 : -0.05))}" font-size="0.2" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text>` : '') + '</g>'); });
   if (patchLasso) { const [a, b] = patchLasso; out.push(`<rect x="${f(Math.min(a.x, b.x))}" y="${f(Math.min(a.y, b.y))}" width="${f(Math.abs(a.x - b.x))}" height="${f(Math.abs(a.y - b.y))}" fill="rgba(240,165,58,.12)" stroke="#f0a53a" stroke-width="0.04" stroke-dasharray="0.15 0.1"/>`); }
-  if (!rows.length) out.push(`<text x="0" y="${f((L + C) / 2)}" font-size="0.36" text-anchor="middle" fill="#6b7280">Aucun projecteur : choisis un appareil dans la palette en haut,</text><text x="0" y="${f((L + C) / 2 + 0.5)}" font-size="0.36" text-anchor="middle" fill="#6b7280">puis clique sur une porteuse (accroché) ou au plateau (au sol).</text>`);
-  patchVB ??= [AXE_AU - J - 1.6, L - 0.9, J - Co + 3.2, -75.6 - L + 0.9]; svg.setAttribute('viewBox', patchVB.map(f).join(' ')); svg.classList.toggle('adding', !!patchAdd); svg.classList.toggle('aiming', !!patchAim);
+  if (!rows.length && patchHelpOn()) out.push(`<text x="0" y="${f((L + C) / 2)}" font-size="0.36" text-anchor="middle" fill="#6b7280">Aucun projecteur : choisis un appareil dans la palette en haut,</text><text x="0" y="${f((L + C) / 2 + 0.5)}" font-size="0.36" text-anchor="middle" fill="#6b7280">puis clique sur une porteuse (accroché) ou au plateau (au sol).</text>`);
+  // mesures (bouton Mesurer) : trait, extrémités, longueur au milieu, dans le sens du trait
+  for (const [a, b] of [...patchMeas, ...(patchMeasA && patchMeasB ? [[patchMeasA, patchMeasB]] : [])]) { const d = Math.hypot(b.x - a.x, b.y - a.y); if (d < 0.01) continue;
+    let ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI; if (ang > 90) ang -= 180; if (ang < -90) ang += 180; const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    out.push(`<g pointer-events="none"><line x1="${f(a.x)}" y1="${f(a.y)}" x2="${f(b.x)}" y2="${f(b.y)}" stroke="#c2410c" stroke-width="0.03"/><circle cx="${f(a.x)}" cy="${f(a.y)}" r="0.06" fill="#c2410c"/><circle cx="${f(b.x)}" cy="${f(b.y)}" r="0.06" fill="#c2410c"/><text x="${f(mx)}" y="${f(my - 0.08)}" font-size="0.22" font-weight="700" text-anchor="middle" fill="#c2410c" stroke="#fff" stroke-width="0.07" paint-order="stroke" transform="rotate(${f(ang)} ${f(mx)} ${f(my)})">${fr(d, 2)} m</text></g>`); }
+  if (patchMeasA && !patchMeasB) out.push(`<circle cx="${f(patchMeasA.x)}" cy="${f(patchMeasA.y)}" r="0.07" fill="#c2410c" pointer-events="none"/>`);
+  patchVB ??= patchCotesOn() ? [AXE_AU - J - 4.4, L - 1.3, J - Co + 6.2, -75.6 - L + 1.3] : [AXE_AU - J - 1.6, L - 0.9, J - Co + 3.2, -75.6 - L + 0.9]; svg.setAttribute('viewBox', patchVB.map(f).join(' ')); svg.classList.toggle('adding', !!patchAdd || patchMeasOn); $('patchMeasure').classList.toggle('on', patchMeasOn); svg.classList.toggle('aiming', !!patchAim);
   $('patchPal').innerHTML = Object.entries(SHORT).map(([k, t]) => `<button data-k="${k}" class="${patchAdd === k ? 'on' : ''}"><i style="background:${FXCOL[k]}"></i>${t}</button>`).join('');
   svg.innerHTML = out.join('');
   // résumé, tableau, éditeur
@@ -1063,18 +1090,20 @@ function spreadSel(rows) { const by = new Map(); rows.forEach(q => { const k = q
     list.sort((p, q) => t(p) - t(q)); const t0 = t(list[0]), t1 = t(list.at(-1));
     list.forEach((o, i) => { const ti = t0 + (t1 - t0) * i / (list.length - 1); o.position.x = a.x + d.x * ti; o.position.z = a.z + d.z * ti; }); } }
 $('patchMode').onclick = e => { const b = e.target.closest('button[data-m]'); if (!b) return; patchMode = b.dataset.m; $('patchMode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
-$('patchPal').onclick = e => { const b = e.target.closest('button[data-k]'); if (!b) return; patchAdd = patchAdd === b.dataset.k ? null : b.dataset.k; drawPatch(); };
+$('patchPal').onclick = e => { const b = e.target.closest('button[data-k]'); if (!b) return; patchMeasOn = false; patchMeasA = patchMeasB = null; patchAdd = patchAdd === b.dataset.k ? null : b.dataset.k; drawPatch(); };
 const patchHist = k => { $(k > 0 ? 'redo' : 'undo').onclick(); drawPatch(); }; // l'historique de la salle : les projecteurs sont recréés, la sélection se vide d'elle-même
 $('patchUndo').onclick = () => patchHist(-1); $('patchRedo').onclick = () => patchHist(1);
-$('patch').addEventListener('keydown', e => { if (/INPUT|SELECT/.test(e.target.tagName)) return;
+$('patch').addEventListener('keydown', e => { if (/INPUT|SELECT/.test(e.target.tagName) && e.target.type !== 'checkbox') return;
   if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y')) { e.preventDefault(); return patchHist(e.key.toLowerCase() === 'y' || e.shiftKey ? 1 : -1); } // ⌘Z / ⌘⇧Z / Ctrl+Y
+  if (e.key === 'Escape' && patchMeasOn) { e.preventDefault(); if (patchMeasA) patchMeasA = patchMeasB = null; else patchMeasOn = false; drawPatch(); return; }
   if (e.key === 'Escape' && (patchAdd || patchAim || patchSet.size || patchBar || patchBox)) { e.preventDefault(); patchAdd = patchBar = patchBox = patchAim = null; patchSet.clear(); drawPatch(); }
   else if ((e.key === 'Delete' || e.key === 'Backspace') && patchSet.size) { e.preventDefault(); pushUndo(); patchSet.forEach(o => props.remove(o)); patchSet.clear(); drawPatch(); }
   else if (e.key.toLowerCase() === 'a' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); patchRows().forEach(r => patchSet.add(r.o)); patchBar = null; drawPatch(); }
   else if (e.key.toLowerCase() === 'd' && !e.metaKey && !e.ctrlKey && patchSet.size) { e.preventDefault(); patchSet.size === 1 ? patchDup([...patchSet][0]) : patchDupAll(); } });
 // glisser un projecteur : il s'accroche à la porteuse la plus proche, sinon il se pose au sol
 const svgPt = e => { const p = $('patchSvg').createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform($('patchSvg').getScreenCTM().inverse()); };
-$('patchSvg').onpointerdown = e => { const g = e.target.closest('g[data-n]');
+$('patchSvg').onpointerdown = e => { if (patchMeasOn) { const q = measSnap(svgPt(e), e); if (!patchMeasA) { patchMeasA = q; patchMeasB = null; } else { patchMeas.push([patchMeasA, q]); patchMeasA = patchMeasB = null; } drawPatch(); return; }
+  const g = e.target.closest('g[data-n]');
   if (patchAim && !e.target.closest('g[data-n]')) { const q = svgPt(e); pushUndo(); patchAim.forEach(o => setAim(o, q.y, AXE_AU - q.x)); patchAim = null; beamT = 0; drawPatch(); return; } // point visé
   if (!g && patchAdd) { // ajout : sur une porteuse (posée ou en pointillé) ou au plateau
     const q = svgPt(e), x = q.y, z = AXE_AU - q.x; pushUndo();
@@ -1091,7 +1120,7 @@ $('patchSvg').onpointerdown = e => { const g = e.target.closest('g[data-n]');
   if (!patchSet.has(r.o)) selOnly(r.o);
   const q = svgPt(e); pushUndo(); patchDrag = { start:{ x:q.y, z:AXE_AU - q.x }, from:[...patchSet].map(o => [o, o.position.x, o.position.z]), moved:false }; // tout le groupe suit
   $('patchSvg').setPointerCapture(e.pointerId); drawPatch(); };
-$('patchSvg').onpointermove = e => { if (!patchDrag) return; const q = svgPt(e);
+$('patchSvg').onpointermove = e => { if (patchMeasOn && patchMeasA) { patchMeasB = measSnap(svgPt(e), e); drawPatchSoon(); return; } if (!patchDrag) return; const q = svgPt(e);
   if (patchDrag.lasso) { patchLasso[1] = q; drawPatchSoon(); return; }
   if (patchDrag.pan) { const [cx, cy, x, y, w, h] = patchDrag.pan, el = $('patchSvg'), k = Math.max(w / el.clientWidth, h / el.clientHeight); // m par pixel (preserveAspectRatio « meet »)
     if (Math.hypot(e.clientX - cx, e.clientY - cy) > 3) patchDrag.moved = true; patchVB = [x - (e.clientX - cx) * k, y - (e.clientY - cy) * k, w, h]; drawPatchSoon(); return; }
@@ -3765,6 +3794,21 @@ function syncBeams(t) {
   }
 }
 $('patchBeams').onchange = () => $('beamBtn').onclick();
+// cotes et aide de l'éditeur de patch (mémorisés sur cet appareil) ; mesures : en mémoire, imprimées avec le plan
+function patchCotesOn() { return $('patchCotes').checked; }
+function patchHelpOn() { return $('patchHelp').checked; }
+for (const [id, key, def] of [['patchCotes', 'salle3d.patchCotes', false], ['patchHelp', 'salle3d.patchHelp', true]]) {
+  try { const v = localStorage.getItem(key); $(id).checked = v === null ? def : v === '1'; } catch {}
+  $(id).onchange = () => { try { localStorage.setItem(key, $(id).checked ? '1' : '0'); } catch {} if (id === 'patchCotes') patchVB = null; drawPatch(); }; }
+// accroche : centre d'un projecteur à moins de 0,3 m, sinon au pas de 5 cm ; Maj : horizontal / vertical depuis le 1er point
+function measSnap(q, e) {
+  for (const r of patchRows()) { const x = AXE_AU - r.o.position.z, y = r.o.position.x; if (Math.hypot(q.x - x, q.y - y) < 0.3) return { x, y }; }
+  let p = { x:Math.round(q.x * 20) / 20, y:Math.round(q.y * 20) / 20 };
+  if (e.shiftKey && patchMeasA) p = Math.abs(p.x - patchMeasA.x) > Math.abs(p.y - patchMeasA.y) ? { x:p.x, y:patchMeasA.y } : { x:patchMeasA.x, y:p.y };
+  return p;
+}
+$('patchMeasure').onclick = () => { patchMeasOn = !patchMeasOn; patchMeasA = patchMeasB = null; if (patchMeasOn) patchAdd = patchAim = null; drawPatch(); };
+$('patchMeasClr').onclick = () => { patchMeas = []; patchMeasA = patchMeasB = null; drawPatch(); };
 // boîtiers A/V dans l'éditeur de patch : affichés ou cachés (mémorisé sur cet appareil)
 function patchBoxesOn() { return $('patchBoxes').checked; }
 try { $('patchBoxes').checked = localStorage.getItem('salle3d.patchBoxes') !== '0'; } catch {}
