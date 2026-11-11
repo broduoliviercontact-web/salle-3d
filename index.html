@@ -713,6 +713,8 @@ const A04 = -82.74, AXE_AU = 2.9, GRIL_AU = 10.48;
 // C1 + C2 portent la conque de scène 1 (plan 0611 : 1 290 kg, 9,2 × 2,2 m) : 645 kg chacune ; la conque 2 et les 3 réflecteurs de salle pendent sur câbles fixes (déjà dans l'IFC)
 const EQUIPES_AU = [['F1', 0.77, 12, 350, 1, 9.2], ['F2', 3.32, 12, 350, 1, 9.2], ['C2', 3.9, 10.4, 1500, 0.2, 9.2, 0, false, 645], ['C1', 5.29, 10.4, 1500, 0.2, 9.2, 0, false, 645], ['F3', 6.38, 12, 350, 1, 9.2],
   ['S1', -3.5, 10.4, 350, 1.8, 9.2], ['LC', 3.6, 5.5, 350, 1, 9.2, -6.45, true], ['LJ', 3.6, 5.5, 350, 1, 9.2, 6.45, true]]; // cour = −z (à droite vu de la salle)
+// C1 / C2 portent la conque de scène : pas de projecteur dessus, absentes de l'éditeur de patch (écran, impression, DXF)
+const CONQUE_BAR = n => /^C[12]$/.test(n);
 function percheName(d) { return typeof d[3] === 'string' ? `Équipe ${d[3]}` : `Perche${d[3] ? ' ' + d[3] : ''}`; }
 const plateauAU = () => floorAt(new THREE.Vector3(A04 - 3, 0, AXE_AU));
 function placeCintres() { // équipes + équipement fixe de cage : écran polichinelle (0610 : image 9,6 × 6 m, de 2 à 8 m, à 5,87 m du cadre) et patience (0615 : rail à 9,57 m, à 0,43 m)
@@ -881,8 +883,8 @@ function drawPatch() {
   out.push(`<text x="${f(AXE_AU - J - 0.3)}" y="${f((L + C) / 2)}" font-size="0.32" fill="#99a" text-anchor="middle" transform="rotate(-90 ${f(AXE_AU - J - 0.3)} ${f((L + C) / 2)})">JARDIN</text><text x="${f(AXE_AU - Co + 0.3)}" y="${f((L + C) / 2)}" font-size="0.32" fill="#99a" text-anchor="middle" transform="rotate(90 ${f(AXE_AU - Co + 0.3)} ${f((L + C) / 2)})">COUR</text>`);
   // équipes (porteuses) avec leur hauteur
   const fy = plateauAU();
-  const bars = props.children.filter(o => o.userData.kind === 'perche' && o.visible && AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z)));
-  if (!bars.some(o => typeof o.userData.dims[3] === 'string')) for (const [n, d, L, , , , dz = 0, alongX] of EQUIPES_AU) { // cintres pas encore posés : équipes en pointillé (posées au premier clic dessus)
+  const bars = props.children.filter(o => o.userData.kind === 'perche' && o.visible && !CONQUE_BAR(o.userData.dims[3]) && AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z)));
+  if (!bars.some(o => typeof o.userData.dims[3] === 'string')) for (const [n, d, L, , , , dz = 0, alongX] of EQUIPES_AU) { if (CONQUE_BAR(n)) continue; // cintres pas encore posés : équipes en pointillé (posées au premier clic dessus)
     const c = { x:A04 - d, z:AXE_AU + dz }, h = L / 2, a = alongX ? { x:c.x - h, z:c.z } : { x:c.x, z:c.z - h }, b = alongX ? { x:c.x + h, z:c.z } : { x:c.x, z:c.z + h };
     out.push(`<line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke="#b8bec8" stroke-width="0.06" stroke-dasharray="0.25 0.15"/><text x="${f(Math.min(X(a), X(b)) - 0.15)}" y="${f(Y(a) + 0.1)}" font-size="0.24" text-anchor="end" fill="#9aa1ad">${n}</text>`); }
   for (const o of bars) {
@@ -1026,7 +1028,7 @@ const ORIENT = [['Face (vers le lointain)', -Math.PI / 2], ['Contre (vers la sal
 // porteuse la plus proche d'un point du plan (à ≤ 0,6 m de son axe, sur sa longueur)
 function nearBar(x, z, tol = 0.6) {
   let best = null;
-  for (const p of props.children) { if (p.userData.kind !== 'perche' || !p.visible) continue;
+  for (const p of props.children) { if (p.userData.kind !== 'perche' || !p.visible || CONQUE_BAR(p.userData.dims[3])) continue;
     const { a, d, L } = segEnds(p), t = (x - a.x) * d.x + (z - a.z) * d.z, dist = Math.abs((x - a.x) * d.z - (z - a.z) * d.x);
     if (t > -0.3 && t < L + 0.3 && dist < tol && (!best || dist < best.dist)) best = { p, dist, a, d, t:THREE.MathUtils.clamp(Math.round(t * 20) / 20, 0.15, L - 0.15) }; }
   return best;
@@ -3642,7 +3644,7 @@ function exportPatchDxf() {
   text('PATCH_CAGE', P(Lo + 0.4, AXE_AU), 0.3, 'LOINTAIN'); text('PATCH_CAGE', P(A04 + 0.5, AXE_AU), 0.3, 'CADRE DE SCENE - SALLE');
   text('PATCH_CAGE', P((Lo + Ca) / 2, J + 0.4), 0.3, 'JARDIN'); text('PATCH_CAGE', P((Lo + Ca) / 2, Co - 0.4), 0.3, 'COUR');
   // équipes avec leur hauteur
-  for (const o of props.children) { if (o.userData.kind !== 'perche' || !o.visible || !AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z))) continue;
+  for (const o of props.children) { if (o.userData.kind !== 'perche' || !o.visible || CONQUE_BAR(o.userData.dims[3]) || !AUDI.containsPoint(new THREE.Vector3(o.position.x, 2, o.position.z))) continue;
     const { a, b } = segEnds(o), nm = typeof o.userData.dims[3] === 'string' ? o.userData.dims[3] : 'P' + (o.userData.dims[3] || ''), e = a.z > b.z ? a : b;
     line('PATCH_PORTEUSES', P(a.x, a.z), P(b.x, b.z)); text('PATCH_PORTEUSES', P(e.x, e.z + 0.5), 0.26, `${nm} ${fr(o.position.y - fy, 2)} m`); }
   // boîtiers d'éclairage
