@@ -166,7 +166,7 @@
   <div class="ph"><b>Patch lumière — Auditorium</b><span id="patchSum"></span>
     <button id="patchUndo" title="Annuler (⌘Z)">↶</button><button id="patchRedo" title="Rétablir (⌘⇧Z)">↷</button><button id="patchFit" title="Recadrer le plan (molette : zoom, glisser le fond : déplacer)">Recadrer</button><button id="patchAuto" title="Oublie les choix manuels : chaque projecteur reprend le boîtier le plus proche et le premier circuit libre">Patch auto</button><button id="patchPrint">Imprimer</button><button id="patchDxf" title="Plan de feu et liste du patch en DXF (R12), dans le repère du DWG du bâtiment">Export DXF</button><button id="patchClose" title="Fermer (Échap)">✕</button></div>
   <div class="ptool"><span>Pose :</span><span id="patchMode"><button data-m="auto" class="on" title="Accroché si on clique sur une porteuse, sinon au sol">Auto</button><button data-m="sol" title="Toujours au sol (aussi : ⌥ Alt + clic)">Au sol</button><button data-m="perche" title="Toujours sur la porteuse la plus proche (≤ 2 m)">Porteuse</button></span>
-    <span style="color:#778">● accroché ■ au sol</span><label class="cb"><input type="checkbox" id="patchBeams"> Faisceaux</label><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
+    <span style="color:#778">● accroché ■ au sol</span><label class="cb"><input type="checkbox" id="patchBeams"> Faisceaux</label><label class="cb" title="Afficher les boîtiers A/V, les câbles de patch et la ligne « boîtier · circuit » sous chaque projecteur (aussi à l'impression)"><input type="checkbox" id="patchBoxes" checked> Boîtiers A/V</label><span>Ajouter :</span><span id="patchPal" title="Choisis un appareil puis clique sur une porteuse (accroché) ou au plateau (au sol) ; Échap pour arrêter"></span></div>
   <div class="pb"><svg id="patchSvg"></svg>
     <div class="pside"><h3>Projecteur</h3><div id="patchEd"><span style="color:#778">Clique un projecteur sur le plan ou dans la liste. Glisse-le pour le déplacer (le long de sa porteuse s'il est accroché).</span></div>
       <h3>Patch</h3><table id="patchTab"></table></div></div>
@@ -890,8 +890,8 @@ function drawPatch() {
     out.push(`<g data-bar="${props.children.indexOf(o)}" style="cursor:pointer"><line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke="transparent" stroke-width="0.45"/><line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke="${on ? '#f0a53a' : '#8a93a3'}" stroke-width="${on ? 0.12 : 0.07}"/></g>`);
     const e = X(a) < X(b) ? a : b; out.push(`<text x="${f(X(e) - 0.15)}" y="${f(Y(e) + 0.1)}" font-size="0.26" text-anchor="end" font-weight="700" fill="#4b5563">${esc(nm)} <tspan font-weight="400">${fr(o.position.y - fy, 2)} m</tspan></text>`); }
   // boîtiers d'éclairage (les boîtiers utilisés en gras, à leur couleur)
-  const usedB = new Set(rows.map(r => r.b)); const tg = termGroup();
-  if (tg) for (const b of tg.children) { const t = b.userData.term; if (t.kind !== 'BECL' || !AUDI.containsPoint(new THREE.Vector3(b.position.x, 2, b.position.z))) continue;
+  const usedB = new Set(rows.map(r => r.b)), tg = termGroup(), showBox = patchBoxesOn();
+  if (tg && showBox) for (const b of tg.children) { const t = b.userData.term; if (t.kind !== 'BECL' || !AUDI.containsPoint(new THREE.Vector3(b.position.x, 2, b.position.z))) continue;
     const u = usedB.has(b), col = u ? boxHue(t.id) : '#b8bec8', p = b.position;
     out.push(`<g data-box="${tg.children.indexOf(b)}" style="cursor:pointer">${b === patchBox ? `<rect x="${f(X(p) - 0.3)}" y="${f(Y(p) - 0.3)}" width="0.6" height="0.6" rx="0.08" fill="#ffd27a"/>` : ''}<rect x="${f(X(p) - 0.35)}" y="${f(Y(p) - 0.35)}" width="0.7" height="0.7" fill="transparent"/><rect x="${f(X(p) - 0.15)}" y="${f(Y(p) - 0.15)}" width="0.3" height="0.3" fill="${u ? col : '#fff'}" stroke="${col}" stroke-width="0.04"/></g>`
       + `<text x="${f(X(p))}" y="${f(Y(p) + 0.42)}" font-size="${u ? 0.2 : 0.15}" text-anchor="middle" font-weight="${u ? 700 : 400}" fill="${col}">${esc(t.id.replace('BECL-', 'B'))}</text>`); }
@@ -904,20 +904,25 @@ function drawPatch() {
       + (dir.y < -0.05 ? `<ellipse cx="${f(AXE_AU - hit.z)}" cy="${f(hit.x)}" rx="${f(rad * el)}" ry="${f(rad)}" transform="rotate(${f(ang)} ${f(AXE_AU - hit.z)} ${f(hit.x)})" fill="${col}" fill-opacity="0.05" stroke="${col}" stroke-width="0.025" stroke-opacity="0.45"/>` : '') // tache seulement si le faisceau touche le sol
       + `<circle cx="${f(AXE_AU - T.z)}" cy="${f(T.x)}" r="0.07" fill="${col}"/>`); }
   // câbles de patch puis projecteurs (numéro dans la pastille, type + boîtier·circuit en étiquette, une sur deux au-dessus / au-dessous)
-  for (const r of rows) if (r.b) out.push(`<line x1="${X(r.o.position)}" y1="${Y(r.o.position)}" x2="${X(r.b.position)}" y2="${Y(r.b.position)}" stroke="${boxHue(r.b.userData.term.id)}" stroke-width="0.035" stroke-dasharray="0.12 0.08" opacity="0.55"/>`);
-  const side = new Map(); // accroché : étiquette côté lointain, sol : côté salle ; deux voisins à < 1,4 m sur une porteuse : le second passe dessous
+  if (showBox) for (const r of rows) if (r.b) out.push(`<line x1="${X(r.o.position)}" y1="${Y(r.o.position)}" x2="${X(r.b.position)}" y2="${Y(r.b.position)}" stroke="${boxHue(r.b.userData.term.id)}" stroke-width="0.035" stroke-dasharray="0.12 0.08" opacity="0.55"/>`);
+  // accroché : étiquette côté lointain ; si elle chevauche l'étiquette du voisin sur la même porteuse, elle passe dessous (puis le côté le plus dégagé) ; sol : côté salle
+  const t2Of = r => r.b ? `${r.b.userData.term.id.replace('BECL-', 'B')} · ${r.cn}` : '—';
+  const labW = r => Math.max(`${SHORT[r.o.userData.kind] || r.o.userData.kind} · ${dmxTxt(r)}`.length, showBox ? t2Of(r).length : 0) * 0.115 + 0.2;
+  const side = new Map(), lastLab = new Map(), TIERS = showBox ? [-1, 1.35, -2.2, 2.55] : [-1, 1.35, -1.6, 1.95];
   for (const r of [...rows].sort((a, b) => a.o.position.z - b.o.position.z || a.o.position.x - b.o.position.x)) {
-    const prev = [...side.keys()].reverse().find(q => q.bar && q.bar === r.bar);
-    side.set(r, !r.bar ? 1 : prev && prev.o.position.distanceTo(r.o.position) < 1.7 && side.get(prev) < 0 ? 1.35 : -1); } // étiquettes « B09 · ADC-14-P1 » ≈ 1,5 m
+    if (!r.bar) { side.set(r, 1); continue; }
+    const L = lastLab.get(r.bar) || [], d = q => q ? q.o.position.distanceTo(r.o.position) : Infinity, free = q => !q || d(q) > (labW(q) + labW(r)) / 2;
+    let t = TIERS.findIndex((_, i) => free(L[i])); if (t < 0) t = TIERS.reduce((b, _, i) => d(L[i]) > d(L[b]) ? i : b, 0); // 1er rang libre (dessus, dessous, puis plus loin), sinon le plus dégagé
+    side.set(r, TIERS[t]); L[t] = r; lastLab.set(r.bar, L); }
   rows.forEach((r, i) => { const p = r.o.position, x = X(p), y = Y(p), col = FXCOL[r.o.userData.kind] || '#333', up = Math.sign(side.get(r)), sel = patchSet.has(r.o);
-    const ly = y + side.get(r) * 0.45, t2 = r.b ? `${r.b.userData.term.id.replace('BECL-', 'B')} · ${r.cn}` : '—';
+    const ly = y + side.get(r) * 0.45, t2 = t2Of(r);
     out.push(`<g data-n="${r.n}" style="cursor:grab">`
       + (sel ? `<circle cx="${x}" cy="${y}" r="0.46" fill="#ffd27a"/>` : '') + (r.err ? `<circle cx="${x}" cy="${y}" r="0.38" fill="none" stroke="#d0021b" stroke-width="0.08"/>` : '')
       + (() => { const yaw = r.o.rotation.y, dx = -Math.cos(yaw), dy = Math.sin(yaw), tip = [x + dx * 0.5, y + dy * 0.5], b1 = [x + dx * 0.3 - dy * 0.1, y + dy * 0.3 + dx * 0.1], b2 = [x + dx * 0.3 + dy * 0.1, y + dy * 0.3 - dx * 0.1];
           return `<polygon points="${[tip, b1, b2].map(p => p.map(f).join(',')).join(' ')}" fill="${col}"/>`; })() // sens du faisceau
       + (r.bar ? `<circle cx="${x}" cy="${y}" r="0.27" fill="${col}" stroke="#fff" stroke-width="0.04"/>` : `<rect x="${f(x - 0.26)}" y="${f(y - 0.26)}" width="0.52" height="0.52" rx="0.06" fill="${col}" stroke="#fff" stroke-width="0.04"/>`) + `<text x="${x}" y="${f(y + 0.1)}" font-size="0.27" text-anchor="middle" font-weight="700" fill="#fff">${r.n}</text>`
       + `<text x="${x}" y="${f(ly + (up > 0 ? 0.12 : -0.3))}" font-size="0.2" text-anchor="middle" fill="${col}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${esc(SHORT[r.o.userData.kind] || r.o.userData.kind)} · <tspan font-weight="700">${dmxTxt(r)}</tspan></text>`
-      + `<text x="${x}" y="${f(ly + (up > 0 ? 0.36 : -0.05))}" font-size="0.2" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text></g>`); });
+      + (showBox ? `<text x="${x}" y="${f(ly + (up > 0 ? 0.36 : -0.05))}" font-size="0.2" text-anchor="middle" font-weight="700" fill="${r.err ? '#d0021b' : r.b ? boxHue(r.b.userData.term.id) : '#999'}" stroke="#fff" stroke-width="0.06" paint-order="stroke">${t2}</text>` : '') + '</g>'); });
   if (patchLasso) { const [a, b] = patchLasso; out.push(`<rect x="${f(Math.min(a.x, b.x))}" y="${f(Math.min(a.y, b.y))}" width="${f(Math.abs(a.x - b.x))}" height="${f(Math.abs(a.y - b.y))}" fill="rgba(240,165,58,.12)" stroke="#f0a53a" stroke-width="0.04" stroke-dasharray="0.15 0.1"/>`); }
   if (!rows.length) out.push(`<text x="0" y="${f((L + C) / 2)}" font-size="0.36" text-anchor="middle" fill="#6b7280">Aucun projecteur : choisis un appareil dans la palette en haut,</text><text x="0" y="${f((L + C) / 2 + 0.5)}" font-size="0.36" text-anchor="middle" fill="#6b7280">puis clique sur une porteuse (accroché) ou au plateau (au sol).</text>`);
   patchVB ??= [AXE_AU - J - 1.6, L - 0.9, J - Co + 3.2, -75.6 - L + 0.9]; svg.setAttribute('viewBox', patchVB.map(f).join(' ')); svg.classList.toggle('adding', !!patchAdd); svg.classList.toggle('aiming', !!patchAim);
@@ -3754,6 +3759,10 @@ function syncBeams(t) {
   }
 }
 $('patchBeams').onchange = () => $('beamBtn').onclick();
+// boîtiers A/V dans l'éditeur de patch : affichés ou cachés (mémorisé sur cet appareil)
+function patchBoxesOn() { return $('patchBoxes').checked; }
+try { $('patchBoxes').checked = localStorage.getItem('salle3d.patchBoxes') !== '0'; } catch {}
+$('patchBoxes').onchange = () => { try { localStorage.setItem('salle3d.patchBoxes', $('patchBoxes').checked ? '1' : '0'); } catch {} if (!$('patchBoxes').checked && patchBox) patchBox = null; drawPatch(); };
 $('beamBtn').onclick = () => { beamsOn = !beamsOn; $('beamBtn').classList.toggle('on', beamsOn); $('patchBeams').checked = beamsOn; beamT = 0; if ($('patch').open) drawPatch(); };
 const pedDlg = $('ped'); // éditeur 2D plein écran : la 3D, cachée dessous, n'est pas redessinée
 renderer.setAnimationLoop(t => { if (pedDlg.open) return; syncBeams(t); updateDelays(t); syncHandles(); syncChains(); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
