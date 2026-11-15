@@ -128,3 +128,17 @@ test('restauration : pinceau (poser sans chevaucher, dans la zone, gomme, grille
   assert.ok(quadsOverlap([[0, 0], [1, 0], [1, 1], [0, 1]], [[0.5, 0.5], [2, 0.5], [2, 2], [0.5, 2]]));
   assert.ok(!quadsOverlap([[0, 0], [1, 0], [1, 1], [0, 1]], [[1.1, 0], [2, 0], [2, 1], [1.1, 1]]));
 });
+
+test('zone de bureaux : modules, postes, nomenclature', async () => {
+  const { zoneMods, RESTO_MODS, restoStats, restoBom, fillZone, OFFICE_DEFAULT, cleanResto } = await import('../js/resto.js');
+  const off = zoneMods(true), resto = zoneMods(false);
+  assert.ok(off.includes('o_b2') && off.at(-1) === 'r_ch' && !off.includes('r_t4'));
+  assert.ok(resto.includes('r_t4') && !resto.includes('o_b2') && resto.includes('r_ch'));
+  assert.equal(restoStats(RESTO_MODS.o_b6.items, []).places, 6);
+  assert.equal(restoStats(RESTO_MODS.o_m10.items, []).places, 10);
+  assert.deepEqual([...restoBom(RESTO_MODS.o_b2.items)], [['Bureau 1,6 × 0,8 m', 2], ['Chaise', 2]]);
+  assert.ok(fillZone([[-5, -4], [5, -4], [5, 4], [-5, 4]], OFFICE_DEFAULT).length > 0);
+  const c = cleanResto({ kind:'bureau', poly:[], items:[] });
+  assert.equal(c.kind, 'bureau'); assert.equal(c.name, 'Zone de bureaux');
+  assert.equal(cleanResto({ poly:[], items:[] }).kind, undefined);
+});
