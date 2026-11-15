@@ -112,7 +112,7 @@
 </div>
 <dialog id="ped">
   <div class="pedh"><b>Éditeur de plan 2D</b>
-    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
+    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="bureau" title="Zone de bureaux : comme la zone de restauration (cliquer chaque angle, double-clic ou Entrée pour fermer), remplie de bureaux et de chaises ; compte les postes (chaises)">🗂 Zone bureau</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
     <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
     <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label><label class="cb" title="Dessine chaque praticable 2 × 1 des scènes et régies (ce qui dépasse en rouge)"><input type="checkbox" id="pedPrat"> Praticables</label>
     <span class="grow"></span>
@@ -184,7 +184,7 @@
 import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, buildF2FC, buildNandoS3, buildGsTop, buildGsSub, buildGsBooth, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
-import { pointInPoly, itemsBox, moveItems, zonePassages, passagesSvg, RESTO_MODS, RESTO_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
+import { pointInPoly, itemsBox, moveItems, zonePassages, passagesSvg, RESTO_MODS, RESTO_DEFAULT, zoneMods, OFFICE_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
 import { annotSvg, annotBox, annotLength, zoneArea, zoneRect, edgeCotesSvg, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
 import { CAT_PRESETS, CAT_LIMIT, catCode, cleanCats, nextCatColor, legendLayout } from './js/legend.js'; // catégories de légende
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -568,7 +568,7 @@ function jauge() {
   for (const o of props.children) if (o.visible && JAUGE_KINDS.has(o.userData.kind) && o.position.x > 5.95 + DWG_SHIFT[0]) occ += o.userData.dims[0] * o.userData.dims[1]; // Agora : à l'est de la cloison CTA (x DXF 5,95)
   const r = +$('m2pp').value || 3, pub = AGORA_PUBLIC - occ;
   const seated = props.children.filter(o => o.visible && PUBLIC_KINDS.has(o.userData.kind)).reduce((s, o) => s + publicLayout(o).seats.length, 0) // zones de public
-    + props.children.filter(o => o.visible && (o.userData.resto || RESTO_MODS[o.userData.kind])).reduce((s, o) => s + restoStats(o.userData.resto?.items || RESTO_MODS[o.userData.kind].items, []).places, 0); // restauration
+    + props.children.filter(o => o.visible && (o.userData.resto || RESTO_MODS[o.userData.kind]) && !isOffice(o)).reduce((s, o) => s + restoStats(o.userData.resto?.items || RESTO_MODS[o.userData.kind].items, []).places, 0); // restauration
   return { occ, pub, r, n:Math.floor(pub / r), seated };
 }
 // --- câblage : élément relié à une trappe -> longueur de câble estimée et puissance par trappe ---
@@ -1424,7 +1424,8 @@ const CATALOG = [
   ['Lumière', ['pc1k', 'sx713', 'sx654', 'f2fc', 'nando3', 'lyreprof', 'lyre', 'par', 'atomic', 'fog']],
   ['Vidéo', ['led', 'ecran', 'polichinelle']],
   ['Public', ['public_theatre', 'public_cabaret', 'public_banquet']],
-  ['Restauration', ['resto', ...Object.keys(RESTO_MODS)]],
+  ['Restauration', ['resto', ...zoneMods(false)]],
+  ['Bureaux', zoneMods(true).filter(k => k !== 'r_ch')],
   ['Sécurité et circulation', ['issue', 'vauban', 'heras', 'plot_heras', 'potelet', 'crash', 'defender']],
   ['Structures et levage', ['truss30', 'truss40', 'truss30t', 'tcorner30', 'tower', 'hoist', 'perche']],
   ['Divers', ['perso']],
@@ -1551,7 +1552,8 @@ function setResto(g, r) {
   [...buildRestoFloor(r.poly, r.col || RESTO_COLORS[0]), ...buildFurniture(r.items)].forEach(o => g.add(o));
   const xs = r.poly.map(p => p[0]), zs = r.poly.map(p => p[1]), st = restoStats(r.items, r.poly);
   g.userData.dims = r.poly.length ? [+(Math.max(...xs) - Math.min(...xs)).toFixed(2), +(Math.max(...zs) - Math.min(...zs)).toFixed(2), 0.01] : [1, 1, 0.01];
-  g.name = r.poly.length ? `${r.name} · ${st.places} places · ${Math.round(st.area)} m²` : `${r.name} · ${st.tables} tables · ${st.places} places`;
+  const pw = r.kind === 'bureau' ? 'postes' : 'places';
+  g.name = r.poly.length ? `${r.name} · ${st.places} ${pw} · ${Math.round(st.area)} m²` : `${r.name} · ${st.tables} ${r.kind === 'bureau' ? 'bureaux / tables' : 'tables'} · ${st.places} ${pw}`;
   return g;
 }
 // --- stock de mobilier limité (ex. 16 tables hautes avec bancs) : désignation de la nomenclature -> quantité disponible ---
@@ -2305,7 +2307,7 @@ function planItem(g) {
 }
 function drawItem(out, { g, w, d, poly, front }, o = PLAN_DEF, legend = new Map()) {
   const f = v => +v.toFixed(2);
-  const col = g.userData.col || hex(COLORS[g.userData.kind] ?? 0x888888), kind = LABELS[g.userData.kind] || g.userData.kind;
+  const col = g.userData.col || hex(COLORS[g.userData.kind] ?? 0x888888), kind = g.userData.resto?.kind === 'bureau' ? (g.userData.resto.poly.length ? 'Zone de bureaux' : 'Mobilier de bureau') : LABELS[g.userData.kind] || g.userData.kind;
   legend.set(kind, { col, n:(legend.get(kind)?.n || 0) + 1 });
   const R = g.userData.resto, MOD_ = RESTO_MODS[g.userData.kind];
   if (R || MOD_) { // restauration : dessinée dans le repère de l'élément (zone hachurée + mobilier), nom et compte en clair
@@ -2313,7 +2315,7 @@ function drawItem(out, { g, w, d, poly, front }, o = PLAN_DEF, legend = new Map(
     out.push(`<g transform="translate(${f(px)} ${f(pz)}) rotate(${f(-g.rotation.y * 180 / Math.PI)})">${R ? zoneSvg(R.poly, 'hr' + g.id, R.col) : ''}${furnitureSvg(items)}${R?.passages && R.poly.length >= 3 ? passagesSvg(zonePassages(R.poly, R.items, R.auto?.ang ?? undefined)) : ''}${R?.cotes ? edgeCotesSvg(R.poly, '#111') : ''}</g>`);
     if (!R || !o.labels || R.poly.length < 3) return; // mobilier libre : pas de nom ni de surface
     const st = restoStats(R.items, R.poly), [cx, cz] = toPlan(g, ...polyCentroid(R.poly)), fs = 0.55;
-    out.push(`<text x="${f(cx)}" y="${f(cz)}" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="${R.col || '#9a1c1c'}" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke"><tspan x="${f(cx)}">${esc(R.name)}</tspan><tspan x="${f(cx)}" dy="${fs * 1.15}" font-weight="normal">${st.places ? `${st.places} places` : `${st.tables} ${st.tables > 1 ? 'tables' : 'table'}`} · ${Math.round(st.area)} m²</tspan></text>`);
+    out.push(`<text x="${f(cx)}" y="${f(cz)}" font-size="${fs}" text-anchor="middle" font-weight="bold" fill="${R.col || '#9a1c1c'}" stroke="#fff" stroke-width="${fs / 5}" paint-order="stroke"><tspan x="${f(cx)}">${esc(R.name)}</tspan><tspan x="${f(cx)}" dy="${fs * 1.15}" font-weight="normal">${st.places ? `${st.places} ${R.kind === 'bureau' ? 'postes' : 'places'}` : `${st.tables} ${st.tables > 1 ? 'tables' : 'table'}`} · ${Math.round(st.area)} m²</tspan></text>`);
     return;
   }
   if (g.userData.kind === 'grill' && MACH) { // grill : axes des poutres + emprise en pointillés, sans remplissage (la scène reste visible dessous)
@@ -2472,7 +2474,7 @@ async function planSvg(opts = false) {
   const tx = 1, ty = 1.3, sb = W > 40 ? 10 : 5, WU = W / k; // échelle graphique : longueur réelle sb m -> sb / k unités de bandeau
   out.push(`<text x="${f(tx)}" y="${f(ty)}" font-size="0.9" font-weight="bold">${esc(setupName || 'Plan de scène')}</text>`);
   out.push(`<text x="${f(tx)}" y="${f(ty + 0.9)}" font-size="0.4" fill="#444">Salle 3D · ${new Date().toLocaleDateString('fr')} · 1:${sc} imprimé à 100 % · ▲ rouge = face avant</text>`);
-  const gs = items.map(i => i.g), rl = restoLine(restoTotals(gs)), bl = balisageLine(balisageTotals(gs)), lines = [charges(), bl, rl].filter(Boolean); // charges, balisage, places de restauration
+  const gs = items.map(i => i.g), rl = restoLine(restoTotals(gs)), ol = bureauLine(restoTotals(gs, true)), bl = balisageLine(balisageTotals(gs)), lines = [charges(), bl, rl, ol].filter(Boolean); // charges, balisage, places de restauration
   lines.forEach((t, i) => out.push(`<text x="${f(tx)}" y="${f(ty + 1.5 + i * 0.55)}" font-size="0.4" fill="${t === rl ? '#9a1c1c' : '#444'}"${t === rl || t === bl ? ' font-weight="bold"' : ''}>${esc(t)}</text>`));
   out.push(`<g transform="translate(${f(tx)} ${f(ty + 2.3 + Math.max(0, lines.length - 1) * 0.55)})"><rect width="${f(sb / k)}" height="0.18" fill="#000"/><rect width="${f(sb / 2 / k)}" height="0.18" fill="#fff" stroke="#000" stroke-width="0.02"/><text x="0" y="0.75" font-size="0.35">0</text><text x="${f(sb / 2 / k)}" y="0.75" font-size="0.35" text-anchor="middle">${sb / 2}</text><text x="${f(sb / k)}" y="0.75" font-size="0.35" text-anchor="middle">${sb} m</text></g>`);
   // légende sur plusieurs lignes à droite du titre
@@ -2765,25 +2767,27 @@ function pedDraftDraw(cur) {
   $('pedInfo').textContent = P.length >= 3 ? `${P.length} points · ${fmtArea(polyArea([...P, ...(cur ? [cur] : [])]))} — double-clic, Entrée ou 1er point pour fermer` : 'Clique les angles de la zone';
 }
 // zone dessinée (annotation rectangle) -> zone de restauration de même forme, nom et couleur
-function zoneToResto(a) {
+function zoneToResto(a, office = false) {
   const [x, z, w, h] = zoneRect(a); if (w * h < 1) return;
   pushUndo();
   const g = makeProp('resto', [1, 1, 0.01]), cx = x + w / 2, cz = z + h / 2;
   g.position.set(cx, 0, cz); g.position.y = floorAt(g.position);
   const r = g.userData.resto; r.poly = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(q => q.map(v => +v.toFixed(3)));
+  if (office) Object.assign(r, { kind:'bureau', name:'Zone de bureaux' });
   if (a.txt && a.txt !== 'Zone') r.name = a.txt.replace(/\n/g, ' ').slice(0, 80);
   if (isHex(a.col)) r.col = a.col.toLowerCase(); if (a.cotes) r.cotes = true;
   ANNOT.splice(ANNOT.indexOf(a), 1); r.auto = null; r.items = []; setResto(g, r); // zone vide : on la remplit ensuite (module, pinceau, capacité max)
   pedDraw(); pedSelect({ g }); drawCotes();
-  $('pedInfo').textContent = 'Zone de restauration vide : choisir un remplissage, ou peindre au pinceau (B)';
+  $('pedInfo').textContent = `Zone de ${office ? 'bureaux' : 'restauration'} vide : choisir un remplissage, ou peindre au pinceau (B)`;
 }
 function pedRestoFinish() {
-  const P = ped.poly; ped.poly = null; $('pedDraft').innerHTML = ''; $('pedInfo').textContent = '';
+  const P = ped.poly, office = ped.tool === 'bureau'; ped.poly = null; $('pedDraft').innerHTML = ''; $('pedInfo').textContent = '';
   if (!P || P.length < 3 || polyArea(P) < 1) { pedSetTool('sel'); return; }
   pushUndo();
   const [cx, cz] = polyCentroid(P), g = makeProp('resto', [1, 1, 0.01]);
   g.position.set(cx, 0, cz); g.position.y = floorAt(g.position);
-  const r = g.userData.resto; r.poly = P.map(([x, z]) => [+(x - cx).toFixed(3), +(z - cz).toFixed(3)]); refillResto(g);
+  const r = g.userData.resto; r.poly = P.map(([x, z]) => [+(x - cx).toFixed(3), +(z - cz).toFixed(3)]);
+  if (office) Object.assign(r, { kind:'bureau', name:'Zone de bureaux', auto:{ ...OFFICE_DEFAULT }, col:'#1f6fb2' }); refillResto(g);
   pedSetTool('sel'); pedDraw(); pedSelect({ g }); drawCotes();
 }
 // zones du plan DACAM (restauration_dacam.json, tiré du PDF par tools/resto_dacam.py)
@@ -2927,7 +2931,8 @@ function brushAt(d, p, e) {
   if (!g) { // hors zone : le mobilier va dans un groupe « Mobilier libre » (sans contour), créé au 1er module posé
     if (!canPlace(null, itemsNear(null, p).map(it => [it[0], it[1] - p[0], it[2] - p[1], ...it.slice(3)]), brMod(), 0, 0, a, ped.br.gap)) return;
     g = d.g = makeProp('resto', [1, 1, 0.01]); g.position.set(p[0], 0, p[1]); g.position.y = floorAt(g.position);
-    Object.assign(g.userData.resto, { name:'Mobilier libre', poly:[], items:[], auto:null }); d.free = true; }
+    const off = !ped.br.custom && !!RESTO_MODS[ped.br.mod]?.office;
+    Object.assign(g.userData.resto, { name:off ? 'Mobilier de bureau' : 'Mobilier libre', poly:[], items:[], auto:null, ...(off ? { kind:'bureau' } : {}) }); d.free = true; }
   const r = g.userData.resto, q = toLocal(g, p);
   const pos = d.anchor && !e.shiftKey ? brushSnap(brMod(), d.anchor, q, a, ped.br.gap) : q.map(v => Math.round(v * 20) / 20);
   const add = moduleItemsAt(brMod(), pos[0], pos[1], a);
@@ -2976,8 +2981,8 @@ function pedSplit(a, b) {
 }
 $('pedSvg').addEventListener('dblclick', e => {
   const eh = e.target.closest?.('[data-e]');
-  if (eh && ped.sel?.g?.userData.resto) { const g = ped.sel.g, r = g.userData.resto; pushUndo(); r.poly.splice(+eh.dataset.e + 1, 0, toLocal(g, pedPt(e)).map(v => +v.toFixed(3))); refillResto(g); pedDraw(); pedSide(); return; } if (ped.tool === 'resto' && ped.poly) { e.preventDefault(); pedRestoFinish(); }
-  if (ped.tool === 'pot' && ped.pot) { e.preventDefault(); potFinish(false); } }); // les 2 clics du double-clic tombent au même endroit : un seul point
+  if (eh && ped.sel?.g?.userData.resto) { const g = ped.sel.g, r = g.userData.resto; pushUndo(); r.poly.splice(+eh.dataset.e + 1, 0, toLocal(g, pedPt(e)).map(v => +v.toFixed(3))); refillResto(g); pedDraw(); pedSide(); return; } if ((ped.tool === 'resto' || ped.tool === 'bureau') && ped.poly) { e.preventDefault(); pedRestoFinish(); }
+  if (ped.tool === 'pot' && ped.pot) { e.preventDefault(); potFinish(false); return; } }); // les 2 clics du double-clic tombent au même endroit : un seul point
 $('pedSvg').addEventListener('pointerdown', e => {
   if (!ped.vb) return;
   const p = pedPt(e), tgt = e.target;
@@ -2998,7 +3003,7 @@ $('pedSvg').addEventListener('pointerdown', e => {
     if (!T.pts.length || Math.hypot(q[0] - T.pts.at(-1)[0], q[1] - T.pts.at(-1)[1]) > 0.05) T.pts.push(q);
     potDraft(); return;
   }
-  if (ped.tool === 'resto') {
+  if (ped.tool === 'resto' || ped.tool === 'bureau') {
     const q = pedSnap(p, e), P = ped.poly || (ped.poly = []);
     if (P.length >= 3 && Math.hypot(q[0] - P[0][0], q[1] - P[0][1]) < 10 * pedUnit()) return pedRestoFinish(); // retour au 1er point : fermé
     if (!P.length || Math.hypot(q[0] - P.at(-1)[0], q[1] - P.at(-1)[1]) > 0.05) P.push(q);
@@ -3035,6 +3040,8 @@ $('pedSvg').addEventListener('pointerdown', e => {
     pedDraw(); pedSelect({ g:c }); ped.drag = { k:'moveG', g:c, p0:p, orig:c.position.clone(), h:c.position.y - floorAt(c.position), undo:true, carried:null };
     $('pedInfo').textContent = 'Copie : glisse pour la placer'; return; }
   if (a) { pedSelect({ a }); ped.drag = { k:'moveA', a, p0:p, orig:a.p.map(q => [...q]), undo:false }; return; }
+  if (g?.userData.resto && ped.lastDown?.g === g && performance.now() - ped.lastDown.t < 450) setTimeout(() => { const n = $('rsName'); if (n) { n.focus(); n.select(); } }, 80); // double-clic sur une zone : renommer
+  if (g) ped.lastDown = { g, t:performance.now() };
   if (g) { pedSelect({ g }); ped.drag = { k:'moveG', g, p0:p, orig:g.position.clone(), h:g.position.y - floorAt(g.position), undo:false, carried:null }; return; }
   // fond : rectangle de sélection (déplacer la vue : Espace ou clic droit + glisser, molette, flèches)
   if (!e.shiftKey) pedSelect(null);
@@ -3045,7 +3052,7 @@ const pedLater = () => { if (!pedRaf) pedRaf = requestAnimationFrame(() => { ped
 $('pedSvg').addEventListener('pointermove', e => {
   if (!ped.vb) return;
   const p = pedPt(e), [X, Y] = toDwg(p); $('pedPos').textContent = `X ${X.toFixed(2)} · Y ${Y.toFixed(2)} m (repère DWG)`;
-  if (ped.tool === 'resto' && ped.poly) pedDraftDraw(pedSnap(p, e));
+  if ((ped.tool === 'resto' || ped.tool === 'bureau') && ped.poly) pedDraftDraw(pedSnap(p, e));
   if (ped.tool === 'pot' && ped.pot?.pts.length) potDraft(potSnap(p, e));
   if (ped.tool === 'brush') { if (ped.drag?.k === 'brush') brushAt(ped.drag, p, e); brushGhost(p, e); }
   if (ped.tool === 'icon' && ped.drag?.k !== 'icob') $('pedDraft').innerHTML = `<g opacity="0.5" pointer-events="none">${annotSvg({ t:'icon', p:[p], ic:ped.ic, s:ped.icb.s, bg:ped.icb.bg[ped.ic] })}</g>`;
@@ -3172,10 +3179,14 @@ function pratPanel(g) {
     <label class="cb"><input type="checkbox" id="pedPrat2"${$('pedPrat').checked ? ' checked' : ''}> Voir le calepinage en détail</label>`;
 }
 // total de la restauration (zones, mobilier libre, tables du catalogue) d'une liste d'éléments
-function restoTotals(list) {
-  const t = { places:0, chairs:0, stools:0, benches:0, benchSeats:0, tables:0, zones:0, area:0, rows:[] };
+// bureaux : zones et mobilier de bureau (zone « bureau », ou module de bureau posé seul) ; la restauration compte le reste
+const isOffice = o => o.userData.resto ? o.userData.resto.kind === 'bureau' : !!RESTO_MODS[o.userData.kind]?.office;
+const bureauTxt = items => { const d = items.filter(i => i[0] === 't' && i[6] === 0.74).length, t = items.filter(i => (i[0] === 't' && i[6] !== 0.74) || i[0] === 'o').length;
+  return [d && `${d} bureau${d > 1 ? 'x' : ''}`, t && `${t} table${t > 1 ? 's' : ''}`].filter(Boolean).join(' · ') || '0 bureau'; };
+function restoTotals(list, office = false) {
+  const t = { places:0, chairs:0, stools:0, benches:0, benchSeats:0, tables:0, zones:0, area:0, rows:[], items:[] };
   for (const o of list) {
-    const R = o.userData.resto, it = R ? R.items : RESTO_MODS[o.userData.kind]?.items; if (!it) continue;
+    const R = o.userData.resto, it = R ? R.items : RESTO_MODS[o.userData.kind]?.items; if (!it || isOffice(o) !== office) continue; t.items.push(...it);
     const st = restoStats(it, R?.poly || []); t.places += st.places; t.chairs += st.chairs; t.stools += st.stools; t.benches += st.benches; t.benchSeats += st.benchSeats; t.tables += st.tables;
     if (R?.poly.length >= 3) { t.zones++; t.area += st.area; }
     t.rows.push({ o, name:R ? R.name : LABELS[o.userData.kind], places:st.places, tables:st.tables });
@@ -3198,6 +3209,7 @@ function balisageTotals(list) {
   return rows;
 }
 const balisageLine = rows => rows.length ? 'Balisage : ' + rows.map(([k, n, d]) => `${n} ${k[0].toLowerCase() + k.slice(1)}${d ? ` (${d})` : ''}`).join(' · ') : '';
+const bureauLine = t => t.places || t.tables ? `Bureaux : ${t.places} postes (chaises) · ${bureauTxt(t.items)}${t.zones ? ` · ${t.zones} zone${t.zones > 1 ? 's' : ''}, ${Math.round(t.area)} m²` : ''}` : '';
 const restoLine = t => t.places || t.tables ? `Restauration : ${t.places} places assises (${seatsTxt(t)}) · ${t.tables} tables${t.zones ? ` · ${t.zones} zone${t.zones > 1 ? 's' : ''}, ${Math.round(t.area)} m²` : ''}` : '';
 // stock : posés / disponibles, quantités modifiables (gardées sur l'appareil)
 function stockPanel() {
@@ -3231,18 +3243,18 @@ function passagesPanel(r) {
 // panneau d'une zone de restauration : nom, module, allées, marge, sens des rangées, comptes
 function restoPanel(g) {
   if (!g.userData.resto.poly.length) { const r = g.userData.resto, st = restoStats(r.items, []);
-    return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label><p><b>${st.tables} tables · ${st.places} places</b> (${seatsTxt(st)})</p>
+    return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label><p><b>${r.kind === 'bureau' ? `${bureauTxt(r.items)} · ${st.places} postes` : `${st.tables} tables · ${st.places} places`}</b> (${seatsTxt(st)})</p>
       <p class="e2note">Mobilier posé au pinceau hors zone de restauration. Le pinceau (B) en ajoute, la gomme en retire ; il se déplace, tourne et se duplique d'un bloc.</p>`; }
-  const r = g.userData.resto, st = restoStats(r.items, r.poly), a = r.auto || { ...RESTO_DEFAULT, mod:'' };
-  const opts = Object.entries(RESTO_MODS).map(([k, m]) => `<option value="${k}"${k === a.mod ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+  const r = g.userData.resto, st = restoStats(r.items, r.poly), off = r.kind === 'bureau', a = r.auto || { ...(off ? OFFICE_DEFAULT : RESTO_DEFAULT), mod:'' };
+  const opts = zoneMods(off).map(k => `<option value="${k}"${k === a.mod ? ' selected' : ''}>${esc(RESTO_MODS[k].name)}</option>`).join('');
   return `<label class="pedl">Nom<input id="rsName" value="${esc(r.name)}"></label>
-    <p><b>${st.tables} tables · ${st.places} places</b> (${seatsTxt(st)})<br>${fmtArea(st.area)}${st.places ? ` · ${fr(st.perPlace, 1)} m² par place` : ''}</p>
+    <p><b>${off ? `${bureauTxt(r.items)} · ${st.places} postes` : `${st.tables} tables · ${st.places} places`}</b> (${seatsTxt(st)})<br>${fmtArea(st.area)}${st.places ? ` · ${fr(st.perPlace, 1)} m² par ${off ? 'poste' : 'place'}` : ''}</p>
     <label class="pedl">Remplissage<select id="rsMod">${r.auto ? '' : `<option value="" selected>${r.src === 'dacam' ? 'Mobilier du plan DACAM (fixe)' : 'Mobilier posé à la main'}</option>`}${opts}<option value="__vide">Vider la zone</option></select></label>
     <div class="row"><label>Allée ↔ <input id="rsGx" type="number" step="0.1" min="0" value="${a.gx}"> m</label><label>Allée ↕ <input id="rsGy" type="number" step="0.1" min="0" value="${a.gy}"> m</label></div>
     <div class="row"><label>Marge <input id="rsM" type="number" step="0.1" min="0" value="${a.margin}"> m</label><label>Sens <input id="rsA" type="number" step="15" value="${a.ang}"> °</label></div>
     <div class="row"><button id="rsMax" class="grow" title="Essaie tous les sens de rangées (0°, 90°, sens de chaque bord) et plusieurs calages de la grille avec le module, les allées et la marge choisis, et garde celui qui place le plus de places">⤢ Remplir au maximum</button><button id="rsCap" title="Nombre maximum de tables et de places de la zone pour chaque module (mêmes allées et marge)">Capacité max…</button></div>
     <label class="cb" title="Coché : seul le calage de la grille est optimisé, les rangées gardent le sens indiqué ci-dessus"><input type="checkbox" id="rsLock"${ped.capLock ? ' checked' : ''}> Garder le sens des rangées</label>
-    ${ped.cap?.u === g.uuid ? `<table class="pottab captab"><tr><td>Module</td><td>Tables</td><td>Places</td><td></td></tr>${ped.cap.rows.map(t => `<tr><td>${esc(t.name)}</td><td>${t.tables}</td><td><b>${t.places}</b></td><td><button data-cap="${t.mod}" title="Remplir la zone avec ce module (sens ${Math.round(t.ang)}°)">Remplir</button></td></tr>`).join('')}</table><p class="e2note">Allées ${fr(ped.cap.gx, 2)} × ${fr(ped.cap.gy, 2)} m, marge ${fr(ped.cap.margin, 2)} m.</p>` : ''}
+    ${ped.cap?.u === g.uuid ? `<table class="pottab captab"><tr><td>Module</td><td>${r.kind === 'bureau' ? 'Bureaux / tables' : 'Tables'}</td><td>${r.kind === 'bureau' ? 'Postes' : 'Places'}</td><td></td></tr>${ped.cap.rows.map(t => `<tr><td>${esc(t.name)}</td><td>${t.tables}</td><td><b>${t.places}</b></td><td><button data-cap="${t.mod}" title="Remplir la zone avec ce module (sens ${Math.round(t.ang)}°)">Remplir</button></td></tr>`).join('')}</table><p class="e2note">Allées ${fr(ped.cap.gx, 2)} × ${fr(ped.cap.gy, 2)} m, marge ${fr(ped.cap.margin, 2)} m.</p>` : ''}
     ${passagesPanel(r)}
     <label class="cb"><input type="checkbox" id="rsCotes"${r.cotes ? ' checked' : ''}> Afficher les cotes de la zone</label>
     <div class="row pedcols" id="rsCols">${RESTO_COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === (r.col || RESTO_COLORS[0]) ? 'on' : ''}" title="Couleur de la zone"></button>`).join('')}</div>
@@ -3255,7 +3267,7 @@ function bindRestoPanel(g) {
   $('rsPass').onchange = () => { pushUndo(); if ($('rsPass').checked) r.passages = true; else delete r.passages; pedDraw(); };
   $('rsCotes').onchange = () => { pushUndo(); if ($('rsCotes').checked) r.cotes = true; else delete r.cotes; pedDraw(); };
   document.querySelectorAll('#rsCols [data-c]').forEach(b => b.onclick = () => { pushUndo(); r.col = b.dataset.c; setResto(g, r); pedDraw(); pedSide(); });
-  const cur = () => ({ ...RESTO_DEFAULT, ...(r.auto || {}) });
+  const cur = () => ({ ...(r.kind === 'bureau' ? OFFICE_DEFAULT : RESTO_DEFAULT), ...(r.auto || {}) });
   const angs = () => ped.capLock ? [+cur().ang || 0] : undefined;
   $('rsLock').onchange = () => { ped.capLock = $('rsLock').checked; ped.cap = null; pedSide(); };
   const fillBest = mod => { const o = { ...cur(), mod }, b = bestFill(r.poly, o, 4, angs()); pushUndo();
@@ -3263,14 +3275,14 @@ function bindRestoPanel(g) {
     $('pedInfo').textContent = `Maximum : ${b.places} places · ${b.tables} tables (${RESTO_MODS[mod].name}, rangées à ${Math.round(b.ang)}°)`; };
   $('rsMax').onclick = () => fillBest(cur().mod);
   $('rsCap').onclick = () => { const o = cur(); $('pedInfo').textContent = 'Calcul de la capacité…';
-    setTimeout(() => { ped.cap = { u:g.uuid, rows:capacityTable(r.poly, o, angs()), gx:o.gx, gy:o.gy, margin:o.margin }; pedSide(); $('pedInfo').textContent = ''; }, 20); };
+    setTimeout(() => { ped.cap = { u:g.uuid, rows:capacityTable(r.poly, o, angs(), zoneMods(r.kind === 'bureau')), gx:o.gx, gy:o.gy, margin:o.margin }; pedSide(); $('pedInfo').textContent = ''; }, 20); };
   document.querySelectorAll('[data-cap]').forEach(b => b.onclick = () => fillBest(b.dataset.cap));
   $('rsSplit').onclick = () => { pedSetTool('split'); $('pedInfo').textContent = 'Trace un trait à travers la zone (Échap : terminer)'; };
-  $('rsName').onchange = () => { pushUndo(); r.name = $('rsName').value.trim().slice(0, 80) || 'Zone de restauration'; setResto(g, r); pedDraw(); pedSide(); };
+  $('rsName').onchange = () => { pushUndo(); r.name = $('rsName').value.trim().slice(0, 80) || (r.kind === 'bureau' ? 'Zone de bureaux' : 'Zone de restauration'); setResto(g, r); pedDraw(); pedSide(); };
   $('rsMod').onchange = () => { const v = $('rsMod').value; if (!v) return; pushUndo();
-    if (v === '__vide') { r.auto = null; r.items = []; r.src = ''; } else { r.auto = { ...RESTO_DEFAULT, ...(r.auto || {}), mod:v }; r.src = ''; } apply(); };
+    if (v === '__vide') { r.auto = null; r.items = []; r.src = ''; } else { r.auto = { ...(r.kind === 'bureau' ? OFFICE_DEFAULT : RESTO_DEFAULT), ...(r.auto || {}), mod:v }; r.src = ''; } apply(); };
   for (const [id, key] of [['rsGx', 'gx'], ['rsGy', 'gy'], ['rsM', 'margin'], ['rsA', 'ang']])
-    $(id).onchange = () => { if (!r.auto) { r.auto = { ...RESTO_DEFAULT }; r.src = ''; } pushUndo(); r.auto[key] = Math.max(key === 'ang' ? -360 : 0, +$(id).value || 0); apply(); };
+    $(id).onchange = () => { if (!r.auto) { r.auto = { ...(r.kind === 'bureau' ? OFFICE_DEFAULT : RESTO_DEFAULT) }; r.src = ''; } pushUndo(); r.auto[key] = Math.max(key === 'ang' ? -360 : 0, +$(id).value || 0); apply(); };
 }
 // panneau de droite : propriétés de la sélection
 // --- catégories de légende dans l'éditeur : choix pour la sélection, gestion de la liste quand rien n'est sélectionné ---
@@ -3308,7 +3320,7 @@ function bindCatPanel() {
 function pedSide() {
   const s = ped.sel, el = $('pedSide');
   if (multiOn() && ped.tool === 'sel') {
-    const M = ped.multi, cnt = new Map(); M.gs.forEach(o => { const k = o.userData.resto ? (o.userData.resto.poly.length ? 'Zone de restauration' : 'Mobilier libre') : LABELS[o.userData.kind] || o.userData.kind; cnt.set(k, (cnt.get(k) || 0) + 1); });
+    const M = ped.multi, cnt = new Map(); M.gs.forEach(o => { const k = o.userData.resto ? (o.userData.resto.kind === 'bureau' ? (o.userData.resto.poly.length ? 'Zone de bureaux' : 'Mobilier de bureau') : o.userData.resto.poly.length ? 'Zone de restauration' : 'Mobilier libre') : LABELS[o.userData.kind] || o.userData.kind; cnt.set(k, (cnt.get(k) || 0) + 1); });
     M.as.forEach(a => { const k = 'Annotation : ' + PED_KIND[a.t].toLowerCase(); cnt.set(k, (cnt.get(k) || 0) + 1); });
     const places = M.gs.reduce((s, o) => s + (o.userData.resto ? restoStats(o.userData.resto.items, []).places : RESTO_MODS[o.userData.kind] ? restoStats(RESTO_MODS[o.userData.kind].items, []).places : 0), 0);
     el.innerHTML = `<h3>Sélection multiple</h3><p><b>${M.gs.length + M.as.length} sélectionnés</b>${places ? ` · ${places} places` : ''}</p><table class="pottab">${[...cnt].map(([k, n]) => `<tr><td>${n}</td><td>${esc(k)}</td></tr>`).join('')}</table>
@@ -3333,7 +3345,7 @@ function pedSide() {
     const B = ped.br;
     el.innerHTML = `<h3>Pinceau de mobilier</h3>
       <div class="row" id="brMode"><button data-m="0" class="${B.erase || B.pick ? '' : 'on'}">🖌 Peindre</button><button data-m="2" class="${B.pick ? 'on' : ''}" title="Cliquer une table (ou une chaise) d'une zone : elle et ses assises deviennent le motif du pinceau">💧 Pipette (I)</button><button data-m="1" class="${B.erase ? 'on' : ''}">⌫ Gommer (E)</button></div>
-      <label class="pedl">Module<select id="brMod">${B.custom ? `<option value="__custom" selected>Pris dans la zone : ${esc(B.custom.name)}</option>` : ''}${Object.entries(RESTO_MODS).map(([k, m]) => `<option value="${k}"${!B.custom && k === B.mod ? ' selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
+      <label class="pedl">Module<select id="brMod">${B.custom ? `<option value="__custom" selected>Pris dans la zone : ${esc(B.custom.name)}</option>` : ''}${[['Restauration', zoneMods(false).filter(k => k !== 'r_ch')], ['Bureaux', zoneMods(true).filter(k => k !== 'r_ch')], ['Seul', ['r_ch']]].map(([lab, ks]) => `<optgroup label="${lab}">` + ks.map(k => [k, RESTO_MODS[k]]).map(([k, m]) => `<option value="${k}"${!B.custom && k === B.mod ? ' selected' : ''}>${esc(m.name)}</option>`).join('') + '</optgroup>').join('')}</select></label>
       ${B.custom ? `<svg class="brprev" viewBox="${(([[a, b], [c, d]]) => `${a - 0.2} ${b - 0.2} ${c - a + 0.4} ${d - b + 0.4}`)(itemsBox(B.custom.items))}">${furnitureSvg(B.custom.items)}</svg>` : ''}
       <div class="row"><label>Sens <select id="brAng"><option value="0"${B.ang === 0 ? ' selected' : ''}>0°</option><option value="90"${B.ang === 90 ? ' selected' : ''}>90°</option></select></label><label>Écart <input id="brGap" type="number" step="0.1" min="0" value="${B.gap}"> m</label></div>
       <label class="pedl">Taille de la gomme<input id="brRad" type="range" min="0.3" max="3" step="0.1" value="${B.rad}"></label>
@@ -3363,11 +3375,13 @@ function pedSide() {
     return;
   }
   if (!s) {
-    const RT = restoTotals(props.children.filter(shown)), BT = balisageTotals(props.children.filter(shown));
+    const RT = restoTotals(props.children.filter(shown)), OT = restoTotals(props.children.filter(shown), true), BT = balisageTotals(props.children.filter(shown));
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
       ${BT.length ? `<h3>Balisage sur le plan</h3><table class="pottab">${BT.map(([k, n, d]) => `<tr><td><b>${n}</b></td><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>` : ''}
       ${stockPanel()}
       ${catPanel()}
+      ${OT.places || OT.tables ? `<h3>Bureaux sur le plan</h3><p><b>${OT.places} postes (chaises)</b> · ${bureauTxt(OT.items)}${OT.zones ? ` · ${OT.zones} zone${OT.zones > 1 ? 's' : ''} (${Math.round(OT.area)} m²)` : ''}</p>
+        <table class="pottab" id="otTab">${OT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places).map((r, i) => `<tr data-i="${i}" style="cursor:pointer" title="Sélectionner"><td>${esc(r.name)}</td><td><b>${r.places}</b> postes</td></tr>`).join('')}</table>` : ''}
       ${RT.places || RT.tables ? `<h3>Restauration sur le plan</h3><p><b>${RT.places} places assises</b> · ${RT.tables} tables<br>${seatsTxt(RT)}${RT.zones ? ` · ${RT.zones} zone${RT.zones > 1 ? 's' : ''} (${Math.round(RT.area)} m²)` : ''}</p>
         <table class="pottab" id="rtTab">${RT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places).map((r, i) => `<tr data-i="${i}" style="cursor:pointer" title="Sélectionner"><td>${esc(r.name)}</td><td><b>${r.places}</b> pl.</td><td>${r.tables} t.</td></tr>`).join('')}</table>` : ''}
       <h3>Outils</h3><ul class="pedhelp"><li><b>V</b> sélection : clic pour choisir, glisser pour déplacer (Maj : sans accroche)</li><li><b>T</b> texte, <b>F</b> flèche, <b>D</b> cote, <b>Z</b> zone (surface en m²), pictos dans la liste</li><li><b>P</b> lignes (potelets, Vauban, Heras, passe-câbles) : cliquer les points, cotes et nombre en direct ; double-clic pour poser</li><li><b>B</b> pinceau : peindre des tables dans une zone de restauration (Alt : gomme, R : tourner)</li><li><b>⌥ Option + glisser</b> un élément, une zone ou une annotation : la dupliquer</li><li><b>Glisser sur le fond</b> : rectangle de sélection (Maj : ajouter), puis ⌥ + glisser pour dupliquer le lot, Suppr. pour le supprimer · ⌘A : tout</li><li><b>X</b> scinder : tracer un trait à travers une ou plusieurs zones de restauration ; chaque morceau garde son mobilier (outil actif jusqu'à Échap)</li><li><b>Q</b> zone de restauration : cliquer les angles, double-clic pour fermer ; elle se remplit de tables (module, allées et sens à droite). <b>Restauration DACAM</b> pose les zones du plan d'accessibilité</li>
@@ -3377,11 +3391,13 @@ function pedSide() {
     bindStockPanel(); bindCatPanel();
     const rtRows = RT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places);
     el.querySelectorAll('#rtTab [data-i]').forEach(tr => tr.onclick = () => pedSelect({ g:rtRows[+tr.dataset.i].o }));
+    const otRows = OT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places);
+    el.querySelectorAll('#otTab [data-i]').forEach(tr => tr.onclick = () => pedSelect({ g:otRows[+tr.dataset.i].o }));
     return;
   }
   if (s.g) {
     const g = s.g, [X, Y] = toDwg([g.position.x, g.position.z]);
-    el.innerHTML = `<h3>${esc(g.userData.resto && !g.userData.resto.poly.length ? 'Mobilier libre' : LABELS[g.userData.kind] || g.userData.kind)}</h3><p>${esc(g.name)}</p>
+    el.innerHTML = `<h3>${esc(g.userData.resto ? (g.userData.resto.kind === 'bureau' ? (g.userData.resto.poly.length ? 'Zone de bureaux' : 'Mobilier de bureau') : g.userData.resto.poly.length ? LABELS.resto : 'Mobilier libre') : LABELS[g.userData.kind] || g.userData.kind)}</h3><p>${esc(g.name)}</p>
       <div class="row"><label>X <input id="pedX" type="number" step="0.1" value="${+X.toFixed(2)}"></label><label>Y <input id="pedY" type="number" step="0.1" value="${+Y.toFixed(2)}"></label></div>
       <div class="row"><label>Cap <input id="pedA" type="number" step="5" value="${capOf(g)}"> °</label><button id="pedR1" title="R">↻ 15°</button><button id="pedR2" title="Maj+R">↺ 15°</button></div>
       ${pedAxes(g) ? `<h3>Taille</h3><div class="row"><label>L <input id="pedW" type="number" step="0.5" min="0.5" value="${+g.userData.dims[0].toFixed(2)}"></label>${pedAxes(g).d ? `<label>P <input id="pedD" type="number" step="0.5" min="0.5" value="${+g.userData.dims[1].toFixed(2)}"></label><label>H <input id="pedH" type="number" step="0.1" min="0.1" value="${+g.userData.dims[2].toFixed(2)}"></label>` : ''}</div>
@@ -3424,13 +3440,14 @@ function pedSide() {
       <div class="row pedcols" title="${a.t === 'icon' ? 'Couleur du picto' : 'Couleur'}">${(a.t === 'icon' ? [ICONS[a.ic].col, ...ANNOT_COLORS.filter(c => c !== ICONS[a.ic].col)] : ANNOT_COLORS).map(c => `<button data-c="${c}" style="background:${c}" class="${c === (a.t === 'icon' ? a.bg || ICONS[a.ic].col : a.col) ? 'on' : ''}" title="${c}"></button>`).join('')}</div>
       <label class="pedl">Taille <input id="pedS" type="range" min="0.3" max="5" step="0.1" value="${a.s}"></label>
       ${a.t === 'zone' ? `<label class="cb"><input type="checkbox" id="pedZCotes"${a.cotes ? ' checked' : ''}> Afficher les cotes de la zone</label>` : ''}
-      ${a.t === 'zone' ? `<div class="row"><button id="pedToResto" class="grow" title="Remplace cette zone par une zone de restauration vide, de même forme, même nom et même couleur ; à remplir ensuite (module, pinceau, capacité max)">🍽 Transformer en zone de restauration</button></div>` : ''}
+      ${a.t === 'zone' ? `<div class="row"><button id="pedToResto" class="grow" title="Remplace cette zone par une zone de restauration vide, de même forme, même nom et même couleur ; à remplir ensuite (module, pinceau, capacité max)">🍽 Transformer en zone de restauration</button></div><div class="row"><button id="pedToOffice" class="grow" title="Remplace cette zone par une zone de bureaux vide, de même forme, même nom et même couleur">🗂 Transformer en zone de bureaux</button></div>` : ''}
       ${catRowHtml([a.cat || ''])}
       <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button></div>`;
     let undo = false; const edit = fn => { if (!undo) { pushUndo(); undo = true; } fn(); pedDraw(); };
     $('pedTxt').oninput = () => edit(() => { a.txt = $('pedTxt').value.slice(0, 200); });
     $('pedS').oninput = () => edit(() => { a.s = +$('pedS').value; });
     if ($('pedToResto')) $('pedToResto').onclick = () => zoneToResto(a);
+    if ($('pedToOffice')) $('pedToOffice').onclick = () => zoneToResto(a, true);
     bindCatRow([], [a]);
     if ($('pedZCotes')) $('pedZCotes').onchange = () => edit(() => { if ($('pedZCotes').checked) a.cotes = true; else delete a.cotes; });
     if ($('pedIc')) $('pedIc').onchange = () => { edit(() => { a.ic = $('pedIc').value; }); pedSide(); };

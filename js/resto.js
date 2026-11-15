@@ -29,7 +29,26 @@ export const RESTO_MODS = {
     items:[['t', 0, 0, 2.2, 0.8, 0, 1.1], ['b', 0, -0.625, 2.1, 0.35, 0, 0.75], ['b', 0, 0.625, 2.1, 0.35, 0, 0.75]] },
   r_th:{ name:'Table haute seule', desc:'Table haute 2,20 × 0,8 m (1,10 m), sans banc ni tabouret', items:[['t', 0, 0, 2.2, 0.8, 0, 1.1]] },
   r_ch:{ name:'Chaise seule', desc:'Chaise 0,45 × 0,45 m', items:[['c', 0, 0, 0]] },
+  // bureaux (zone de bureaux) : plan de travail 1,60 × 0,80 m à 0,74 m (la hauteur distingue un bureau d'une table), chaise à 0,70 m du centre
+  ...OFFICE_MODS(),
 };
+function OFFICE_MODS() {
+  const D = 0.74, desk = (x, z) => ['t', x, z, 1.6, 0.8, 0, D], chairS = x => ['c', x, 1.1, -P2], chairN = x => ['c', x, -1.1, P2];
+  const meet = (L, xs) => [['t', 0, 0, L, 1.2, 0, 0.75], ...xs.flatMap(x => [['c', x, -0.9, P2], ['c', x, 0.9, -P2]]), ['c', -L / 2 - 0.3, 0, 0], ['c', L / 2 + 0.3, 0, Math.PI]];
+  return {
+    o_b1:{ office:true, name:'Bureau 1 poste', desc:'Bureau 1,60 × 0,80 m + 1 chaise', items:[desk(0, 0), ['c', 0, 0.7, -P2]] },
+    o_b2:{ office:true, name:'Bureaux face à face (2 postes)', desc:'2 bureaux 1,60 × 0,80 m dos à dos, 1 chaise de chaque côté', items:[desk(0, -0.4), desk(0, 0.4), chairN(0), chairS(0)] },
+    o_b4:{ office:true, name:'Îlot 4 postes', desc:'4 bureaux 1,60 × 0,80 m en îlot, 4 chaises', items:[...[-0.8, 0.8].flatMap(x => [desk(x, -0.4), desk(x, 0.4), chairN(x), chairS(x)])] },
+    o_b6:{ office:true, name:'Îlot 6 postes', desc:'6 bureaux 1,60 × 0,80 m en îlot, 6 chaises', items:[...[-1.6, 0, 1.6].flatMap(x => [desk(x, -0.4), desk(x, 0.4), chairN(x), chairS(x)])] },
+    o_m6:{ office:true, name:'Table de réunion 6 places', desc:'Table 2,40 × 1,20 m, 6 chaises', items:meet(2.4, [-0.6, 0.6]) },
+    o_m10:{ office:true, name:'Table de réunion 10 places', desc:'Table 3,60 × 1,20 m, 10 chaises', items:meet(3.6, [-1.35, -0.45, 0.45, 1.35]) },
+    o_r4:{ office:true, name:'Table ronde de réunion 4 places', desc:'Table ronde Ø 1,20 m, 4 chaises', items:[['o', 0, 0, 1.2, 0.75], ['c', -0.87, 0, 0], ['c', 0.87, 0, Math.PI], ['c', 0, -0.87, P2], ['c', 0, 0.87, -P2]] },
+    o_d:{ office:true, name:'Bureau seul', desc:'Bureau 1,60 × 0,80 m, sans chaise', items:[desk(0, 0)] },
+  };
+}
+// modules proposés dans une zone : bureaux (+ chaise seule) pour une zone de bureaux, le reste pour la restauration
+export const zoneMods = office => [...Object.keys(RESTO_MODS).filter(k => k !== 'r_ch' && !!RESTO_MODS[k].office === !!office), 'r_ch'];
+export const OFFICE_DEFAULT = { mod:'o_b2', gx:1.2, gy:1.4, margin:0.5, ang:0 }; // allées de 1,20 / 1,40 m, 50 cm des murs
 export const RESTO_DEFAULT = { mod:'r_t4', gx:1.2, gy:1.2, margin:0.3, ang:0 }; // allées de 1,20 m entre modules, 30 cm du bord
 
 // emprise d'un élément : coins de son rectangle (cercle : carré englobant)
@@ -126,7 +145,7 @@ export function bestFill(poly, opts = {}, steps = 4, angles = zoneAngles(poly)) 
   return { ...best, ...restoStats(best.items, poly) };
 }
 // capacité maximale de la zone pour chaque module (mêmes allées et marge)
-export const capacityTable = (poly, opts = {}, angles) => Object.keys(RESTO_MODS).map(mod => ({ mod, name:RESTO_MODS[mod].name, ...bestFill(poly, { ...opts, mod }, 4, angles) }));
+export const capacityTable = (poly, opts = {}, angles, keys = Object.keys(RESTO_MODS)) => keys.map(mod => ({ mod, name:RESTO_MODS[mod].name, ...bestFill(poly, { ...opts, mod }, 4, angles) }));
 
 export function restoStats(items, poly) {
   const n = k => items.filter(i => i[0] === k).length;
@@ -138,7 +157,7 @@ export function restoStats(items, poly) {
 export function restoBom(items) {
   const m = new Map(), add = k => m.set(k, (m.get(k) || 0) + 1), f = v => (Math.round(v * 100) / 100).toLocaleString('fr');
   for (const it of items) {
-    if (it[0] === 't') { const [L, P] = [Math.max(it[3], it[4]), Math.min(it[3], it[4])]; add(`${it[6] > 0.9 ? 'Table haute' : 'Table'} ${f(L)} × ${f(P)} m`); }
+    if (it[0] === 't') { const [L, P] = [Math.max(it[3], it[4]), Math.min(it[3], it[4])]; add(`${it[6] === 0.74 ? 'Bureau' : it[6] > 0.9 ? 'Table haute' : 'Table'} ${f(L)} × ${f(P)} m`); }
     else if (it[0] === 'o') add(it[4] > 0.9 ? `Mange-debout Ø ${f(it[3])} m` : `Table ronde Ø ${f(it[3])} m`);
     else if (it[0] === 'c') add('Chaise');
     else if (it[0] === 's') add('Tabouret haut');
@@ -201,7 +220,7 @@ export function cleanResto(r, lim = 500) {
   }
   const a = r.auto && typeof r.auto === 'object' && RESTO_MODS[r.auto.mod]
     ? { mod:r.auto.mod, gx:fin(r.auto.gx, 0, 20) ?? RESTO_DEFAULT.gx, gy:fin(r.auto.gy, 0, 20) ?? RESTO_DEFAULT.gy, margin:fin(r.auto.margin, 0, 10) ?? RESTO_DEFAULT.margin, ang:fin(r.auto.ang, -360, 360) ?? 0, dx:fin(r.auto.dx, 0, 1) ?? 0, dz:fin(r.auto.dz, 0, 1) ?? 0 } : null;
-  return { name:String(r.name || 'Zone de restauration').slice(0, 80), ...(r.cotes ? { cotes:true } : {}), ...(r.passages ? { passages:true } : {}), col:isHex(r.col) ? r.col.toLowerCase() : RESTO_COLORS[0], poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
+  return { name:String(r.name || (r.kind === 'bureau' ? 'Zone de bureaux' : 'Zone de restauration')).slice(0, 80), ...(r.kind === 'bureau' ? { kind:'bureau' } : {}), ...(r.cotes ? { cotes:true } : {}), ...(r.passages ? { passages:true } : {}), col:isHex(r.col) ? r.col.toLowerCase() : RESTO_COLORS[0], poly:poly.length >= 3 ? poly : [], items, auto:a, src:r.src ? String(r.src).slice(0, 40) : '' };
 }
 
 // --- scinder une zone par un trait (a -> b, repère local de la zone) ---
