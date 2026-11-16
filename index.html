@@ -115,6 +115,8 @@
     <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="bureau" title="Zone de bureaux : comme la zone de restauration (cliquer chaque angle, double-clic ou Entrée pour fermer), remplie de bureaux et de chaises ; compte les postes (chaises)">🗂 Zone bureau</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
     <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
     <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label><label class="cb" title="Dessine chaque praticable 2 × 1 des scènes et régies (ce qui dépasse en rouge)"><input type="checkbox" id="pedPrat"> Praticables</label>
+    <span class="pedvue" title="Les mêmes réglages que le panneau Vue de la 3D : ils changent aussi la 3D">Vue <button data-pv="salleAgora" title="Bâtiment / Agora : recadre le plan sur l'Agora">Bâtiment</button><button data-pv="salleAudi" title="Auditorium seul : recadre le plan sur l'auditorium">Auditorium</button><button data-pv="trapBtn">Trappes de sol</button><button data-pv="agoraBtn">Axe &amp; piliers</button><button data-pv="acou" title="Conques acoustiques (3D) et conques d'orchestre (sur ce plan ; elles restent sur les plans exportés)">Panneaux acoustiques</button><button data-pv="chargeLab" title="Étiquettes de charge (3D)">Charges</button><button data-pv="coverBtn" title="Couverture des enceintes, en 3D et sur ce plan">Couverture</button><button data-pv="beamBtn" title="Faisceaux des projecteurs (3D)">Faisceaux</button></span>
+    <button id="pedSplit" title="Afficher la 3D à gauche de l'éditeur : tout le panneau 3D (vues Dessus / Perspective / Face / Vue public, murs, toit…) reste cliquable pendant l'édition">⇆ 3D à côté</button>
     <span class="grow"></span>
     <button id="pedUndo" title="Annuler (⌘Z)">↶</button><button id="pedRedo" title="Rétablir (⌘⇧Z)">↷</button><button id="pedFit" title="Recadrer sur le matériel et les annotations (C)">Recadrer</button><button id="pedSave" title="Enregistrer le setup (⌘S) : sous son nom actuel, comme « Sauver » dans le panneau ; un nom est demandé la première fois">💾 Sauver</button><button id="pedExport" class="acc" title="Exporter le plan (SVG / PDF)">Exporter…</button><button id="pedClose" title="Fermer (Échap)">✕</button>
   </div>
@@ -2641,7 +2643,7 @@ async function pedDetailNow() {
 const pedItem = u => props.children.find(g => g.uuid === u);
 function pedDraw() {
   const o = { ...PLAN_DEF, cotes:$('pedCotes').checked, prat:$('pedPrat').checked };
-  $('pedItems').innerHTML = props.children.filter(shown).map(g => { const out = []; drawItem(out, planItem(g), o); return `<g data-u="${g.uuid}">${out.join('')}</g>`; }).join('');
+  $('pedItems').innerHTML = pedCoverSvg() + props.children.filter(g => shown(g) && (g.userData.kind !== 'conque' || acouOn())).map(g => { const out = []; drawItem(out, planItem(g), o); return `<g data-u="${g.uuid}">${out.join('')}</g>`; }).join('');
   // flèches et cotes : trait invisible plus large pour les attraper facilement
   const hit = a => a.t === 'arrow' || a.t === 'dim' ? `<line x1="${a.p[0][0]}" y1="${a.p[0][1]}" x2="${a.p[1][0]}" y2="${a.p[1][1]}" stroke="transparent" stroke-width="0.6"/>` : '';
   $('pedZones').innerHTML = ANNOT.filter(a => a.t === 'zone').map(a => `<g data-a="${a.id}">${annotSvg(a)}</g>`).join('');
@@ -3473,9 +3475,41 @@ function pedSave() { // même enregistrement que « Sauver » (appareil + biblio
 $('pedSave').onclick = pedSave;
 $('exp2d').addEventListener('close', () => { if ($('ped').open) pedDraw(); });
 $('pedClose').onclick = () => $('ped').close();
+// --- réglages de vue dans l'éditeur 2D : les mêmes boutons que le panneau Vue de la 3D (même état), le plan suit ---
+const pvTarget = k => k === 'acou' ? document.querySelector('[data-env="acou"]') : $(k);
+function pvSync() { document.querySelectorAll('#ped [data-pv]').forEach(b => b.classList.toggle('on', !!pvTarget(b.dataset.pv)?.classList.contains('on'))); }
+function pedFitBox(B, M = 3) { ped.vb = { x:B[0][0] - M, y:B[0][1] - M, w:B[1][0] - B[0][0] + 2 * M, h:B[1][1] - B[0][1] + 2 * M }; pedApplyVb(); }
+document.querySelectorAll('#ped [data-pv]').forEach(b => b.onclick = async () => {
+  const k = b.dataset.pv; pvTarget(k)?.click();
+  if (k === 'salleAgora' || k === 'salleAudi') pedFitBox(k === 'salleAudi' ? AUDI_BOX : AGORA_BOX);
+  pvSync(); pedDraw(); await pedOverlay(); });
+// couverture des enceintes sur le plan (bouton Couverture) : secteur de l'angle horizontal, jusqu'à la portée, depuis la face avant
+function pedCoverSvg() {
+  if (!$('coverBtn').classList.contains('on')) return '';
+  const f = v => +v.toFixed(2), out = [];
+  for (const g of props.children) { const c = COVER[g.userData.kind]; if (!c || !shown(g)) continue;
+    const [x0, z0] = toPlan(g, 0, 0), [x1, z1] = toPlan(g, 0, 1), a0 = Math.atan2(z1 - z0, x1 - x0), h = c[0] * Math.PI / 360, R = c[1], col = hex(c[2]);
+    const p = a => [f(x0 + R * Math.cos(a)), f(z0 + R * Math.sin(a))], [ax, az] = p(a0 - h), [bx, bz] = p(a0 + h);
+    out.push(`<path d="M${f(x0)} ${f(z0)} L${ax} ${az} A${R} ${R} 0 ${h * 2 > Math.PI ? 1 : 0} 1 ${bx} ${bz} Z" fill="${col}" fill-opacity="0.12" stroke="${col}" stroke-opacity="0.6" stroke-width="0.06" pointer-events="none"/>`); }
+  return out.length ? `<g class="pedcover">${out.join('')}</g>` : '';
+}
+// écran partagé : l'éditeur à droite (55 %), la 3D et son panneau à gauche, cliquables ; la 3D continue d'être dessinée
+function pedSplitSet(on) {
+  const d = $('ped'); if (d.open) d.close(); // l'évènement close arrive après la réouverture : ignoré tant que l'éditeur est ouvert
+  d.classList.toggle('split', on); document.body.classList.toggle('pedsplit', on); $('pedSplit').classList.toggle('on', on);
+  on ? d.show() : d.showModal(); resize(); requestAnimationFrame(() => { pedApplyVb(); pedDraw(); });
+  try { localStorage.setItem('salle3d.pedSplit', on ? '1' : '0'); } catch {}
+}
+$('pedSplit').onclick = () => pedSplitSet(!$('ped').classList.contains('split'));
+$('ped').addEventListener('close', () => { if ($('ped').open) return; $('ped').classList.remove('split'); document.body.classList.remove('pedsplit'); resize(); });
+// ce qui change en 3D (panneau, déplacement d'un objet) se retrouve sur le plan
+const pedSplitRefresh = () => { if (!$('ped').classList.contains('split')) return; setTimeout(async () => { pvSync(); pedDraw(); pedSide(); await pedOverlay(); }, 60); };
+$('ui').addEventListener('click', pedSplitRefresh); renderer.domElement.addEventListener('pointerup', pedSplitRefresh);
 $('ped').addEventListener('cancel', e => e.preventDefault()); // Échap : géré par l'éditeur (outil, sélection, puis fermeture)
 $('pedOpen').onclick = async () => {
-  $('ped').showModal(); pedSetTool('sel'); ped.sel = selected && props.children.includes(selected) ? { g:selected } : null;
+  let split = false; try { split = localStorage.getItem('salle3d.pedSplit') === '1' && innerWidth > 900; } catch {}
+  $('ped').classList.toggle('split', split); document.body.classList.toggle('pedsplit', split); $('pedSplit').classList.toggle('on', split);
+  split ? $('ped').show() : $('ped').showModal(); if (split) resize(); pvSync(); pedSetTool('sel'); ped.sel = selected && props.children.includes(selected) ? { g:selected } : null;
   pedFit(); pedDraw(); pedSide();
   if (!ped.bgReady) await pedBackground(); else pedOverlay();
 };
@@ -3732,7 +3766,7 @@ function exportPatchDxf() {
 $('patchDxf').onclick = exportPatchDxf;
 
 // --- rendu ---
-function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+function resize() { const w = document.body.classList.contains('pedsplit') ? Math.round(innerWidth * 0.45) : innerWidth; renderer.setSize(w, innerHeight); camera.aspect = w / innerHeight; camera.updateProjectionMatrix(); } // écran partagé avec l'éditeur 2D : la 3D sur 45 % à gauche
 addEventListener('resize', resize); resize();
 // --- navigation : double-clic pour centrer, clavier pour se déplacer ---
 let goal = null; // point vers lequel on glisse la cible d'orbite
@@ -3840,7 +3874,7 @@ try { $('patchBoxes').checked = localStorage.getItem('salle3d.patchBoxes') !== '
 $('patchBoxes').onchange = () => { try { localStorage.setItem('salle3d.patchBoxes', $('patchBoxes').checked ? '1' : '0'); } catch {} if (!$('patchBoxes').checked && patchBox) patchBox = null; drawPatch(); };
 $('beamBtn').onclick = () => { beamsOn = !beamsOn; $('beamBtn').classList.toggle('on', beamsOn); $('patchBeams').checked = beamsOn; beamT = 0; if ($('patch').open) drawPatch(); };
 const pedDlg = $('ped'); // éditeur 2D plein écran : la 3D, cachée dessous, n'est pas redessinée
-renderer.setAnimationLoop(t => { if (pedDlg.open) return; syncBeams(t); updateDelays(t); syncHandles(); syncChains(); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
+renderer.setAnimationLoop(t => { if (pedDlg.open && !pedDlg.classList.contains('split')) return; syncBeams(t); updateDelays(t); syncHandles(); syncChains(); navigate(Math.min(clock.getDelta(), 0.1)); orbit.update(); renderer.render(scene, camera); });
 </script>
 </body>
 </html>
