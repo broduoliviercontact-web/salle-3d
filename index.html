@@ -114,7 +114,7 @@
   <div class="pedh"><b>Éditeur de plan 2D</b>
     <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button id="pedImgBtn" title="Image : importer une photo, un plan existant (JPEG, PNG, WebP ou 1re page d'un PDF), la poser sous le plan, la mettre à l'échelle et dessiner par-dessus">🖼 Image</button><input type="file" id="pedImgFile" accept="image/*,application/pdf,.pdf" hidden><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="bureau" title="Zone de bureaux : comme la zone de restauration (cliquer chaque angle, double-clic ou Entrée pour fermer), remplie de bureaux et de chaises ; compte les postes (chaises)">🗂 Zone bureau</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
     <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
-    <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label><label class="cb" title="Dessine chaque praticable 2 × 1 des scènes et régies (ce qui dépasse en rouge)"><input type="checkbox" id="pedPrat"> Praticables</label>
+    <label class="cb" title="Plan du bâtiment (fond DWG, trappes, axe) : décoché, il disparaît de l'éditeur et de l'export, pour travailler sur une image importée seule"><input type="checkbox" id="pedFond" checked> Plan du bâtiment</label><label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label><label class="cb" title="Dessine chaque praticable 2 × 1 des scènes et régies (ce qui dépasse en rouge)"><input type="checkbox" id="pedPrat"> Praticables</label>
     <span class="pedvue" title="Les mêmes réglages que le panneau Vue de la 3D : ils changent aussi la 3D">Vue <button data-pv="salleAgora" title="Bâtiment / Agora : recadre le plan sur l'Agora">Bâtiment</button><button data-pv="salleAudi" title="Auditorium seul : recadre le plan sur l'auditorium">Auditorium</button><button data-pv="trapBtn">Trappes de sol</button><button data-pv="agoraBtn">Axe &amp; piliers</button><button data-pv="acou" title="Conques acoustiques (3D) et conques d'orchestre (sur ce plan ; elles restent sur les plans exportés)">Panneaux acoustiques</button><button data-pv="chargeLab" title="Étiquettes de charge (3D)">Charges</button><button data-pv="coverBtn" title="Couverture des enceintes, en 3D et sur ce plan">Couverture</button><button data-pv="beamBtn" title="Faisceaux des projecteurs (3D)">Faisceaux</button></span>
     <button id="pedSplit" title="Afficher la 3D à gauche de l'éditeur : tout le panneau 3D (vues Dessus / Perspective / Face / Vue public, murs, toit…) reste cliquable pendant l'édition">⇆ 3D à côté</button>
     <span class="grow"></span>
@@ -3360,7 +3360,14 @@ function imgPanel(el, a) {
   $('pedDelB').onclick = () => { pushUndo(); ANNOT.splice(ANNOT.indexOf(a), 1); pedSelect(null); pedDraw(); };
   bindCatRow([], [a]); bindFond();
 }
-function bindFond() { document.querySelectorAll('#pedSide .imFond').forEach(c => c.onchange = () => $('pedSvg').classList.toggle('nofond', c.checked)); }
+function bindFond() { document.querySelectorAll('#pedSide .imFond').forEach(c => c.onchange = () => setPedFond(!c.checked)); }
+// plan du bâtiment affiché ou caché : dans l'éditeur (fond, trappes, axe) et à l'export (calques Fond de plan, trappes, axe)
+function setPedFond(on) {
+  $('pedSvg').classList.toggle('nofond', !on); $('pedFond').checked = on;
+  document.querySelectorAll('#pedSide .imFond').forEach(c => c.checked = !on);
+  Object.assign(e2, { fond:on, trappes:on, axe:on }); e2save();
+}
+$('pedFond').onchange = () => setPedFond($('pedFond').checked);
 // rubrique Images (panneau sans sélection) : sélectionner, verrouiller / déverrouiller
 function imgListHtml() {
   const L = ANNOT.filter(a => a.t === 'img'); if (!L.length) return '';
@@ -3597,7 +3604,8 @@ $('ped').addEventListener('cancel', e => e.preventDefault()); // Échap : géré
 $('pedOpen').onclick = async () => {
   let split = false; try { split = localStorage.getItem('salle3d.pedSplit') === '1' && innerWidth > 900; } catch {}
   $('ped').classList.toggle('split', split); document.body.classList.toggle('pedsplit', split); $('pedSplit').classList.toggle('on', split);
-  split ? $('ped').show() : $('ped').showModal(); if (split) resize(); pvSync(); pedSetTool('sel'); ped.sel = selected && props.children.includes(selected) ? { g:selected } : null;
+  split ? $('ped').show() : $('ped').showModal(); if (split) resize(); pvSync(); pedSetTool('sel');
+  $('pedSvg').classList.toggle('nofond', e2.fond === false); $('pedFond').checked = e2.fond !== false; // plan du bâtiment : comme à l'export ped.sel = selected && props.children.includes(selected) ? { g:selected } : null;
   pedFit(); pedDraw(); pedSide();
   if (!ped.bgReady) await pedBackground(); else pedOverlay();
 };
