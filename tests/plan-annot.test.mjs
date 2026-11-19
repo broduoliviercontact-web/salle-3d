@@ -52,3 +52,15 @@ test('annotations : cotes d\'un contour (une par bord, valeurs justes, gardées 
   assert.equal(cleanAnnot([{ t:'zone', p:[[0, 0], [2, 2]], cotes:true }])[0].cotes, true);
   assert.match(annotSvg({ t:'zone', p:[[0, 0], [5, 2]], cotes:true }), /5,00 m/);
 });
+
+test('image importée : nettoyage, rendu, emprise', async () => {
+  const { cleanAnnot, annotSvg, annotBox, IMG_MAX } = await import('../js/plan-annot.js');
+  const src = 'data:image/jpeg;base64,' + 'A'.repeat(100);
+  const [a] = cleanAnnot([{ id:'i1', t:'img', p:[[0, 0], [16, 10]], src, op:3, rot:450, lock:1 }]);
+  assert.equal(a.src, src); assert.equal(a.op, 1); assert.equal(a.rot, 180); assert.equal(a.lock, true);
+  assert.equal(cleanAnnot([{ t:'img', p:[[0, 0], [1, 1]], src:'javascript:alert(1)' }]).length, 0);
+  assert.equal(cleanAnnot([{ t:'img', p:[[0, 0], [1, 1]], src:'data:image/svg+xml;base64,AAAA' }]).length, 0);
+  assert.equal(cleanAnnot([{ t:'img', p:[[0, 0], [1, 1]], src:'data:image/png;base64,' + 'A'.repeat(IMG_MAX) }]).length, 0);
+  assert.match(annotSvg(a), /^<image href="data:image\/jpeg;base64,A+" x="0" y="0" width="16" height="10" preserveAspectRatio="none" opacity="1" transform="rotate\(180 8 5\)"\/>$/);
+  assert.deepEqual(annotBox(a), [[0, 0], [16, 10]]);
+});

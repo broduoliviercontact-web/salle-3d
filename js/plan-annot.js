@@ -113,6 +113,10 @@ export function annotSvg(a) {
       return `<line x1="${f(p0[0])}" y1="${f(p0[1])}" x2="${f(p1[0])}" y2="${f(p1[1])}" stroke="${col}" stroke-width="${sw}"/>${tick(p0)}${tick(p1)}`
         + `<text transform="translate(${f(tx)} ${f(tz)}) rotate(${f(ang)})" font-size="${f(fs)}" text-anchor="middle" font-weight="bold" fill="${col}" stroke="#fff" stroke-width="${f(fs / 6)}" paint-order="stroke">${esc(label)}</text>`;
     }
+    case 'img': { // image importée (photo, plan existant) : rectangle p0 → p1, opacité, rotation autour du centre
+      const [x, z, w, h] = zoneRect(a), rot = a.rot ? ` transform="rotate(${f(a.rot)} ${f(x + w / 2)} ${f(z + h / 2)})"` : '';
+      return `<image href="${a.src}" x="${f(x)}" y="${f(z)}" width="${f(w)}" height="${f(h)}" preserveAspectRatio="none" opacity="${a.op ?? 1}"${rot}/>`;
+    }
     case 'zone': {
       const [x, z, w, h] = zoneRect(a), fs = Math.min(0.6 * s, Math.max(0.25, Math.min(w, h) / 4));
       return `<rect x="${f(x)}" y="${f(z)}" width="${f(w)}" height="${f(h)}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="${f(0.06 * s)}" stroke-dasharray="${f(0.4 * s)} ${f(0.2 * s)}"/>`
@@ -135,7 +139,8 @@ export function annotBox(a) {
 }
 
 // annotations venues d'un setup, d'un lien ou d'un fichier : types connus, points finis bornés, textes courts
-const POINTS = { text:1, icon:1, arrow:2, dim:2, zone:2 };
+const POINTS = { text:1, icon:1, arrow:2, dim:2, zone:2, img:2 };
+export const IMG_MAX = 1_500_000; // image en data: URL (JPEG / PNG / WebP), ≈ 1,1 Mo une fois décodée
 export function cleanAnnot(list, lim = 2000) {
   if (!Array.isArray(list)) return [];
   const out = [];
@@ -149,6 +154,8 @@ export function cleanAnnot(list, lim = 2000) {
     r.s = Number.isFinite(+a.s) && a.s !== null ? Math.min(5, Math.max(0.3, +a.s)) : 1;
     if (a.t === 'icon') { r.ic = ICONS[a.ic] ? a.ic : 'info'; if (/^#[0-9a-f]{6}$/i.test(a.bg)) r.bg = a.bg; }
     if (a.t === 'zone' && a.cotes) r.cotes = true;
+    if (a.t === 'img') { if (typeof a.src !== 'string' || a.src.length > IMG_MAX || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(a.src)) continue;
+      r.src = a.src; r.op = Number.isFinite(+a.op) ? Math.min(1, Math.max(0.05, +a.op)) : 1; if (+a.rot) r.rot = Math.max(-180, Math.min(180, +a.rot)); if (a.lock) r.lock = true; }
     if (a.hidden) r.hidden = true; if (a.grp) r.grp = String(a.grp).slice(0, 40);
     if (a.cat) { const c = String(a.cat).replace(/[^\w-]/g, '').slice(0, 24); if (c) r.cat = c; }
     out.push(r);

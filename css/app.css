@@ -120,3 +120,6 @@ button.acc { background:var(--acc); color:#111; border-color:var(--acc); }
 #ped .pedvue button { padding:2px 7px; font-size:12px; }
 #ped.split { position:fixed; inset:0 0 0 auto; left:auto; width:55vw; height:100vh; margin:0; z-index:20; box-shadow:-3px 0 10px #0007; }
 @media (max-width:900px) { #pedSplit { display:none; } }
+
+/* éditeur 2D : plan du bâtiment caché pour travailler sur une image importée */
+#pedSvg.nofond #pedImg, #pedSvg.nofond #pedDet, #pedSvg.nofond #pedOver { display:none; }
