@@ -112,7 +112,7 @@
 </div>
 <dialog id="ped">
   <div class="pedh"><b>Éditeur de plan 2D</b>
-    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="bureau" title="Zone de bureaux : comme la zone de restauration (cliquer chaque angle, double-clic ou Entrée pour fermer), remplie de bureaux et de chaises ; compte les postes (chaises)">🗂 Zone bureau</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
+    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button id="pedImgBtn" title="Image : importer une photo, un plan existant (JPEG, PNG, WebP ou 1re page d'un PDF), la poser sous le plan, la mettre à l'échelle et dessiner par-dessus">🖼 Image</button><input type="file" id="pedImgFile" accept="image/*,application/pdf,.pdf" hidden><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="bureau" title="Zone de bureaux : comme la zone de restauration (cliquer chaque angle, double-clic ou Entrée pour fermer), remplie de bureaux et de chaises ; compte les postes (chaises)">🗂 Zone bureau</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
     <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
     <label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label><label class="cb" title="Dessine chaque praticable 2 × 1 des scènes et régies (ce qui dépasse en rouge)"><input type="checkbox" id="pedPrat"> Praticables</label>
     <span class="pedvue" title="Les mêmes réglages que le panneau Vue de la 3D : ils changent aussi la 3D">Vue <button data-pv="salleAgora" title="Bâtiment / Agora : recadre le plan sur l'Agora">Bâtiment</button><button data-pv="salleAudi" title="Auditorium seul : recadre le plan sur l'auditorium">Auditorium</button><button data-pv="trapBtn">Trappes de sol</button><button data-pv="agoraBtn">Axe &amp; piliers</button><button data-pv="acou" title="Conques acoustiques (3D) et conques d'orchestre (sur ce plan ; elles restent sur les plans exportés)">Panneaux acoustiques</button><button data-pv="chargeLab" title="Étiquettes de charge (3D)">Charges</button><button data-pv="coverBtn" title="Couverture des enceintes, en 3D et sur ce plan">Couverture</button><button data-pv="beamBtn" title="Faisceaux des projecteurs (3D)">Faisceaux</button></span>
@@ -187,7 +187,7 @@ import * as THREE from 'three';
 import { fr, pratLayout, ROPE_L, ROPE_Y, ropeSag, gridRig, hangOnGrid, shareNearest, CIRC_W, assignCircuits, circuitError, assignDmx, dmxError, cueTime as cueTimeOf, LIMITS, cleanProp, cleanDmx, cleanVec3, rayToSegments, alignShifts, headingDeg, PUBLIC_DEFAULTS, upFromWidth, exitCheck } from './js/calc.js';
 import { COLORS, LABELS, DEFAULT, buildF2FC, buildNandoS3, buildGsTop, buildGsSub, buildGsBooth, vch30, buildVch30, buildVch30x2, buildVtl218, truss, buildKs28, buildKs28x2, buildL2d, buildKara2, buildX15, buildX15p, WEIGHT, dalles, MOD, modules, flipped, topOf, bottomOf, weightOf, buildLyre, buildPar, buildLed, buildCrash, buildSyva, buildDefender, C_DEG, C_RM, buildDefenderC, VAUBAN_PITCH, buildPotelet, buildCordon, buildVauban, tube, buildPC, buildSX713, buildSX654, buildLyreProf, buildAtomic, buildFog, TRUSS, RIG_SELF, trussPartsTxt, buildTruss30t, buildTruss30, buildTruss40, buildCorner, buildTower, buildHoist, buildPerche, buildPatience, buildPolichinelle, buildConque, buildColonne, buildHP, PIL_MEZZ_Z, PIL_VERR_Z, AXE_AGORA, buildHeras, buildPlotHeras, HERAS_PITCH, buildPublic, PUBLIC_KINDS, publicLayout, buildIssue, buildFurniture, buildRestoFloor } from './js/models.js'; // modèles 3D du catalogue
 import { pointInPoly, itemsBox, moveItems, zonePassages, passagesSvg, RESTO_MODS, RESTO_DEFAULT, zoneMods, OFFICE_DEFAULT, RESTO_COLORS, isHex, splitResto, bestFill, capacityTable, canPlace, moduleItemsAt, moduleFootprint, eraseItems, brushSnap, pickGroup, groupName, fillZone, restoStats, restoBom, polyCentroid, cleanResto, furnitureSvg, zoneSvg, polyArea } from './js/resto.js'; // restauration : mobilier et zones
-import { annotSvg, annotBox, annotLength, zoneArea, zoneRect, edgeCotesSvg, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
+import { IMG_MAX, annotSvg, annotBox, annotLength, zoneArea, zoneRect, edgeCotesSvg, fmtM, fmtArea, cleanAnnot, ICONS, ANNOT_COLORS } from './js/plan-annot.js'; // annotations du plan 2D
 import { CAT_PRESETS, CAT_LIMIT, catCode, cleanCats, nextCatColor, legendLayout } from './js/legend.js'; // catégories de légende
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -1972,11 +1972,15 @@ function restore(cfg) {
 }
 // --- annuler / rétablir : pile d'instantanés de la salle ; la caméra reste où elle est ---
 const undoStack = [], redoStack = [];
-function pushUndo() { undoStack.push(JSON.stringify(snapshot())); if (undoStack.length > 50) undoStack.shift(); redoStack.length = 0; }
+// historique : les images (data: URL de ~1 Mo) ne sont gardées qu'une fois, l'historique n'en garde qu'une référence
+const IMG_POOL = new Map();
+const histStr = () => JSON.stringify(snapshot(), (k, v) => { if (k !== 'src' || typeof v !== 'string' || v.length < 2000) return v; const key = `${v.length}:${v.slice(-48)}`; IMG_POOL.set(key, v); return '@img:' + key; });
+const histParse = t => JSON.parse(t, (k, v) => k === 'src' && typeof v === 'string' && v.startsWith('@img:') ? IMG_POOL.get(v.slice(5)) ?? v : v);
+function pushUndo() { undoStack.push(histStr()); if (undoStack.length > 50) undoStack.shift(); redoStack.length = 0; }
 function stepHistory(from, to) {
   if (!from.length) return;
-  to.push(JSON.stringify(snapshot()));
-  const s = JSON.parse(from.pop()); s.view.cam = camera.position.toArray(); s.view.target = orbit.target.toArray();
+  to.push(histStr());
+  const s = histParse(from.pop()); s.view.cam = camera.position.toArray(); s.view.target = orbit.target.toArray();
   restore(s);
 }
 $('undo').onclick = () => stepHistory(undoStack, redoStack);
@@ -2188,6 +2192,7 @@ const b64u = { enc:u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').re
 const pipe = async (data, stream) => new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());
 // lien de partage d'un setup (le setup est copié dans l'adresse : un lien ne se met pas à jour, on en recopie un nouveau après ⟳)
 async function copyLink(btn, name, cfg) {
+  if (cfg.annot?.some(a => a.t === 'img')) cfg = { ...cfg, annot:cfg.annot.filter(a => a.t !== 'img') }; // les images ne passent pas dans une adresse : le lien les laisse de côté
   const url = `${location.origin}${location.pathname}#s=${b64u.enc(await pipe(JSON.stringify({ name, cfg }), new CompressionStream('deflate-raw')))}`;
   const txt = btn.textContent;
   try { await navigator.clipboard.writeText(url); btn.textContent = '✓'; setTimeout(() => btn.textContent = txt, 2000); }
@@ -2429,9 +2434,10 @@ async function planSvg(opts = false) {
   // éléments ajoutés : emprise colorée, ▲ face avant, nom + dimensions (halo blanc pour la lisibilité)
   // annotations : les zones sous les éléments, le reste (textes, flèches, cotes, pictos) par-dessus
   const noteSvg = list => list.map(a => `<g clip-path="url(#cadre)">${annotSvg(a)}</g>`).join('\n');
+  out.push(noteSvg(notes.filter(a => a.t === 'img'))); // images importées : sous tout
   out.push(noteSvg(notes.filter(a => a.t === 'zone')));
   for (const it of [...items].sort((a, b) => !!b.g.userData.resto - !!a.g.userData.resto)) drawItem(out, it, o, legOf(it.g.userData.cat)); // zones de restauration dessous
-  out.push(noteSvg(notes.filter(a => a.t !== 'zone')));
+  out.push(noteSvg(notes.filter(a => a.t !== 'zone' && a.t !== 'img')));
   for (const a of notes) { const L = legOf(a.cat);
     if (a.t === 'icon') { const I = ICONS[a.ic]; L.set(I.name, { col:L.get(I.name)?.col || a.bg || I.col, n:(L.get(I.name)?.n || 0) + 1 }); }
     else if (a.t === 'zone' && L !== legend) { const k = a.txt || 'Zone'; L.set(k, { col:a.col, n:(L.get(k)?.n || 0) + 1 }); } }
@@ -2588,9 +2594,9 @@ $('plan2d').onclick = exportPlan2D;
 // Tout passe par l'annulation commune (⌘Z) et est sauvé avec le setup.
 const SVGNS = 'http://www.w3.org/2000/svg';
 const ped = { tool:'sel', ic:'sortie', sel:null, vb:null, drag:null, bgReady:false, space:false };
-const PED_KIND = { text:'Texte', arrow:'Flèche', dim:'Cote', zone:'Zone', icon:'Picto' };
+const PED_KIND = { text:'Texte', arrow:'Flèche', dim:'Cote', zone:'Zone', icon:'Picto', img:'Image' };
 $('pedIcon').innerHTML = '<option value="">Picto…</option>' + Object.entries(ICONS).map(([k, I]) => `<option value="${k}">${esc(I.name)}</option>`).join('');
-$('pedSvg').innerHTML = `<rect id="pedPaper" fill="#fff"/><image id="pedImg" preserveAspectRatio="none"/><image id="pedDet" preserveAspectRatio="none"/><image id="pedOver" preserveAspectRatio="none"/><g id="pedZones"></g><g id="pedItems"></g><g id="pedAnn"></g><g id="pedSel"></g><g id="pedDraft"></g>`;
+$('pedSvg').innerHTML = `<rect id="pedPaper" fill="#fff"/><image id="pedImg" preserveAspectRatio="none"/><image id="pedDet" preserveAspectRatio="none"/><image id="pedOver" preserveAspectRatio="none"/><g id="pedImgs"></g><g id="pedZones"></g><g id="pedItems"></g><g id="pedAnn"></g><g id="pedSel"></g><g id="pedDraft"></g>`;
 const pedUnit = () => { const r = $('pedSvg').getBoundingClientRect(); return Math.max(ped.vb.w / r.width, ped.vb.h / r.height); }; // mètres par pixel écran
 function pedApplyVb() { const v = ped.vb; $('pedSvg').setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`); pedDrawSel(); pedDetail(); }
 function pedPt(e) { const m = $('pedSvg').getScreenCTM().inverse(), p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return [p.x, p.y]; }
@@ -2647,7 +2653,9 @@ function pedDraw() {
   // flèches et cotes : trait invisible plus large pour les attraper facilement
   const hit = a => a.t === 'arrow' || a.t === 'dim' ? `<line x1="${a.p[0][0]}" y1="${a.p[0][1]}" x2="${a.p[1][0]}" y2="${a.p[1][1]}" stroke="transparent" stroke-width="0.6"/>` : '';
   $('pedZones').innerHTML = ANNOT.filter(a => a.t === 'zone').map(a => `<g data-a="${a.id}">${annotSvg(a)}</g>`).join('');
-  $('pedAnn').innerHTML = ANNOT.filter(a => a.t !== 'zone').map(a => `<g data-a="${a.id}">${hit(a)}${annotSvg(a)}</g>`).join('')
+  // images : sous tout le reste ; verrouillée = transparente aux clics (on dessine par-dessus sans la déplacer)
+  $('pedImgs').innerHTML = ANNOT.filter(a => a.t === 'img').map(a => `<g ${a.lock ? 'pointer-events="none"' : `data-a="${a.id}"`}>${annotSvg(a)}</g>`).join('');
+  $('pedAnn').innerHTML = ANNOT.filter(a => a.t !== 'zone' && a.t !== 'img').map(a => `<g data-a="${a.id}">${hit(a)}${annotSvg(a)}</g>`).join('')
     + `<g pointer-events="none">${catMarks(props.children.filter(shown), ANNOT)}</g>`; // repères des catégories de légende
   if (ped.sel?.g && !props.children.includes(ped.sel.g)) ped.sel = null;
   if (ped.sel?.a && !ANNOT.includes(ped.sel.a)) ped.sel = null;
@@ -2993,7 +3001,7 @@ $('pedSvg').addEventListener('pointerdown', e => {
   const rh = tgt.closest('[data-r]');
   if (rh && ped.sel?.g) { const g = ped.sel.g; ped.drag = { k:'size', g, side:rh.dataset.r.split(',').map(Number), dims:null }; return; }
   const h = tgt.closest('[data-h]');
-  if (h && ped.sel?.a) { ped.drag = { k:'pt', a:ped.sel.a, i:+h.dataset.h, undo:false }; return; }
+  if (h && ped.sel?.a) { const A = ped.sel.a; ped.drag = { k:'pt', a:A, i:+h.dataset.h, undo:false, r:A.t === 'img' ? Math.abs((A.p[1][0] - A.p[0][0]) / (A.p[1][1] - A.p[0][1] || 1)) : 0 }; return; }
   if (ped.tool === 'split') { ped.drag = { k:'cut', a:pedSnap(p, e), b:null }; return; }
   if (ped.tool === 'brush') {
     pushUndo(); // dans une zone : la zone devient « posée à la main » ; hors zone : groupe « Mobilier libre »
@@ -3020,6 +3028,11 @@ $('pedSvg').addEventListener('pointerdown', e => {
   if (ped.tool === 'icon') { // pinceau de pictos : clic = un picto, glisser = un picto tous les « écart » mètres ; l'outil reste actif
     pushUndo(); const a = icoPlace(pedSnap(p, e)); ped.drag = { k:'icob', last:p, n:1 }; pedDraw(); $('pedInfo').textContent = `${ICONS[a.ic].name} : 1 posé`; return;
   }
+  if (ped.tool === 'imgcal') { const c = ped.cal; if (!c.A) { c.A = p; $('pedInfo').textContent = 'Mise à l\'échelle : clic sur le 2e point d\'une longueur connue'; return; }
+    const L = Math.hypot(p[0] - c.A[0], p[1] - c.A[1]); if (L < 0.01) return; const v = prompt(`Longueur réelle entre ces 2 points (m) ? Mesurée : ${fr(L, 2)} m`, fr(L, 2));
+    const R = parseFloat(String(v ?? '').replace(',', '.')); $('pedDraft').innerHTML = '';
+    if (R > 0) { pushUndo(); const k = R / L, A = c.A; c.a.p = c.a.p.map(q => [A[0] + (q[0] - A[0]) * k, A[1] + (q[1] - A[1]) * k]); $('pedInfo').textContent = `Image mise à l'échelle (×${fr(k, 3)}) : glisse-la pour la caler sur le plan`; }
+    const a = c.a; ped.cal = null; pedSetTool('sel'); pedDraw(); pedSelect({ a }); return; }
   if (ped.tool === 'text') {
     pushUndo(); const a = pedCreate(ped.tool, [pedSnap(p, e)]); pedDraw(); pedSetTool('sel'); pedSelect({ a });
     if (a.t === 'text') setTimeout(() => $('pedTxt')?.select(), 0); return;
@@ -3055,6 +3068,7 @@ $('pedSvg').addEventListener('pointermove', e => {
   if (!ped.vb) return;
   const p = pedPt(e), [X, Y] = toDwg(p); $('pedPos').textContent = `X ${X.toFixed(2)} · Y ${Y.toFixed(2)} m (repère DWG)`;
   if ((ped.tool === 'resto' || ped.tool === 'bureau') && ped.poly) pedDraftDraw(pedSnap(p, e));
+  if (ped.tool === 'imgcal' && ped.cal?.A) { const u = pedUnit(), A = ped.cal.A; $('pedDraft').innerHTML = `<line x1="${A[0]}" y1="${A[1]}" x2="${p[0]}" y2="${p[1]}" stroke="#c2410c" stroke-width="${2 * u}" pointer-events="none"/><circle cx="${A[0]}" cy="${A[1]}" r="${4 * u}" fill="#c2410c" pointer-events="none"/><text x="${p[0]}" y="${p[1] - 8 * u}" font-size="${13 * u}" fill="#c2410c" stroke="#fff" stroke-width="${3 * u}" paint-order="stroke" pointer-events="none">${fr(Math.hypot(p[0] - A[0], p[1] - A[1]), 2)} m</text>`; }
   if (ped.tool === 'pot' && ped.pot?.pts.length) potDraft(potSnap(p, e));
   if (ped.tool === 'brush') { if (ped.drag?.k === 'brush') brushAt(ped.drag, p, e); brushGhost(p, e); }
   if (ped.tool === 'icon' && ped.drag?.k !== 'icob') $('pedDraft').innerHTML = `<g opacity="0.5" pointer-events="none">${annotSvg({ t:'icon', p:[p], ic:ped.ic, s:ped.icb.s, bg:ped.icb.bg[ped.ic] })}</g>`;
@@ -3069,7 +3083,9 @@ $('pedSvg').addEventListener('pointermove', e => {
     const g = d.g, [lx, lz] = toLocal(g, p), [w0, d0, h0] = g.userData.dims, st = e.shiftKey ? 0.1 : 0.5, q = v => Math.max(0.5, Math.round(v / st) * st);
     d.dims = [d.side[0] ? q(d.side[0] * lx + w0 / 2) : w0, d.side[1] ? q(d.side[1] * lz + d0 / 2) : d0, h0];
     pedDrawSel(); $('pedInfo').textContent = `${fr(d.dims[0], 2)} × ${fr(d.dims[1], 2)} m`; return; }
-  if (d.k === 'pt') { if (!d.undo) { pushUndo(); d.undo = true; } d.a.p[d.i] = pedSnap(p, e, d.a); pedLater(); pedSide(); return; }
+  if (d.k === 'pt') { if (!d.undo) { pushUndo(); d.undo = true; } let q = pedSnap(p, e, d.a);
+    if (d.r && !e.shiftKey) { const o = d.a.p[1 - d.i]; let w = q[0] - o[0], h = q[1] - o[1]; if (Math.abs(w) / d.r > Math.abs(h)) h = (Math.sign(h) || 1) * Math.abs(w) / d.r; else w = (Math.sign(w) || 1) * Math.abs(h) * d.r; q = [o[0] + w, o[1] + h]; }
+    d.a.p[d.i] = q; pedLater(); pedSide(); return; }
   if (d.k === 'brush') return; // peint plus haut
   if (d.k === 'icob') { if (Math.hypot(p[0] - d.last[0], p[1] - d.last[1]) >= ped.icb.gap) { icoPlace(e.shiftKey ? p : pedSnap(p, e)); d.last = p; d.n++; pedLater(); $('pedInfo').textContent = `${ICONS[ped.ic].name} : ${d.n} posés`; } return; }
   if (d.k === 'marq') { d.b = p; const u = pedUnit(), [x0, x1] = [Math.min(d.a[0], p[0]), Math.max(d.a[0], p[0])], [z0, z1] = [Math.min(d.a[1], p[1]), Math.max(d.a[1], p[1])];
@@ -3094,7 +3110,7 @@ $('pedSvg').addEventListener('pointerup', () => {
     if (x1 - x0 < 0.2 && z1 - z0 < 0.2) return;
     const inR = ([x, z]) => x >= x0 && x <= x1 && z >= z0 && z <= z1, ctr = q => [q.reduce((s, v) => s + v[0], 0) / q.length, q.reduce((s, v) => s + v[1], 0) / q.length];
     const gs = props.children.filter(o => shown(o) && inR(o.userData.resto?.poly.length ? toPlan(o, ...polyCentroid(o.userData.resto.poly)) : ctr(planItem(o).poly)));
-    const as = ANNOT.filter(a => !a.hidden && inR(ctr(a.p)));
+    const as = ANNOT.filter(a => !a.hidden && !a.lock && inR(ctr(a.p)));
     const L = d.add ? selList() : { gs:[], as:[] }; pedSetMulti([...L.gs, ...gs], [...L.as, ...as]);
     if (multiOn()) $('pedInfo').textContent = `${ped.multi.gs.length + ped.multi.as.length} sélectionnés — ⌥ + glisser : dupliquer · Suppr. : supprimer`; return; }
   if (d.k === 'moveM') { if (d.undo) { syncPos(); drawCotes(); } pedDraw(); return; }
@@ -3141,7 +3157,7 @@ addEventListener('keydown', e => {
     if (k === 'z') { e.preventDefault(); pedHistory(e.shiftKey); } if (k === 'y') { e.preventDefault(); pedHistory(true); }
     if (k === 'd') { e.preventDefault(); if (multiOn()) pedMultiDup(1); else pedDup(); }
     if (k === 's') { e.preventDefault(); pedSave(); }
-    if (k === 'a') { e.preventDefault(); pedSetMulti(props.children.filter(shown), ANNOT.filter(a => !a.hidden)); } // tout sélectionner
+    if (k === 'a') { e.preventDefault(); pedSetMulti(props.children.filter(shown), ANNOT.filter(a => !a.hidden && !a.lock)); } // tout sélectionner
     return;
   }
   if (ped.pot && (e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Escape')) { // tracé de potelets en cours
@@ -3287,6 +3303,76 @@ function bindRestoPanel(g) {
     $(id).onchange = () => { if (!r.auto) { r.auto = { ...(r.kind === 'bureau' ? OFFICE_DEFAULT : RESTO_DEFAULT) }; r.src = ''; } pushUndo(); r.auto[key] = Math.max(key === 'ang' ? -360 : 0, +$(id).value || 0); apply(); };
 }
 // panneau de droite : propriétés de la sélection
+// --- images importées (photo, plan existant) : posées sous le plan, à l'échelle, verrouillables pour dessiner par-dessus ---
+const loadImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; });
+async function pdfFirstPage(file) { // 1re page d'un PDF, rendue par pdf.js (chargé à la demande)
+  const lib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.mjs');
+  lib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+  const doc = await lib.getDocument({ data:new Uint8Array(await file.arrayBuffer()) }).promise, page = await doc.getPage(1), v0 = page.getViewport({ scale:1 });
+  const vp = page.getViewport({ scale:Math.min(4, 3000 / Math.max(v0.width, v0.height)) }), c = document.createElement('canvas');
+  c.width = Math.round(vp.width); c.height = Math.round(vp.height); const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+  await page.render({ canvasContext:x, viewport:vp }).promise; return c;
+}
+// réduit l'image (côté ≤ 2400 px, JPEG) jusqu'à tenir dans IMG_MAX : un setup reste léger (bibliothèque : 2 Mo par setup)
+function imgEncode(src) {
+  let k = Math.min(1, 2400 / Math.max(src.width, src.height)), q = 0.82, url = '';
+  for (let i = 0; i < 8; i++) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(src.width * k)); c.height = Math.max(1, Math.round(src.height * k));
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(src, 0, 0, c.width, c.height);
+    url = c.toDataURL('image/jpeg', q); if (url.length <= IMG_MAX * 0.6) break; k *= 0.8; q = Math.max(0.6, q - 0.05); }
+  return url.length <= IMG_MAX ? url : null;
+}
+$('pedImgBtn').onclick = () => $('pedImgFile').click();
+$('pedImgFile').onchange = async () => {
+  const file = $('pedImgFile').files[0]; $('pedImgFile').value = ''; if (!file) return;
+  $('pedInfo').textContent = 'Import de l\'image…';
+  try {
+    const pdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const src = pdf ? await pdfFirstPage(file) : await loadImg(URL.createObjectURL(file)), url = imgEncode(src);
+    if (!url) throw new Error('trop grande');
+    const v = ped.vb, ratio = src.height / src.width, w = Math.min(v.w * 0.6, v.h * 0.6 / ratio), h = w * ratio, cx = v.x + v.w / 2, cz = v.y + v.h / 2;
+    pushUndo(); const a = { id:newId(), t:'img', p:[[+(cx - w / 2).toFixed(2), +(cz - h / 2).toFixed(2)], [+(cx + w / 2).toFixed(2), +(cz + h / 2).toFixed(2)]], src:url, op:0.8, col:'#111111', s:1, txt:file.name.replace(/\.[^.]+$/, '').slice(0, 60) };
+    ANNOT.push(a); pedSetTool('sel'); pedDraw(); pedSelect({ a });
+    $('pedInfo').textContent = `Image posée (${Math.round(url.length * 0.75 / 1024)} Ko) : mets-la à l'échelle, cale-la, puis verrouille-la pour dessiner par-dessus`;
+  } catch (err) { $('pedInfo').textContent = ''; alert(`Impossible d'importer ce fichier (${err?.message || 'format non lu'}). Formats : JPEG, PNG, WebP, ou PDF (1re page).`); }
+};
+function imgPanel(el, a) {
+  const [, , w, h] = zoneRect(a), sz = Math.round(a.src.length * 0.75 / 1024);
+  el.innerHTML = `<h3>Image${a.txt ? ' · ' + esc(a.txt) : ''}</h3><p><b>${fr(w, 2)} × ${fr(h, 2)} m</b> · ${sz} Ko</p>
+    <label class="pedl">Nom<input id="imName" value="${esc(a.txt || '')}" maxlength="60"></label>
+    <label class="pedl">Opacité <input id="imOp" type="range" min="0.05" max="1" step="0.05" value="${a.op ?? 1}"></label>
+    <div class="row"><label class="pedl grow">Largeur (m)<input id="imW" type="number" min="0.5" step="0.1" value="${fr(w, 2).replace(',', '.')}"></label><label class="pedl grow">Rotation (°)<input id="imRot" type="number" min="-180" max="180" step="0.5" value="${a.rot || 0}"></label></div>
+    <div class="row"><button id="imR1" title="Tourner de 90° à gauche">↺ 90°</button><button id="imR2" title="Tourner de 90° à droite">↻ 90°</button></div>
+    <div class="row"><button id="imCal" class="grow" title="Clic sur 2 points de l'image dont tu connais la distance (une cote, un mur…), puis tape la longueur réelle : l'image est mise à l'échelle du plan">📏 Mettre à l'échelle (2 points)</button></div>
+    <label class="cb" title="Verrouillée, l'image ne se sélectionne plus au clic : on dessine et on pose du matériel par-dessus. Pour la déverrouiller : panneau de droite sans sélection, rubrique Images."><input type="checkbox" id="imLock"${a.lock ? ' checked' : ''}> Verrouiller (dessiner par-dessus)</label>
+    <label class="cb" title="Dans l'éditeur seulement : pour travailler sur l'image seule (à l'export : case Fond de plan)"><input type="checkbox" class="imFond"${$('pedSvg').classList.contains('nofond') ? ' checked' : ''}> Cacher le plan du bâtiment</label>
+    <p class="e2note">Glisse l'image pour la caler, ou ses coins pour la redimensionner (Maj : sans garder les proportions). Elle est sous le reste du plan et sort aussi à l'export.</p>
+    ${catRowHtml([a.cat || ''])}
+    <div class="row"><button id="pedDupB">Dupliquer</button><button id="pedDelB">Supprimer</button></div>`;
+  let undo = false; const edit = fn => { if (!undo) { pushUndo(); undo = true; } fn(); pedDraw(); };
+  $('imName').oninput = () => edit(() => { a.txt = $('imName').value.slice(0, 60); });
+  $('imOp').oninput = () => edit(() => { a.op = +$('imOp').value; });
+  $('imW').onchange = () => { const W = parseFloat($('imW').value); if (!(W > 0)) return; edit(() => { const [x, z, w0, h0] = zoneRect(a), k = W / w0; a.p = [[x, z], [+(x + W).toFixed(3), +(z + h0 * k).toFixed(3)]]; }); pedSide(); };
+  const rot = r => edit(() => { let v = ((r + 180) % 360 + 360) % 360 - 180; a.rot = Math.round(v * 10) / 10; if (!a.rot) delete a.rot; });
+  $('imRot').onchange = () => rot(+$('imRot').value || 0); $('imR1').onclick = () => { rot((a.rot || 0) - 90); pedSide(); }; $('imR2').onclick = () => { rot((a.rot || 0) + 90); pedSide(); };
+  $('imCal').onclick = () => { pedSetTool('imgcal'); ped.cal = { a, A:null }; $('pedInfo').textContent = 'Mise à l\'échelle : clic sur le 1er point d\'une longueur connue de l\'image (Échap pour annuler)'; };
+  $('imLock').onchange = () => { pushUndo(); if ($('imLock').checked) { a.lock = true; pedSelect(null); $('pedInfo').textContent = 'Image verrouillée : dessine par-dessus ; pour la déverrouiller, rubrique Images du panneau'; } else delete a.lock; pedDraw(); };
+  $('pedDupB').onclick = () => { pushUndo(); const c = { ...JSON.parse(JSON.stringify(a)), id:newId(), lock:undefined }; delete c.lock; c.p = c.p.map(q => [q[0] + 1, q[1] + 1]); ANNOT.push(c); pedDraw(); pedSelect({ a:c }); };
+  $('pedDelB').onclick = () => { pushUndo(); ANNOT.splice(ANNOT.indexOf(a), 1); pedSelect(null); pedDraw(); };
+  bindCatRow([], [a]); bindFond();
+}
+function bindFond() { document.querySelectorAll('#pedSide .imFond').forEach(c => c.onchange = () => $('pedSvg').classList.toggle('nofond', c.checked)); }
+// rubrique Images (panneau sans sélection) : sélectionner, verrouiller / déverrouiller
+function imgListHtml() {
+  const L = ANNOT.filter(a => a.t === 'img'); if (!L.length) return '';
+  return `<h3>Images</h3><table class="pottab" id="imList">${L.map((a, i) => { const [, , w, h] = zoneRect(a); return `<tr data-i="${i}"><td>${esc(a.txt || 'Image ' + (i + 1))}<br><small>${fr(w, 1)} × ${fr(h, 1)} m</small></td><td><button class="imL" title="${a.lock ? 'Déverrouiller' : 'Verrouiller'}">${a.lock ? '🔒' : '🔓'}</button><button class="imS" title="Sélectionner (la déverrouille)">Choisir</button></td></tr>`; }).join('')}</table><label class="cb" title="Dans l'éditeur seulement : pour travailler sur l'image seule (à l'export : case Fond de plan)"><input type="checkbox" class="imFond"${$('pedSvg').classList.contains('nofond') ? ' checked' : ''}> Cacher le plan du bâtiment</label>`;
+}
+function bindImgList() {
+  const L = ANNOT.filter(a => a.t === 'img');
+  document.querySelectorAll('#imList tr').forEach(tr => { const a = L[+tr.dataset.i];
+    tr.querySelector('.imL').onclick = () => { pushUndo(); if (a.lock) delete a.lock; else a.lock = true; pedDraw(); pedSide(); };
+    tr.querySelector('.imS').onclick = () => { if (a.lock) { pushUndo(); delete a.lock; } pedDraw(); pedSelect({ a }); }; });
+  bindFond();
+}
 // --- catégories de légende dans l'éditeur : choix pour la sélection, gestion de la liste quand rien n'est sélectionné ---
 function catRowHtml(vals) {
   const set = new Set(vals.map(v => catOf(v) ? v : '')), mixed = set.size > 1, cur = mixed ? null : [...set][0] || '';
@@ -3381,6 +3467,7 @@ function pedSide() {
     el.innerHTML = `<h3>Plan 2D</h3><p class="e2note">${props.children.filter(shown).length} éléments · ${ANNOT.length} annotations</p>
       ${BT.length ? `<h3>Balisage sur le plan</h3><table class="pottab">${BT.map(([k, n, d]) => `<tr><td><b>${n}</b></td><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>` : ''}
       ${stockPanel()}
+      ${imgListHtml()}
       ${catPanel()}
       ${OT.places || OT.tables ? `<h3>Bureaux sur le plan</h3><p><b>${OT.places} postes (chaises)</b> · ${bureauTxt(OT.items)}${OT.zones ? ` · ${OT.zones} zone${OT.zones > 1 ? 's' : ''} (${Math.round(OT.area)} m²)` : ''}</p>
         <table class="pottab" id="otTab">${OT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places).map((r, i) => `<tr data-i="${i}" style="cursor:pointer" title="Sélectionner"><td>${esc(r.name)}</td><td><b>${r.places}</b> postes</td></tr>`).join('')}</table>` : ''}
@@ -3390,7 +3477,7 @@ function pedSide() {
       <li>Les cotes s'accrochent aux coins des éléments</li><li><b>R</b> / Maj+R : tourner l'élément de 15° (Alt : 5°)</li><li>Flèches du clavier : déplacer la vue (Maj : plus vite) ; avec une sélection, la déplacer de 10 cm (Maj : 1 m) · + / − : zoom</li>
       <li>⌘D dupliquer · Suppr. effacer · ⌘Z annuler</li><li>Molette : zoom · Espace ou clic droit + glisser : déplacer la vue · <b>C</b> recadrer</li></ul>
       <p class="e2note">Le matériel est le même qu'en 3D. Textes, cotes, zones et pictos n'apparaissent que sur les plans (export, fiches) et sont sauvés avec le setup.</p>`;
-    bindStockPanel(); bindCatPanel();
+    bindStockPanel(); bindCatPanel(); bindImgList();
     const rtRows = RT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places);
     el.querySelectorAll('#rtTab [data-i]').forEach(tr => tr.onclick = () => pedSelect({ g:rtRows[+tr.dataset.i].o }));
     const otRows = OT.rows.filter(r => r.o.userData.resto).sort((a, b) => b.places - a.places);
@@ -3435,6 +3522,7 @@ function pedSide() {
       if ($('lnCotes')) $('lnCotes').onchange = () => { pushUndo(); dims.forEach(a => { if ($('lnCotes').checked) delete a.hidden; else a.hidden = true; }); pedDraw(); }; }
     $('ped3d').onclick = () => { $('ped').close(); select(g); frame(g); };
   } else {
+    if (s.a.t === 'img') { imgPanel(el, s.a); return; }
     const a = s.a, info = a.t === 'dim' ? `Longueur : ${fmtM(annotLength(a))}` : a.t === 'zone' ? `Surface : ${fmtArea(zoneArea(a))}` : a.t === 'arrow' ? `Longueur : ${fmtM(annotLength(a))}` : '';
     el.innerHTML = `<h3>${PED_KIND[a.t]}${a.t === 'icon' ? ' · ' + esc(ICONS[a.ic].name) : ''}</h3>${info ? `<p><b>${info}</b></p>` : ''}
       ${a.t === 'icon' ? `<div class="row"><select id="pedIc" class="grow">${Object.entries(ICONS).map(([k, I]) => `<option value="${k}"${k === a.ic ? ' selected' : ''}>${esc(I.name)}</option>`).join('')}</select></div>` : ''}
