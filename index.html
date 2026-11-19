@@ -112,7 +112,7 @@
 </div>
 <dialog id="ped">
   <div class="pedh"><b>Éditeur de plan 2D</b>
-    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button id="pedImgBtn" title="Image : importer une photo, un plan existant (JPEG, PNG, WebP ou 1re page d'un PDF), la poser sous le plan, la mettre à l'échelle et dessiner par-dessus">🖼 Image</button><input type="file" id="pedImgFile" accept="image/*,application/pdf,.pdf" hidden><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="bureau" title="Zone de bureaux : comme la zone de restauration (cliquer chaque angle, double-clic ou Entrée pour fermer), remplie de bureaux et de chaises ; compte les postes (chaises)">🗂 Zone bureau</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
+    <span id="pedTools"><button data-t="sel" class="on" title="Sélection (V) : choisir, déplacer ; glisser le fond pour déplacer la vue">↖ Sélection</button><button data-t="text" title="Texte (T) : clic sur le plan">T Texte</button><button data-t="arrow" title="Flèche (F) : glisser du départ vers la pointe">➜ Flèche</button><button data-t="dim" title="Cote (D) : glisser d'un point à l'autre ; s'accroche aux coins des éléments (Maj : libre)">↔ Cote</button><button data-t="zone" title="Zone (Z) : glisser d'un coin à l'autre ; la surface est calculée">▭ Zone</button><button id="pedImgBtn" title="Image : importer une photo, un plan existant (JPEG, PNG, WebP ou 1re page d'un PDF), la poser sous le plan, la mettre à l'échelle et dessiner par-dessus">🖼 Image</button><input type="file" id="pedImgFile" accept="image/*,application/pdf,.pdf" hidden><button data-t="resto" title="Zone de restauration (Q) : cliquer chaque angle de la zone ; double-clic, Entrée ou clic sur le 1er point pour fermer. Elle se remplit de tables selon le module choisi">🍽 Zone resto</button><button data-t="bureau" title="Zone de bureaux : comme la zone de restauration (cliquer chaque angle, double-clic ou Entrée pour fermer), remplie de bureaux et de chaises ; compte les postes (chaises)">🗂 Zone bureau</button><button data-t="pot" title="Lignes (P) : potelets, barrières Vauban, Heras ou passe-câbles ; cliquer chaque point de la ligne ; cotes et nombre affichés pendant le tracé ; double-clic ou Entrée pour poser, clic sur le 1er point pour fermer une boucle. Écart réparti à égalité, au plus l'écart max (corde de 2 m)">⫶ Lignes</button><button data-t="brush" title="Pinceau (B) : peindre des tables dans une zone de restauration, en rangées alignées sur le 1er module du trait, sans chevaucher ce qui est posé ; Alt ou mode Gomme : effacer ; R : tourner le module">🖌 Pinceau</button><button data-t="erase" title="Gomme (G) : cliquer ou passer sur ce qu'il faut effacer : textes, flèches, cotes, zones, pictos, images non verrouillées, tables et chaises, matériel ; taille et cibles dans le panneau ; un trait = un ⌘Z">🧽 Gomme</button><button data-t="split" title="Scinder (X) : tracer un trait à travers une ou plusieurs zones de restauration pour les couper en deux ; le mobilier suit son morceau. Zone sélectionnée : seule elle est coupée">✂ Scinder</button><select id="pedIcon" title="Picto : choisir puis cliquer sur le plan"></select></span>
     <button id="pedAdd" title="Ajouter du matériel du catalogue au centre du plan (aussi en 3D)">+ Matériel</button><button id="pedDacam" title="Poser les zones de restauration du plan DACAM (accessibilité RdC) avec leur mobilier : 13 zones, tables, chaises, tabourets">Restauration DACAM</button>
     <label class="cb" title="Plan du bâtiment (fond DWG, trappes, axe) : décoché, il disparaît de l'éditeur et de l'export, pour travailler sur une image importée seule"><input type="checkbox" id="pedFond" checked> Plan du bâtiment</label><label class="cb"><input type="checkbox" id="pedCotes"> Cotes</label><label class="cb" title="Dessine chaque praticable 2 × 1 des scènes et régies (ce qui dépasse en rouge)"><input type="checkbox" id="pedPrat"> Praticables</label>
     <span class="pedvue" title="Les mêmes réglages que le panneau Vue de la 3D : ils changent aussi la 3D">Vue <button data-pv="salleAgora" title="Bâtiment / Agora : recadre le plan sur l'Agora">Bâtiment</button><button data-pv="salleAudi" title="Auditorium seul : recadre le plan sur l'auditorium">Auditorium</button><button data-pv="trapBtn">Trappes de sol</button><button data-pv="agoraBtn">Axe &amp; piliers</button><button data-pv="acou" title="Conques acoustiques (3D) et conques d'orchestre (sur ce plan ; elles restent sur les plans exportés)">Panneaux acoustiques</button><button data-pv="chargeLab" title="Étiquettes de charge (3D)">Charges</button><button data-pv="coverBtn" title="Couverture des enceintes, en 3D et sur ce plan">Couverture</button><button data-pv="beamBtn" title="Faisceaux des projecteurs (3D)">Faisceaux</button></span>
@@ -2951,6 +2951,26 @@ function brushAt(d, p, e) {
     r.items.push(...moduleItemsAt(brMod(), pos[0], pos[1], a)); r.auto = null; d.anchor ||= pos; d.changed = true; d.touched.add(g); }
   if (d.changed) { pedLater(); const st = restoStats(r.items, r.poly); $('pedInfo').textContent = `${r.name} : ${st.tables} tables · ${st.places} places`; }
 }
+// --- gomme générale : efface ce que touche le cercle ; un trait = un seul ⌘Z ---
+ped.er = { rad:0.5, annot:true, items:true, mat:true };
+const segDist = (p, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz, t = L2 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / L2)) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dz); };
+const polyEdgeDist = (p, P) => Math.min(...P.map((q, i) => segDist(p, q, P[(i + 1) % P.length])));
+function eraseHitAnnot(a, p, R) {
+  if (a.hidden || a.lock) return false;
+  if (a.t === 'arrow' || a.t === 'dim') return segDist(p, a.p[0], a.p[1]) <= R + 0.1;
+  if (a.t === 'zone' || a.t === 'img') { const [x, z, w, h] = zoneRect(a); return polyEdgeDist(p, [[x, z], [x + w, z], [x + w, z + h], [x, z + h]]) <= R + 0.1; } // grande surface : seulement en passant sur son bord
+  const b = annotBox(a), cx = Math.max(b[0][0], Math.min(p[0], b[1][0])), cz = Math.max(b[0][1], Math.min(p[1], b[1][1])); return Math.hypot(p[0] - cx, p[1] - cz) <= R;
+}
+function eraseAt(d, p) {
+  const E = ped.er, R = E.rad;
+  if (E.annot) for (let i = ANNOT.length - 1; i >= 0; i--) if (eraseHitAnnot(ANNOT[i], p, R)) { ANNOT.splice(i, 1); d.n++; }
+  for (const g of [...props.children]) { if (!shown(g)) continue;
+    if (g.userData.resto) { if (!E.items) continue; const r = g.userData.resto, q = toLocal(g, p), n = r.items.length; r.items = eraseItems(r.items, q[0], q[1], R);
+      if (r.items.length !== n) { d.n += n - r.items.length; d.touched.add(g); r.auto = null; } continue; }
+    if (!E.mat) continue; const P = planItem(g).poly; if (pointInPoly(p, P) || polyEdgeDist(p, P) <= R) { props.remove(g); d.n++; d.mat = true; } }
+  if (d.n) { pedLater(); $('pedInfo').textContent = `Gomme : ${d.n} effacé${d.n > 1 ? 's' : ''}`; }
+}
+function eraseGhost(p) { const u = pedUnit(); $('pedDraft').innerHTML = `<circle cx="${p[0]}" cy="${p[1]}" r="${ped.er.rad}" fill="#fff" fill-opacity="0.25" stroke="#e8262b" stroke-width="${2 * u}" stroke-dasharray="${5 * u} ${3 * u}" pointer-events="none"/>`; }
 function brushGhost(p, e) { // aperçu : emprise du module (vert : posable, rouge : non) ou cercle de la gomme
   const u = pedUnit(), g = brushZone(p);
   if (ped.br.pick) { // pipette : surligne le groupe sous le pointeur
@@ -3003,6 +3023,7 @@ $('pedSvg').addEventListener('pointerdown', e => {
   const h = tgt.closest('[data-h]');
   if (h && ped.sel?.a) { const A = ped.sel.a; ped.drag = { k:'pt', a:A, i:+h.dataset.h, undo:false, r:A.t === 'img' ? Math.abs((A.p[1][0] - A.p[0][0]) / (A.p[1][1] - A.p[0][1] || 1)) : 0 }; return; }
   if (ped.tool === 'split') { ped.drag = { k:'cut', a:pedSnap(p, e), b:null }; return; }
+  if (ped.tool === 'erase') { pushUndo(); ped.drag = { k:'erase', n:0, touched:new Set(), mat:false }; eraseAt(ped.drag, p); return; }
   if (ped.tool === 'brush') {
     pushUndo(); // dans une zone : la zone devient « posée à la main » ; hors zone : groupe « Mobilier libre »
     ped.drag = { k:'brush', g:brushZone(p), anchor:null, changed:false, touched:new Set() }; brushAt(ped.drag, p, e); return;
@@ -3071,6 +3092,7 @@ $('pedSvg').addEventListener('pointermove', e => {
   if (ped.tool === 'imgcal' && ped.cal?.A) { const u = pedUnit(), A = ped.cal.A; $('pedDraft').innerHTML = `<line x1="${A[0]}" y1="${A[1]}" x2="${p[0]}" y2="${p[1]}" stroke="#c2410c" stroke-width="${2 * u}" pointer-events="none"/><circle cx="${A[0]}" cy="${A[1]}" r="${4 * u}" fill="#c2410c" pointer-events="none"/><text x="${p[0]}" y="${p[1] - 8 * u}" font-size="${13 * u}" fill="#c2410c" stroke="#fff" stroke-width="${3 * u}" paint-order="stroke" pointer-events="none">${fr(Math.hypot(p[0] - A[0], p[1] - A[1]), 2)} m</text>`; }
   if (ped.tool === 'pot' && ped.pot?.pts.length) potDraft(potSnap(p, e));
   if (ped.tool === 'brush') { if (ped.drag?.k === 'brush') brushAt(ped.drag, p, e); brushGhost(p, e); }
+  if (ped.tool === 'erase') { if (ped.drag?.k === 'erase') eraseAt(ped.drag, p); eraseGhost(p); }
   if (ped.tool === 'icon' && ped.drag?.k !== 'icob') $('pedDraft').innerHTML = `<g opacity="0.5" pointer-events="none">${annotSvg({ t:'icon', p:[p], ic:ped.ic, s:ped.icb.s, bg:ped.icb.bg[ped.ic] })}</g>`;
   const d = ped.drag; if (!d) return;
   if (d.k === 'cut') { d.b = pedSnap(p, e); const u = pedUnit();
@@ -3086,7 +3108,7 @@ $('pedSvg').addEventListener('pointermove', e => {
   if (d.k === 'pt') { if (!d.undo) { pushUndo(); d.undo = true; } let q = pedSnap(p, e, d.a);
     if (d.r && !e.shiftKey) { const o = d.a.p[1 - d.i]; let w = q[0] - o[0], h = q[1] - o[1]; if (Math.abs(w) / d.r > Math.abs(h)) h = (Math.sign(h) || 1) * Math.abs(w) / d.r; else w = (Math.sign(w) || 1) * Math.abs(h) * d.r; q = [o[0] + w, o[1] + h]; }
     d.a.p[d.i] = q; pedLater(); pedSide(); return; }
-  if (d.k === 'brush') return; // peint plus haut
+  if (d.k === 'brush' || d.k === 'erase') return; // peint / gomme plus haut
   if (d.k === 'icob') { if (Math.hypot(p[0] - d.last[0], p[1] - d.last[1]) >= ped.icb.gap) { icoPlace(e.shiftKey ? p : pedSnap(p, e)); d.last = p; d.n++; pedLater(); $('pedInfo').textContent = `${ICONS[ped.ic].name} : ${d.n} posés`; } return; }
   if (d.k === 'marq') { d.b = p; const u = pedUnit(), [x0, x1] = [Math.min(d.a[0], p[0]), Math.max(d.a[0], p[0])], [z0, z1] = [Math.min(d.a[1], p[1]), Math.max(d.a[1], p[1])];
     $('pedDraft').innerHTML = `<rect x="${x0}" y="${z0}" width="${x1 - x0}" height="${z1 - z0}" fill="#1f5fbf" fill-opacity="0.08" stroke="#1f5fbf" stroke-width="${1.5 * u}" stroke-dasharray="${5 * u} ${3 * u}" pointer-events="none"/>`; return; }
@@ -3115,6 +3137,8 @@ $('pedSvg').addEventListener('pointerup', () => {
     if (multiOn()) $('pedInfo').textContent = `${ped.multi.gs.length + ped.multi.as.length} sélectionnés — ⌥ + glisser : dupliquer · Suppr. : supprimer`; return; }
   if (d.k === 'moveM') { if (d.undo) { syncPos(); drawCotes(); } pedDraw(); return; }
   if (d.k === 'icob') { pedDraw(); return; }
+  if (d.k === 'erase') { if (!d.n) undoStack.pop(); for (const g of d.touched) { const r = g.userData.resto; if (!r.poly.length && !r.items.length) props.remove(g); else setResto(g, r); }
+    if (d.n) { pedSelect(null); drawCotes(); } pedDraw(); return; }
   if (d.k === 'brush') {
     if (d.changed) { for (const g of d.touched) { const r = g.userData.resto; if (!r.poly.length && !r.items.length) props.remove(g); else setResto(g, r); } drawCotes(); }
     else { undoStack.pop(); if (d.free && d.g && !d.g.userData.resto.items.length) props.remove(d.g); }
@@ -3168,7 +3192,7 @@ addEventListener('keydown', e => {
   if (e.key === 'Escape' && multiOn() && ped.tool === 'sel') { e.preventDefault(); pedSelect(null); return; }
   if (e.key === 'Escape') { e.preventDefault(); if (ped.tool !== 'sel') pedSetTool('sel'); else if (ped.sel) pedSelect(null); else $('ped').close(); }
   if (ped.tool === 'brush' && (k === 'r' || k === 'e' || k === 'i')) { if (k === 'r') ped.br.ang = (ped.br.ang + 90) % 180; else if (k === 'i') { ped.br.pick = !ped.br.pick; ped.br.erase = false; } else { ped.br.erase = !ped.br.erase; ped.br.pick = false; } pedSide(); $('pedDraft').innerHTML = ''; return; }
-  if (k === 'b') pedSetTool('brush'); if (k === 'p') pedSetTool('pot'); if (k === 'q') pedSetTool('resto'); if (k === 'x') pedSetTool('split'); if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
+  if (k === 'b') pedSetTool('brush'); if (k === 'g') pedSetTool('erase'); if (k === 'p') pedSetTool('pot'); if (k === 'q') pedSetTool('resto'); if (k === 'x') pedSetTool('split'); if (k === 'v') pedSetTool('sel'); if (k === 't') pedSetTool('text'); if (k === 'f') pedSetTool('arrow'); if (k === 'd') pedSetTool('dim'); if (k === 'z') pedSetTool('zone');
   if (k === 'r' && ped.sel?.g) pedRotate(ped.sel.g, (e.altKey ? 5 : 15) * (e.shiftKey ? -1 : 1));
   if (k === 'c') pedFit();
   if (e.key.startsWith('Arrow') && multiOn()) { // flèches : déplacer toute la sélection (10 cm, Maj : 1 m)
@@ -3434,6 +3458,18 @@ function pedSide() {
     el.querySelectorAll('#icbCols [data-c]').forEach(b => b.onclick = () => { if (b.dataset.c === I.col) delete C.bg[ped.ic]; else C.bg[ped.ic] = b.dataset.c; pedSide(); });
     $('icbS').oninput = () => { C.s = +$('icbS').value; };
     $('icbGap').onchange = () => { C.gap = Math.max(0.5, +$('icbGap').value || 2); pedSide(); };
+    return;
+  }
+  if (ped.tool === 'erase') {
+    const E = ped.er;
+    el.innerHTML = `<h3>Gomme</h3><p class="e2note">Clique ou passe sur ce qu'il faut effacer. Les zones et les images s'effacent en passant sur leur bord ; une image verrouillée ne s'efface pas. Un trait de gomme = un seul ⌘Z.</p>
+      <label class="pedl">Taille : <b id="erRv">${fr(E.rad * 2, 1)} m</b><input id="erR" type="range" min="0.1" max="3" step="0.1" value="${E.rad}"></label>
+      <label class="cb"><input type="checkbox" id="erA"${E.annot ? ' checked' : ''}> Textes, flèches, cotes, zones, pictos, images</label>
+      <label class="cb"><input type="checkbox" id="erI"${E.items ? ' checked' : ''}> Tables et chaises (restauration, bureaux)</label>
+      <label class="cb"><input type="checkbox" id="erM"${E.mat ? ' checked' : ''}> Matériel (scènes, enceintes, barrières, potelets…)</label>
+      <p class="e2note">V ou Échap : retour à la sélection.</p>`;
+    $('erR').oninput = () => { E.rad = +$('erR').value; $('erRv').textContent = `${fr(E.rad * 2, 1)} m`; };
+    $('erA').onchange = () => E.annot = $('erA').checked; $('erI').onchange = () => E.items = $('erI').checked; $('erM').onchange = () => E.mat = $('erM').checked;
     return;
   }
   if (ped.tool === 'brush') {
