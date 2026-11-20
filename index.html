@@ -2654,7 +2654,7 @@ function pedDraw() {
   const hit = a => a.t === 'arrow' || a.t === 'dim' ? `<line x1="${a.p[0][0]}" y1="${a.p[0][1]}" x2="${a.p[1][0]}" y2="${a.p[1][1]}" stroke="transparent" stroke-width="0.6"/>` : '';
   $('pedZones').innerHTML = ANNOT.filter(a => a.t === 'zone').map(a => `<g data-a="${a.id}">${annotSvg(a)}</g>`).join('');
   // images : sous tout le reste ; verrouillée = transparente aux clics (on dessine par-dessus sans la déplacer)
-  $('pedImgs').innerHTML = ANNOT.filter(a => a.t === 'img').map(a => `<g ${a.lock ? 'pointer-events="none"' : `data-a="${a.id}"`}>${annotSvg(a)}</g>`).join('');
+  $('pedImgs').innerHTML = ANNOT.filter(a => a.t === 'img').map(a => `<g data-img="${a.id}" ${a.lock ? 'pointer-events="none"' : `data-a="${a.id}"`}>${annotSvg(ped.imgPrev?.get(a) ? { ...a, src:ped.imgPrev.get(a) } : a)}</g>`).join(''); // imgPrev : aperçu pendant un trait de gomme
   $('pedAnn').innerHTML = ANNOT.filter(a => a.t !== 'zone' && a.t !== 'img').map(a => `<g data-a="${a.id}">${hit(a)}${annotSvg(a)}</g>`).join('')
     + `<g pointer-events="none">${catMarks(props.children.filter(shown), ANNOT)}</g>`; // repères des catégories de légende
   if (ped.sel?.g && !props.children.includes(ped.sel.g)) ped.sel = null;
@@ -2952,17 +2952,53 @@ function brushAt(d, p, e) {
   if (d.changed) { pedLater(); const st = restoStats(r.items, r.poly); $('pedInfo').textContent = `${r.name} : ${st.tables} tables · ${st.places} places`; }
 }
 // --- gomme générale : efface ce que touche le cercle ; un trait = un seul ⌘Z ---
-ped.er = { rad:0.5, annot:true, items:true, mat:true };
+ped.er = { rad:0.5, annot:true, items:true, mat:true, pix:true };
 const segDist = (p, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz, t = L2 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / L2)) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dz); };
 const polyEdgeDist = (p, P) => Math.min(...P.map((q, i) => segDist(p, q, P[(i + 1) % P.length])));
 function eraseHitAnnot(a, p, R) {
-  if (a.hidden || a.lock) return false;
+  if (a.hidden || a.lock || (a.t === 'img' && ped.er.pix)) return false;
   if (a.t === 'arrow' || a.t === 'dim') return segDist(p, a.p[0], a.p[1]) <= R + 0.1;
   if (a.t === 'zone' || a.t === 'img') { const [x, z, w, h] = zoneRect(a); return polyEdgeDist(p, [[x, z], [x + w, z], [x + w, z + h], [x, z + h]]) <= R + 0.1; } // grande surface : seulement en passant sur son bord
   const b = annotBox(a), cx = Math.max(b[0][0], Math.min(p[0], b[1][0])), cz = Math.max(b[0][1], Math.min(p[1], b[1][1])); return Math.hypot(p[0] - cx, p[1] - cz) <= R;
 }
+// gommer dans une image importée (verrouillée ou non) : les pixels deviennent transparents ; aperçu pendant le trait, image réencodée à la fin
+function imgLocal(a, p) { // point du plan → pixels de l'image (rotation comprise) ; null hors de l'image (+ rayon)
+  const [x, z, w, h] = zoneRect(a), cx = x + w / 2, cz = z + h / 2, t = -(a.rot || 0) * Math.PI / 180, dx = p[0] - cx, dz = p[1] - cz;
+  const u = dx * Math.cos(t) - dz * Math.sin(t) + w / 2, v = dx * Math.sin(t) + dz * Math.cos(t) + h / 2, R = ped.er.rad;
+  return u < -R || v < -R || u > w + R || v > h + R ? null : { u, v, w, h };
+}
+function eraseImgs(d, p) {
+  for (const a of ANNOT) { if (a.t !== 'img' || a.hidden) continue; const L = imgLocal(a, p); if (!L) continue;
+    let P = d.pix.get(a); if (!P) { P = { pts:[], c:null, last:null }; d.pix.set(a, P);
+      loadImg(a.src).then(im => { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0); P.c = c; eraseImgFlush(d, a, P); }); }
+    P.pts.push(L); if (P.c) eraseImgFlush(d, a, P); }
+}
+function eraseImgFlush(d, a, P) {
+  const c = P.c, x = c.getContext('2d'); x.globalCompositeOperation = 'destination-out'; x.lineCap = x.lineJoin = 'round';
+  for (const L of P.pts) { const kx = c.width / L.w, ky = c.height / L.h, U = L.u * kx, V = L.v * ky, r = ped.er.rad * (kx + ky) / 2;
+    x.lineWidth = 2 * r; x.beginPath(); if (P.last) { x.moveTo(P.last[0], P.last[1]); x.lineTo(U, V); } else { x.moveTo(U, V); x.lineTo(U + 0.01, V); } x.stroke(); P.last = [U, V]; }
+  P.pts = []; d.imgN = true;
+  if (!P.busy) { P.busy = true; setTimeout(() => c.toBlob(b => { P.busy = false; if (!b) return; const old = ped.imgPrev.get(a); ped.imgPrev.set(a, URL.createObjectURL(b)); if (old) URL.revokeObjectURL(old);
+    const el = document.querySelector(`#pedImgs [data-img="${a.id}"] image`); if (el) el.setAttribute('href', ped.imgPrev.get(a)); }), 120); }
+}
+// réencode avec la transparence (WebP, sinon PNG), réduit si besoin pour tenir dans IMG_MAX
+function imgEncodeAlpha(src) {
+  let k = 1;
+  for (let i = 0; i < 8; i++) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(src.width * k)); c.height = Math.max(1, Math.round(src.height * k)); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+    let url = c.toDataURL('image/webp', 0.85); if (!url.startsWith('data:image/webp')) url = c.toDataURL('image/png');
+    if (url.length <= IMG_MAX) return url; k *= 0.8; }
+  return null;
+}
+function eraseImgsEnd(d, n = 0) {
+  if ([...d.pix.values()].some(P => !P.c) && n < 40) return setTimeout(() => eraseImgsEnd(d, n + 1), 100); // image encore en chargement
+  for (const [a, P] of d.pix) { if (!P.c) continue; P.pts.length && eraseImgFlush(d, a, P); const url = imgEncodeAlpha(P.c); if (url) a.src = url;
+    const old = ped.imgPrev.get(a); ped.imgPrev.delete(a); if (old) URL.revokeObjectURL(old); }
+  pedDraw();
+}
 function eraseAt(d, p) {
   const E = ped.er, R = E.rad;
+  if (E.pix) eraseImgs(d, p);
+  if (d.imgOnly) return; // trait commencé sur une image : il ne gomme que l'image, pas ce qui est dessous
   if (E.annot) for (let i = ANNOT.length - 1; i >= 0; i--) if (eraseHitAnnot(ANNOT[i], p, R)) { ANNOT.splice(i, 1); d.n++; }
   for (const g of [...props.children]) { if (!shown(g)) continue;
     if (g.userData.resto) { if (!E.items) continue; const r = g.userData.resto, q = toLocal(g, p), n = r.items.length; r.items = eraseItems(r.items, q[0], q[1], R);
@@ -3023,7 +3059,7 @@ $('pedSvg').addEventListener('pointerdown', e => {
   const h = tgt.closest('[data-h]');
   if (h && ped.sel?.a) { const A = ped.sel.a; ped.drag = { k:'pt', a:A, i:+h.dataset.h, undo:false, r:A.t === 'img' ? Math.abs((A.p[1][0] - A.p[0][0]) / (A.p[1][1] - A.p[0][1] || 1)) : 0 }; return; }
   if (ped.tool === 'split') { ped.drag = { k:'cut', a:pedSnap(p, e), b:null }; return; }
-  if (ped.tool === 'erase') { pushUndo(); ped.drag = { k:'erase', n:0, touched:new Set(), mat:false }; eraseAt(ped.drag, p); return; }
+  if (ped.tool === 'erase') { pushUndo(); ped.imgPrev ||= new Map(); ped.drag = { k:'erase', n:0, touched:new Set(), mat:false, pix:new Map(), imgN:false, imgOnly:ped.er.pix && ANNOT.some(a => a.t === 'img' && !a.hidden && (L => L && L.u >= 0 && L.v >= 0 && L.u <= L.w && L.v <= L.h)(imgLocal(a, p))) }; eraseAt(ped.drag, p); return; }
   if (ped.tool === 'brush') {
     pushUndo(); // dans une zone : la zone devient « posée à la main » ; hors zone : groupe « Mobilier libre »
     ped.drag = { k:'brush', g:brushZone(p), anchor:null, changed:false, touched:new Set() }; brushAt(ped.drag, p, e); return;
@@ -3137,7 +3173,8 @@ $('pedSvg').addEventListener('pointerup', () => {
     if (multiOn()) $('pedInfo').textContent = `${ped.multi.gs.length + ped.multi.as.length} sélectionnés — ⌥ + glisser : dupliquer · Suppr. : supprimer`; return; }
   if (d.k === 'moveM') { if (d.undo) { syncPos(); drawCotes(); } pedDraw(); return; }
   if (d.k === 'icob') { pedDraw(); return; }
-  if (d.k === 'erase') { if (!d.n) undoStack.pop(); for (const g of d.touched) { const r = g.userData.resto; if (!r.poly.length && !r.items.length) props.remove(g); else setResto(g, r); }
+  if (d.k === 'erase') { if (d.pix.size) setTimeout(() => eraseImgsEnd(d), 150); // laisse finir le chargement des images
+    if (!d.n && !d.pix.size) undoStack.pop(); for (const g of d.touched) { const r = g.userData.resto; if (!r.poly.length && !r.items.length) props.remove(g); else setResto(g, r); }
     if (d.n) { pedSelect(null); drawCotes(); } pedDraw(); return; }
   if (d.k === 'brush') {
     if (d.changed) { for (const g of d.touched) { const r = g.userData.resto; if (!r.poly.length && !r.items.length) props.remove(g); else setResto(g, r); } drawCotes(); }
@@ -3462,14 +3499,15 @@ function pedSide() {
   }
   if (ped.tool === 'erase') {
     const E = ped.er;
-    el.innerHTML = `<h3>Gomme</h3><p class="e2note">Clique ou passe sur ce qu'il faut effacer. Les zones et les images s'effacent en passant sur leur bord ; une image verrouillée ne s'efface pas. Un trait de gomme = un seul ⌘Z.</p>
+    el.innerHTML = `<h3>Gomme</h3><p class="e2note">Clique ou passe sur ce qu'il faut effacer. Les zones s'effacent en passant sur leur bord. Dans une image importée (même verrouillée), la gomme efface les pixels : le plan réapparaît dessous ; un trait commencé sur une image ne gomme que l'image. Un trait de gomme = un seul ⌘Z.</p>
       <label class="pedl">Taille : <b id="erRv">${fr(E.rad * 2, 1)} m</b><input id="erR" type="range" min="0.1" max="3" step="0.1" value="${E.rad}"></label>
-      <label class="cb"><input type="checkbox" id="erA"${E.annot ? ' checked' : ''}> Textes, flèches, cotes, zones, pictos, images</label>
+      <label class="cb" title="Les pixels gommés deviennent transparents (le plan réapparaît dessous) ; marche aussi sur une image verrouillée"><input type="checkbox" id="erP"${E.pix ? ' checked' : ''}> Gommer dans les images importées</label>
+      <label class="cb"><input type="checkbox" id="erA"${E.annot ? ' checked' : ''}> Textes, flèches, cotes, zones, pictos${E.pix ? '' : ', images entières'}</label>
       <label class="cb"><input type="checkbox" id="erI"${E.items ? ' checked' : ''}> Tables et chaises (restauration, bureaux)</label>
       <label class="cb"><input type="checkbox" id="erM"${E.mat ? ' checked' : ''}> Matériel (scènes, enceintes, barrières, potelets…)</label>
       <p class="e2note">V ou Échap : retour à la sélection.</p>`;
     $('erR').oninput = () => { E.rad = +$('erR').value; $('erRv').textContent = `${fr(E.rad * 2, 1)} m`; };
-    $('erA').onchange = () => E.annot = $('erA').checked; $('erI').onchange = () => E.items = $('erI').checked; $('erM').onchange = () => E.mat = $('erM').checked;
+    $('erP').onchange = () => { E.pix = $('erP').checked; pedSide(); }; $('erA').onchange = () => E.annot = $('erA').checked; $('erI').onchange = () => E.items = $('erI').checked; $('erM').onchange = () => E.mat = $('erM').checked;
     return;
   }
   if (ped.tool === 'brush') {
