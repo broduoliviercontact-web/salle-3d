@@ -1812,6 +1812,7 @@ $('dup').onclick = () => { if (selected) pushUndo();
   if (selected.userData.resto) setResto(c, structuredClone(selected.userData.resto));
   if (selected.userData.col) setPropCol(c, selected.userData.col);
   if (selected.userData.cat) c.userData.cat = selected.userData.cat;
+  if (selected.userData.label) setPropLabel(c, selected.userData.label);
   if (!c.parent) selected.parent.add(c);
   c.position.copy(selected.position).add(new THREE.Vector3(1, 0, 1)); c.rotation.copy(selected.rotation); select(c);
   if (stockOver().length) { const msg = stockOver().join('\n'); $('undo').click(); alert('Stock dépassé, copie annulée :\n' + msg); return; }
@@ -1950,7 +1951,7 @@ function snapshot() {
   const view = { cam:camera.position.toArray(), target:orbit.target.toArray(), hidden,
     env:[...document.querySelectorAll('[data-env]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.env),
     cut:{ axis:$('cutAxis').value, flip:$('cutFlip').checked, value:+$('cut').value } };
-  return { salle, annot:ANNOT, cats:CATS, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom, sid:g.userData.sid, asd:g.userData.asd, resto:g.userData.resto, col:g.userData.col, cat:g.userData.cat })), moved, view };
+  return { salle, annot:ANNOT, cats:CATS, dmxMap:DMXMAP, conduite:CUES, props:props.children.map(g => ({ kind:g.userData.kind, dims:g.userData.dims, ...T(g), trap:g.userData.trap, power:g.userData.power, grp:g.userData.grp, auto:g.userData.auto, top:g.userData.top, patch:g.userData.patch, dmx:g.userData.dmx, gc:g.userData.gc, aim:g.userData.aim, zoom:g.userData.zoom, sid:g.userData.sid, asd:g.userData.asd, resto:g.userData.resto, col:g.userData.col, cat:g.userData.cat, label:g.userData.label })), moved, view };
 }
 function restore(cfg) {
   select(null); props.clear();
@@ -1960,7 +1961,7 @@ function restore(cfg) {
   CATS = cleanCats(cfg.cats);
   DMXMAP = cfg.dmxMap && typeof cfg.dmxMap === 'object' ? JSON.parse(JSON.stringify(cfg.dmxMap)) : {};
   const known = new Set([...Object.keys(BUILD), ...Object.keys(DEFAULT), ...Object.keys(LABELS), ...Object.keys(COLORS)]); // setup venu d'un lien ou d'un fichier : valeurs bornées (js/calc.js)
-  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); if (x.kind === 'resto') setResto(g, cleanResto(x.resto)); if (isHex(x.col)) setPropCol(g, x.col); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); if (x.cat && CATS.some(c => c.id === x.cat)) g.userData.cat = String(x.cat); });
+  (Array.isArray(cfg.props) ? cfg.props : []).slice(0, LIMITS.props).map(x => cleanProp(x, known, DEFAULT)).filter(Boolean).forEach(x => { const g = makeProp(x.kind, x.dims); if (x.kind === 'resto') setResto(g, cleanResto(x.resto)); if (isHex(x.col)) setPropCol(g, x.col); g.position.fromArray(x.p); g.rotation.fromArray(x.r); if (x.trap) g.userData.trap = +x.trap; if (Number.isFinite(+x.power) && x.power !== null) g.userData.power = Math.min(1e6, Math.max(0, +x.power)); if (x.grp) g.userData.grp = String(x.grp); if (x.auto) g.userData.auto = true; if (Number.isFinite(x.top)) g.userData.top = x.top; if (x.patch) g.userData.patch = { box:String(x.patch.box || ''), c:Math.max(0, Math.round(+x.patch.c) || 0) }; if (x.gc) g.userData.gc = true; if (Array.isArray(x.aim) && x.aim.length >= 2 && x.aim.every(Number.isFinite)) g.userData.aim = x.aim.slice(0, 3).map(Number); if (Number.isFinite(x.zoom)) g.userData.zoom = +x.zoom; if (x.sid) g.userData.sid = String(x.sid).slice(0, 40); if (x.asd && PRAT_KINDS.has(x.kind) && validAsd(x.asd)) asdify(g, x.asd); if (x.dmx) g.userData.dmx = cleanDmx(x.dmx); if (x.cat && CATS.some(c => c.id === x.cat)) g.userData.cat = String(x.cat); if (x.label) setPropLabel(g, x.label); });
   (Array.isArray(cfg.moved) ? cfg.moved : []).slice(0, LIMITS.props).forEach(x => { const o = Array.isArray(x?.path) && byPath(x.path), p = cleanVec3(x?.p), r = cleanVec3(x?.r, 2 * Math.PI); if (o && p && r) { o.position.fromArray(p); o.rotation.fromArray(r); } });
   const v = cfg.view && cleanVec3(cfg.view.cam) && cleanVec3(cfg.view.target) ? cfg.view : null; setSalle(cfg.salle === 'audi' ? 'audi' : 'agora', !v); if (!v) return; // anciens setups : pas de vue enregistrée
   camera.position.fromArray(cleanVec3(v.cam)); orbit.target.fromArray(cleanVec3(v.target)); goal = null;
@@ -2278,6 +2279,8 @@ function viewExtent() {
   const r = [[Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1]))], [Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))]];
   return r[1][0] - r[0][0] < 2 || r[1][1] - r[0][1] < 2 ? null : r;
 }
+// nom choisi par l'utilisateur pour un élément, affiché sur le plan 2D et les exports ; vide : nom du catalogue
+function setPropLabel(g, v) { const t = String(v ?? '').trim().slice(0, 80); if (t) g.userData.label = t; else delete g.userData.label; }
 // --- catégories de légende : objets rangés par l'utilisateur, regroupés dans la légende, repère (lettre) sur le plan ---
 const catOf = id => id ? CATS.find(c => c.id === id) || null : null;
 // ranger une sélection : toute la ligne / tout le groupe lié suit, avec les cotes de la ligne
@@ -2357,7 +2360,7 @@ function drawItem(out, { g, w, d, poly, front }, o = PLAN_DEF, legend = new Map(
   }
   if (!o.labels || ['vauban', 'heras', 'plot_heras', 'defender_c', 'tcorner30', 'tcorner40', 'hoist'].includes(g.userData.kind)) return; // une étiquette par barrière / angle surchargerait le plan : la légende les compte
   const [cx, cy] = toPlan(g, 0, 0), fs = f(Math.min(0.4, Math.max(0.18, Math.min(w, d) / 3)));
-  out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${fs}" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="${f(fs / 5)}" paint-order="stroke"><tspan x="${f(cx)}" dy="0" font-weight="bold">${esc(g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w} × ${d} m</tspan></text>`);
+  out.push(`<text x="${f(cx)}" y="${f(cy)}" font-size="${fs}" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="${f(fs / 5)}" paint-order="stroke"><tspan x="${f(cx)}" dy="0" font-weight="bold">${esc(g.userData.label || g.name)}</tspan><tspan x="${f(cx)}" dy="${f(fs * 1.2)}" font-size="${f(fs * 0.8)}">${w} × ${d} m</tspan></text>`);
 }
 let planMeta = null; // dimensions du dernier plan produit (pour le menu d'export)
 async function planSvg(opts = false) {
@@ -3112,7 +3115,7 @@ $('pedSvg').addEventListener('pointerdown', e => {
     pedDraw(); pedSelect({ g:c }); ped.drag = { k:'moveG', g:c, p0:p, orig:c.position.clone(), h:c.position.y - floorAt(c.position), undo:true, carried:null };
     $('pedInfo').textContent = 'Copie : glisse pour la placer'; return; }
   if (a) { pedSelect({ a }); ped.drag = { k:'moveA', a, p0:p, orig:a.p.map(q => [...q]), undo:false }; return; }
-  if (g?.userData.resto && ped.lastDown?.g === g && performance.now() - ped.lastDown.t < 450) setTimeout(() => { const n = $('rsName'); if (n) { n.focus(); n.select(); } }, 80); // double-clic sur une zone : renommer
+  if (g && ped.lastDown?.g === g && performance.now() - ped.lastDown.t < 450) setTimeout(() => { const n = $('rsName') || $('pgName'); if (n) { n.focus(); n.select(); } }, 80); // double-clic sur une zone ou un élément : renommer
   if (g) ped.lastDown = { g, t:performance.now() };
   if (g) { pedSelect({ g }); ped.drag = { k:'moveG', g, p0:p, orig:g.position.clone(), h:g.position.y - floorAt(g.position), undo:false, carried:null }; return; }
   // fond : rectangle de sélection (déplacer la vue : Espace ou clic droit + glisser, molette, flèches)
@@ -3568,6 +3571,7 @@ function pedSide() {
   if (s.g) {
     const g = s.g, [X, Y] = toDwg([g.position.x, g.position.z]);
     el.innerHTML = `<h3>${esc(g.userData.resto ? (g.userData.resto.kind === 'bureau' ? (g.userData.resto.poly.length ? 'Zone de bureaux' : 'Mobilier de bureau') : g.userData.resto.poly.length ? LABELS.resto : 'Mobilier libre') : LABELS[g.userData.kind] || g.userData.kind)}</h3><p>${esc(g.name)}</p>
+      ${g.userData.resto ? '' : `<label class="pedl" title="Nom affiché sur le plan 2D et les exports ; vide : nom du catalogue">Nom<input id="pgName" maxlength="80" value="${esc(g.userData.label || '')}" placeholder="${esc(g.userData.label ? '' : g.name)}"></label>`}
       <div class="row"><label>X <input id="pedX" type="number" step="0.1" value="${+X.toFixed(2)}"></label><label>Y <input id="pedY" type="number" step="0.1" value="${+Y.toFixed(2)}"></label></div>
       <div class="row"><label>Cap <input id="pedA" type="number" step="5" value="${capOf(g)}"> °</label><button id="pedR1" title="R">↻ 15°</button><button id="pedR2" title="Maj+R">↺ 15°</button></div>
       ${pedAxes(g) ? `<h3>Taille</h3><div class="row"><label>L <input id="pedW" type="number" step="0.5" min="0.5" value="${+g.userData.dims[0].toFixed(2)}"></label>${pedAxes(g).d ? `<label>P <input id="pedD" type="number" step="0.5" min="0.5" value="${+g.userData.dims[1].toFixed(2)}"></label><label>H <input id="pedH" type="number" step="0.1" min="0.1" value="${+g.userData.dims[2].toFixed(2)}"></label>` : ''}</div>
@@ -3583,6 +3587,7 @@ function pedSide() {
     for (const id of ['pedW', 'pedD', 'pedH']) if ($(id)) $(id).onchange = () => pedResize(g, [+$('pedW').value || g.userData.dims[0], +($('pedD')?.value || g.userData.dims[1]), +($('pedH')?.value || g.userData.dims[2])]);
     $('pedR1').onclick = () => pedRotate(g, 15); $('pedR2').onclick = () => pedRotate(g, -15);
     if (g.userData.resto) bindRestoPanel(g);
+    if ($('pgName')) $('pgName').onchange = () => { pushUndo(); setPropLabel(g, $('pgName').value); pedDraw(); pedSide(); $('pedInfo').textContent = g.userData.label ? `Renommé « ${g.userData.label} »` : 'Nom du catalogue rétabli'; };
     bindCatRow([g], []);
     document.querySelectorAll('#pgCols [data-c]').forEach(b => b.onclick = () => { pushUndo(); // couleur de l'élément (vide : d'origine, l'élément est reconstruit)
       if (b.dataset.c) setPropCol(g, b.dataset.c); else { delete g.userData.col; const n = rebuildProp(g, g.userData.dims); ped.sel = { g:n }; }
