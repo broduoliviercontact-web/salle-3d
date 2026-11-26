@@ -38,7 +38,7 @@
   <div class="row"><button id="percheBtn" class="grow" title="Perches parallèles au nez de la dernière scène posée (sinon au centre de la vue), numérotées du nez vers le lointain">Perches en série</button></div>
   <div class="row"><input type="number" id="percheN" value="8" min="1" max="60" style="width:44px"> perches de <input type="number" id="percheL" value="12" step="0.5" style="width:48px"> m, tous les <input type="number" id="percheE" value="0.5" step="0.05" min="0.15" style="width:50px"> m</div>
   <div class="row">à <input type="number" id="percheH" value="6" step="0.5" style="width:48px"> m · gril à <input type="number" id="percheG" value="12" step="0.5" style="width:48px"> m · max <input type="number" id="percheCap" value="250" step="50" style="width:56px"> kg</div>
-  <div class="row" data-salle="agora"><button id="fipBtn" class="grow" title="Cercle de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4">FIP 360</button>Ø <input type="number" id="fipD" value="20" step="1" min="12" max="25"> m</div>
+  <div class="row" data-salle="agora"><button id="fipBtn" class="grow" title="Cercle ou ovale de 12 Syva + Syva Low sur estrades, 8 KS28 aux points cardinaux, scène centrale 4 × 4. Longueur = le long de l'axe de l'Agora ; mêmes valeurs = cercle">FIP 360</button><input type="number" id="fipD" value="20" step="0.5" min="8" max="40" title="Longueur (le long de l'axe)" style="width:44px"> × <input type="number" id="fipW" value="20" step="0.5" min="8" max="40" title="Largeur" style="width:44px"> m</div>
   <div id="charges" style="font-size:11px;opacity:.8"></div>
 
   <h2 data-salle="audi" hidden>Conduite machinerie</h2>
@@ -445,18 +445,23 @@ function placeMach() {
   select(g); frame(g); return [s, g];
 }
 // Système du concert 05/12, placé dans le repère de la scène du machiniste : x local = vers le public (+x), z local = « X » de la fiche
-// FIP 360 : 12 colonnes tous les 30° tournées vers le centre, 2 KS28 empilés à chaque point cardinal (à l'extérieur du cercle), scène 4 × 4 au centre.
+// FIP 360 : 12 colonnes réparties à égale distance sur un cercle ou un ovale (ellipse L × l), tournées vers le centre, 2 KS28 empilés à chaque point cardinal (à l'extérieur du cercle), scène 4 × 4 au centre.
 // Centre par défaut : sur l'axe de l'Agora, entre les piliers M3/M4 ; tout l'ensemble se déplace en attrapant la scène centrale.
 $('fipBtn').onclick = () => {
   pushUndo();
-  const R = THREE.MathUtils.clamp(+$('fipD').value || 20, 12, 25) / 2, c = new THREE.Vector3(50, 0, AXE_AGORA); c.y = floorAt(c);
+  const len = id => THREE.MathUtils.clamp(+$(id).value || 20, 8, 40), A = len('fipD') / 2, B = len('fipW') / 2; // demi-axes : A le long de l'axe (x), B en travers (z)
+  const c = new THREE.Vector3(50, 0, AXE_AGORA); c.y = floorAt(c);
   const grp = 'FIP 360 #' + Date.now().toString(36); // tous les éléments liés : en attraper un déplace l'ensemble
-  const put = (kind, dims, a, r) => { const o = makeProp(kind, dims); o.userData.grp = grp; o.position.set(c.x + r * Math.cos(a), 0, c.z - r * Math.sin(a)); o.position.y = floorAt(o.position); o.rotation.y = Math.atan2(-Math.cos(a), Math.sin(a)); return o; };
-  for (let i = 0; i < 12; i++) put('syva', DEFAULT.syva, i * Math.PI / 6, R);
-  for (let i = 0; i < 4; i++) put('ks28x2', DEFAULT.ks28x2, i * Math.PI / 2, R + 1.2);
-  const s = makeProp('scene_fip', [4, 4, 1, R]); s.userData.grp = grp; s.position.copy(c); select(s);
-  orbit.target.copy(c); camera.position.copy(c).add(new THREE.Vector3(0.6, 0.45, 0.7).multiplyScalar(R * 3.2)); goal = null; // tout le cercle dans la vue
-  $('charges').textContent = charges() + ` · cercle Ø ${2 * R} m, zone public ≈ ${Math.round(Math.PI * R * R - 16)} m²`;
+  const put = (kind, dims, x, z) => { const o = makeProp(kind, dims); o.userData.grp = grp; o.position.set(c.x + x, 0, c.z - z); o.position.y = floorAt(o.position); o.rotation.y = Math.atan2(-x, z); return o; }; // face avant tournée vers le centre
+  // 12 colonnes à égale distance le long du périmètre (sur un ovale, des angles égaux les serreraient aux bouts) ; t = 0 au bout de l'axe
+  const N = 2400, cum = [0]; for (let k = 1; k <= N; k++) { const t0 = (k - 1) / N * 2 * Math.PI, t1 = k / N * 2 * Math.PI; cum.push(cum[k - 1] + Math.hypot(A * (Math.cos(t1) - Math.cos(t0)), B * (Math.sin(t1) - Math.sin(t0)))); }
+  const P = cum[N]; let k = 0;
+  for (let i = 0; i < 12; i++) { while (cum[k + 1] < i * P / 12) k++; const t = (k + (i * P / 12 - cum[k]) / (cum[k + 1] - cum[k] || 1)) / N * 2 * Math.PI; put('syva', DEFAULT.syva, A * Math.cos(t), B * Math.sin(t)); }
+  for (const [x, z] of [[A + 1.2, 0], [0, B + 1.2], [-A - 1.2, 0], [0, -B - 1.2]]) put('ks28x2', DEFAULT.ks28x2, x, z);
+  const s = makeProp('scene_fip', [4, 4, 1, A, B]); s.userData.grp = grp; s.position.copy(c); select(s);
+  orbit.target.copy(c); camera.position.copy(c).add(new THREE.Vector3(0.6, 0.45, 0.7).multiplyScalar(Math.max(A, B) * 3.2)); goal = null; // tout l'ensemble dans la vue
+  const ecart = (P / 12).toFixed(2).replace('.', ',');
+  $('charges').textContent = charges() + (A === B ? ` · cercle Ø ${2 * A} m` : ` · ovale ${2 * A} × ${2 * B} m`) + `, colonnes tous les ${ecart} m (périmètre ${Math.round(P)} m), zone public ≈ ${Math.round(Math.PI * A * B - 16)} m²`;
 };
 $('concertBtn').onclick = async () => {
   await machReady; if (!MACH) return alert('machiniste.json introuvable');
@@ -1535,7 +1540,7 @@ const RESIZABLE = new Set(['issue', 'public_theatre', 'public_cabaret', 'public_
 function resizeSelected() {
   const o = selected; if (!o || !RESIZABLE.has(o.userData.kind)) return;
   const v = (id, min, max) => THREE.MathUtils.clamp(+$(id).value || min, min, max), half = x => Math.max(0.5, Math.round(x * 2) / 2);
-  let dims = [v('sW', 0.5, 60), v('sD', 0.5, 60), v('sH', 0.1, 10), ...o.userData.dims.slice(3)]; // dims[3] : rayon du cercle FIP 360
+  let dims = [v('sW', 0.5, 60), v('sD', 0.5, 60), v('sH', 0.1, 10), ...o.userData.dims.slice(3)]; // dims[3], dims[4] : demi-axes du cercle / de l'ovale FIP 360
   if (o.userData.kind === 'led') dims = [half(dims[0]), 0.1, half(dims[2])];
   if (o.userData.kind === 'defender') dims = [Math.max(1, Math.round(dims[0] / MOD)) * MOD, 0.29, 0.05]; // longueur arrondie au module
   if (TRUSS[o.userData.kind]) { const S = TRUSS[o.userData.kind].S; dims = [Math.max(0.5, Math.round(dims[0] * 2) / 2), S, S]; } // ponts : longueurs au 0,5 m
